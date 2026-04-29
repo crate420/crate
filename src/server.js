@@ -1,3 +1,5 @@
+require("./db/migrate");
+
 const { createApp } = require("./app");
 const config = require("./config");
 
