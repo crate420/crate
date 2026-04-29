@@ -1,4 +1,4 @@
-require("./db/migrate");
+require("./db/migrate.js");
 
 const { createApp } = require("./app");
 const config = require("./config");
