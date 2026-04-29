@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Crate Admin Playlists</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      color: #222;
+    }
+
+    button,
+    select {
+      font: inherit;
+    }
+
+    button {
+      cursor: pointer;
+      margin: 2px;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 260px 1fr;
+      gap: 20px;
+      align-items: start;
+    }
+
+    .playlist-button {
+      display: flex;
+      justify-content: space-between;
+      width: 100%;
+      padding: 8px;
+      text-align: left;
+      background: #fff;
+      border: 1px solid #ccc;
+    }
+
+    .playlist-button.active {
+      background: #eef4ff;
+      border-color: #3366cc;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th,
+    td {
+      border-bottom: 1px solid #ddd;
+      padding: 6px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background: #f5f5f5;
+    }
+
+    .muted {
+      color: #666;
+      font-size: 13px;
+    }
+
+    .status {
+      min-height: 20px;
+      margin: 10px 0;
+    }
+
+    .error {
+      color: #a00;
+    }
+
+    .ok {
+      color: #176b20;
+    }
+  </style>
+</head>
+<body>
+  <h1>Crate Admin Playlists</h1>
+
+  <p class="status" id="status"></p>
+
+  <p>
+    <button id="refreshButton" type="button">Refresh</button>
+    <button id="syncButton" type="button">Re-sync Playlists</button>
+  </p>
+
+  <div class="layout">
+    <section>
+      <h2>Playlists</h2>
+      <div id="playlistList"></div>
+    </section>
+
+    <section>
+      <h2 id="trackHeading">Tracks</h2>
+      <div id="trackList" class="muted">Select a playlist.</div>
+    </section>
+  </div>
+
+  <script>
+    const state = {
+      playlists: [],
+      currentPlaylistCode: null,
+    };
+
+    const playlistList = document.getElementById("playlistList");
+    const trackHeading = document.getElementById("trackHeading");
+    const trackList = document.getElementById("trackList");
+    const refreshButton = document.getElementById("refreshButton");
+    const syncButton = document.getElementById("syncButton");
+    const statusEl = document.getElementById("status");
+
+    function setStatus(message, type) {
+      statusEl.textContent = message || "";
+      statusEl.className = `status ${type || ""}`;
+    }
+
+    async function requestJson(url, options) {
+      const response = await fetch(url, {
+        credentials: "same-origin",
+        ...options,
+        headers: {
+          "Content-Type": "application/json",
+          ...(options && options.headers ? options.headers : {}),
+        },
+      });
+      const text = await response.text();
+      const body = text ? JSON.parse(text) : {};
+
+      if (!response.ok) {
+        throw new Error(body.message || body.error || `Request failed: ${response.status}`);
+      }
+
+      return body;
+    }
+
+    function renderPlaylists() {
+      playlistList.innerHTML = "";
+
+      for (const playlist of state.playlists) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "playlist-button";
+        if (playlist.playlist_code === state.currentPlaylistCode) {
+          button.classList.add("active");
+        }
+        button.innerHTML = `
+          <span>${playlist.display_name}</span>
+          <strong>${playlist.track_count}</strong>
+        `;
+        button.addEventListener("click", () => loadTracks(playlist.playlist_code));
+        playlistList.appendChild(button);
+      }
+    }
+
+    function playlistOptions(selectedCode) {
+      return state.playlists.map((playlist) => {
+        const selected = playlist.playlist_code === selectedCode ? " selected" : "";
+        return `<option value="${playlist.playlist_code}"${selected}>${playlist.display_name}</option>`;
+      }).join("");
+    }
+
+    function renderTracks(payload) {
+      trackHeading.textContent = `${payload.display_name} (${payload.tracks.length})`;
+
+      if (payload.tracks.length === 0) {
+        trackList.innerHTML = "<p class=\"muted\">No tracks in this playlist.</p>";
+        return;
+      }
+
+      trackList.innerHTML = `
+        <table>
+          <thead>
+            <tr>
+              <th>Track</th>
+              <th>Artist</th>
+              <th>Current</th>
+              <th>Override</th>
+              <th>Change</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${payload.tracks.map((track) => `
+              <tr data-track-id="${track.track_id}">
+                <td>
+                  ${track.title}
+                  <div class="muted">ID ${track.track_id}</div>
+                </td>
+                <td>${track.artist_names.join(", ")}</td>
+                <td>${track.current_playlist_code}</td>
+                <td>${track.override_exists ? track.override_playlist_code : ""}</td>
+                <td>
+                  <select>${playlistOptions(track.current_playlist_code)}</select>
+                  <button type="button" data-action="save">Save</button>
+                </td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      `;
+
+      trackList.querySelectorAll("[data-action='save']").forEach((button) => {
+        button.addEventListener("click", async (event) => {
+          const row = event.target.closest("tr");
+          const trackId = Number(row.dataset.trackId);
+          const playlistCode = row.querySelector("select").value;
+          await saveOverride(trackId, playlistCode);
+        });
+      });
+    }
+
+    async function loadOverview() {
+      setStatus("Loading playlists...");
+      const payload = await requestJson("/crate/admin/playlists.json");
+      state.playlists = payload.playlists;
+      renderPlaylists();
+      setStatus("");
+    }
+
+    async function loadTracks(playlistCode) {
+      state.currentPlaylistCode = playlistCode;
+      renderPlaylists();
+      setStatus("Loading tracks...");
+      const payload = await requestJson(`/crate/admin/playlists/${encodeURIComponent(playlistCode)}/tracks`);
+      renderTracks(payload);
+      setStatus("");
+    }
+
+    async function saveOverride(trackId, playlistCode) {
+      setStatus(`Saving override for track ${trackId}...`);
+      await requestJson("/crate/track/override", {
+        method: "POST",
+        body: JSON.stringify({
+          track_id: trackId,
+          playlist_code: playlistCode,
+        }),
+      });
+      await loadOverview();
+      await loadTracks(state.currentPlaylistCode || playlistCode);
+      setStatus("Override saved.", "ok");
+    }
+
+    async function refreshCurrentView() {
+      await loadOverview();
+      if (state.currentPlaylistCode) {
+        await loadTracks(state.currentPlaylistCode);
+      }
+    }
+
+    async function syncPlaylists() {
+      setStatus("Syncing Spotify playlists...");
+      const result = await requestJson("/crate/playlists/sync", { method: "POST" });
+      await refreshCurrentView();
+      setStatus(
+        `Sync complete. Added ${result.tracks_added || 0}, removed ${result.tracks_removed || 0}, skipped ${result.duplicates_skipped || 0}.`,
+        "ok",
+      );
+    }
+
+    refreshButton.addEventListener("click", () => {
+      refreshCurrentView().catch((error) => setStatus(error.message, "error"));
+    });
+
+    syncButton.addEventListener("click", () => {
+      syncPlaylists().catch((error) => setStatus(error.message, "error"));
+    });
+
+    loadOverview().catch((error) => setStatus(error.message, "error"));
+  </script>
+</body>
+</html>

@@ -1,0 +1,384 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Crate Admin Review</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --border: #d7dde5;
+        --muted: #657080;
+        --text: #17202a;
+        --bg: #f6f8fb;
+        --panel: #ffffff;
+        --action: #1769aa;
+        --danger: #a23a3a;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        font-size: 14px;
+      }
+
+      main {
+        max-width: 1280px;
+        margin: 0 auto;
+        padding: 24px;
+      }
+
+      header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 16px;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 24px;
+        line-height: 1.2;
+      }
+
+      .summary {
+        color: var(--muted);
+      }
+
+      .toolbar {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      button {
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        background: #fff;
+        color: var(--text);
+        cursor: pointer;
+        font: inherit;
+        min-height: 34px;
+        padding: 6px 10px;
+      }
+
+      button.primary {
+        background: var(--action);
+        border-color: var(--action);
+        color: #fff;
+      }
+
+      button.danger {
+        color: var(--danger);
+      }
+
+      button:disabled {
+        cursor: not-allowed;
+        opacity: 0.55;
+      }
+
+      .message {
+        min-height: 22px;
+        color: var(--muted);
+        margin-bottom: 12px;
+      }
+
+      .queue {
+        display: grid;
+        gap: 10px;
+      }
+
+      .row {
+        display: grid;
+        grid-template-columns: minmax(180px, 1.2fr) 80px minmax(180px, 1.2fr) minmax(180px, 1fr) minmax(220px, 1.4fr) 90px minmax(220px, 1.2fr) 150px;
+        gap: 10px;
+        align-items: start;
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 12px;
+      }
+
+      .head {
+        background: transparent;
+        border: 0;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 700;
+        padding-bottom: 0;
+        text-transform: uppercase;
+      }
+
+      .artist {
+        font-weight: 700;
+      }
+
+      .muted {
+        color: var(--muted);
+      }
+
+      .tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+      }
+
+      .tag {
+        background: #eef2f7;
+        border: 1px solid #dde5ee;
+        border-radius: 999px;
+        color: #334155;
+        font-size: 12px;
+        padding: 2px 7px;
+      }
+
+      input {
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        font: inherit;
+        min-height: 34px;
+        padding: 6px 8px;
+        width: 100%;
+      }
+
+      .actions {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      @media (max-width: 980px) {
+        .row {
+          grid-template-columns: 1fr;
+        }
+
+        .head {
+          display: none;
+        }
+
+        header {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <div>
+          <h1>Crate Admin Review</h1>
+          <div class="summary" id="summary">Loading queue...</div>
+        </div>
+        <div class="toolbar">
+          <button id="refreshButton" type="button">Refresh</button>
+        </div>
+      </header>
+
+      <div class="message" id="message"></div>
+
+      <section class="queue" id="queue">
+        <div class="row head">
+          <div>Artist</div>
+          <div>Tracks</div>
+          <div>Sample Track</div>
+          <div>Suggested Genres</div>
+          <div>Suggested Tags</div>
+          <div>Status</div>
+          <div>Genres</div>
+          <div>Actions</div>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      const queueEl = document.getElementById("queue");
+      const messageEl = document.getElementById("message");
+      const summaryEl = document.getElementById("summary");
+      const refreshButton = document.getElementById("refreshButton");
+
+      function setMessage(text) {
+        messageEl.textContent = text || "";
+      }
+
+      function tagList(values) {
+        const wrapper = document.createElement("div");
+        wrapper.className = "tags";
+
+        if (!values || values.length === 0) {
+          const empty = document.createElement("span");
+          empty.className = "muted";
+          empty.textContent = "None";
+          wrapper.appendChild(empty);
+          return wrapper;
+        }
+
+        for (const value of values.slice(0, 8)) {
+          const tag = document.createElement("span");
+          tag.className = "tag";
+          tag.textContent = value;
+          wrapper.appendChild(tag);
+        }
+
+        return wrapper;
+      }
+
+      function rowLabel(label, value) {
+        const wrapper = document.createElement("div");
+        const labelEl = document.createElement("div");
+        labelEl.className = "muted";
+        labelEl.textContent = label;
+        const valueEl = document.createElement("div");
+        valueEl.textContent = value || "";
+        wrapper.append(labelEl, valueEl);
+        return wrapper;
+      }
+
+      async function requestJson(url, options = {}) {
+        const response = await fetch(url, {
+          headers: {
+            "Content-Type": "application/json",
+            ...(options.headers || {}),
+          },
+          ...options,
+        });
+        const body = await response.json().catch(() => ({}));
+
+        if (!response.ok) {
+          throw new Error(body.message || body.error || `Request failed: ${response.status}`);
+        }
+
+        return body;
+      }
+
+      function createArtistRow(artist) {
+        const row = document.createElement("div");
+        row.className = "row";
+
+        const artistCell = document.createElement("div");
+        artistCell.className = "artist";
+        artistCell.textContent = artist.artist_name;
+
+        const countCell = document.createElement("div");
+        countCell.textContent = artist.track_count;
+
+        const sampleCell = document.createElement("div");
+        sampleCell.textContent = artist.sample_track?.title || "";
+
+        const genresInput = document.createElement("input");
+        genresInput.value = (artist.suggested_genres || []).join(", ");
+        genresInput.placeholder = "rock, alternative";
+
+        const approveButton = document.createElement("button");
+        approveButton.className = "primary";
+        approveButton.type = "button";
+        approveButton.textContent = "Approve";
+        approveButton.addEventListener("click", async () => {
+          const genres = genresInput.value
+            .split(",")
+            .map((genre) => genre.trim())
+            .filter(Boolean);
+
+          if (genres.length === 0) {
+            setMessage(`Add at least one genre for ${artist.artist_name}.`);
+            return;
+          }
+
+          approveButton.disabled = true;
+          setMessage(`Approving ${artist.artist_name}...`);
+
+          try {
+            await requestJson("/crate/admin/review-queue/apply", {
+              method: "POST",
+              body: JSON.stringify({
+                artist_name: artist.artist_name,
+                genres,
+              }),
+            });
+            setMessage(`Approved ${artist.artist_name}.`);
+            await loadQueue();
+          } catch (err) {
+            setMessage(err.message);
+            approveButton.disabled = false;
+          }
+        });
+
+        const ignoreButton = document.createElement("button");
+        ignoreButton.className = "danger";
+        ignoreButton.type = "button";
+        ignoreButton.textContent = "Ignore";
+        ignoreButton.addEventListener("click", async () => {
+          ignoreButton.disabled = true;
+          setMessage(`Ignoring ${artist.artist_name}...`);
+
+          try {
+            await requestJson("/crate/admin/review-queue/ignore", {
+              method: "POST",
+              body: JSON.stringify({
+                artist_name: artist.artist_name,
+              }),
+            });
+            setMessage(`Ignored ${artist.artist_name}.`);
+            await loadQueue();
+          } catch (err) {
+            setMessage(err.message);
+            ignoreButton.disabled = false;
+          }
+        });
+
+        const actions = document.createElement("div");
+        actions.className = "actions";
+        actions.append(approveButton, ignoreButton);
+
+        row.append(
+          artistCell,
+          countCell,
+          sampleCell,
+          tagList(artist.suggested_genres),
+          tagList(artist.suggested_tags),
+          rowLabel("", artist.status),
+          genresInput,
+          actions,
+        );
+
+        return row;
+      }
+
+      async function loadQueue() {
+        refreshButton.disabled = true;
+        setMessage("Loading queue...");
+
+        try {
+          const result = await requestJson("/crate/admin/review-queue");
+          queueEl.replaceChildren();
+
+          const header = document.createElement("div");
+          header.className = "row head";
+          header.innerHTML = "<div>Artist</div><div>Tracks</div><div>Sample Track</div><div>Suggested Genres</div><div>Suggested Tags</div><div>Status</div><div>Genres</div><div>Actions</div>";
+          queueEl.appendChild(header);
+
+          for (const artist of result.artists) {
+            queueEl.appendChild(createArtistRow(artist));
+          }
+
+          summaryEl.textContent = `${result.count} artists need review`;
+          setMessage(result.count === 0 ? "Queue is empty." : "");
+        } catch (err) {
+          setMessage(err.message);
+        } finally {
+          refreshButton.disabled = false;
+        }
+      }
+
+      refreshButton.addEventListener("click", loadQueue);
+      loadQueue();
+    </script>
+  </body>
+</html>
