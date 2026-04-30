@@ -62,6 +62,58 @@ The included `render.yaml` captures the safe defaults for Node 20, startup, and 
 
 Use this one-time workflow to move trained local Crate data into Render without copying users, tokens, tracks, `user_tracks`, playlist IDs, or sync history.
 
+### Artist Genre Seed Only
+
+Use this smaller workflow when you only want to move the trained `artist_genres` fallback data into production.
+
+Export local artist genres:
+
+```bash
+npm run artist-genres:export
+```
+
+This writes:
+
+```txt
+data/artist-genres-seed.json
+```
+
+The export normalizes artist names with `trim().toLowerCase()` and includes only:
+
+- `artist_name`
+- `genre`
+- `source`
+- `created_at`
+
+It does not include users, tokens, tracks, `user_tracks`, playlist definitions, playlist sync history, Last.fm cache rows, or track overrides.
+
+After deploying the seed file to Render, sign in with the Spotify account configured as `ADMIN_SPOTIFY_USER_ID`, then import from the production browser console:
+
+```js
+fetch("/crate/admin/import-artist-genres", {
+  method: "POST",
+  credentials: "include"
+}).then((response) => response.json()).then(console.log);
+```
+
+The import is idempotent and safe to rerun:
+
+- New artist/genre rows are inserted with normalized artist names.
+- Existing rows are matched by `lower(trim(artist_name))` plus `genre`.
+- Existing production values are not overwritten unless the existing field is blank.
+- The response includes `inserted`, `skipped_existing`, `skipped_invalid`, and `updated` counts.
+
+If production tracks were already sorted before importing the seed, run the one-time admin resort endpoint afterward:
+
+```js
+fetch("/crate/admin/resort-all", {
+  method: "POST",
+  credentials: "include"
+}).then((response) => response.json()).then(console.log);
+```
+
+### Full Training Export
+
 The export includes only:
 
 - `artist_genres`

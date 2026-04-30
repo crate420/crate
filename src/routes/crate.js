@@ -16,6 +16,7 @@ const {
   getCuratedArtistSuggestion,
   getMissingArtistGenreSuggestions,
 } = require("../crate/artistGenreSuggestions");
+const { importArtistGenreSeed } = require("../crate/artistGenreSeedImport");
 const {
   applyLastfmArtistGenreSuggestion,
   applySafeLastfmArtistGenreSuggestionBatch,
@@ -171,6 +172,26 @@ router.post(
       if (err.statusCode) {
         return res.status(err.statusCode).json({
           error: err.code || "training_import_error",
+          message: err.message,
+        });
+      }
+
+      return next(err);
+    }
+  },
+);
+
+router.post(
+  "/admin/import-artist-genres",
+  requireCurrentUser,
+  requireAdminUser,
+  (req, res, next) => {
+    try {
+      return res.json(importArtistGenreSeed());
+    } catch (err) {
+      if (err.statusCode) {
+        return res.status(err.statusCode).json({
+          error: err.code || "artist_genre_import_error",
           message: err.message,
         });
       }

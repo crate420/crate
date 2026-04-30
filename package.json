@@ -9,6 +9,8 @@
     "dev": "node src/server.js",
     "migrate": "node src/db/migrate.js",
     "health": "node scripts/check-health.js",
+    "artist-genres:export": "node scripts/export-artist-genres-seed.js",
+    "artist-genres:import": "node scripts/import-artist-genres-seed.js",
     "training:export": "node scripts/export-training-data.js",
     "training:import": "node scripts/import-training-data.js"
   },
