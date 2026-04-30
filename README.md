@@ -121,6 +121,14 @@ OAuth state and the local user session are stored in signed, HTTP-only cookies. 
 
 ## Liked Songs Sync
 
+To quickly verify Spotify can return the logged-in user's Liked Songs without storing anything:
+
+```bash
+curl http://127.0.0.1:3000/crate/spotify/liked-songs
+```
+
+This returns the first page of track names, artist names, and albums from Spotify.
+
 After connecting Spotify, import the current user's Liked Songs:
 
 ```bash

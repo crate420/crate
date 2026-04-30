@@ -31,6 +31,7 @@ const { getUnmatchedGenreSummary } = require("../crate/unmatchedGenres");
 const { getUnmatchedTracks } = require("../crate/unmatchedTracks");
 const artistGenreRepo = require("../repositories/artistGenres");
 const runs = require("../repositories/runs");
+const spotifyTracks = require("../spotify/tracks");
 const { requireCurrentUser } = require("../utils/authSession");
 
 const router = express.Router();
@@ -104,6 +105,27 @@ router.post("/playlists/sync", requireCurrentUser, async (req, res, next) => {
       });
     }
 
+    return next(err);
+  }
+});
+
+router.get("/spotify/liked-songs", requireCurrentUser, async (req, res, next) => {
+  try {
+    const page = await spotifyTracks.getLikedTracksPage(req.currentUser.id, {
+      limit: 20,
+      offset: 0,
+    });
+
+    return res.json({
+      status: "ok",
+      count: page.items?.length || 0,
+      tracks: (page.items || []).map((item) => ({
+        track_name: item.track?.name || null,
+        artist_name: item.track?.artists?.map((artist) => artist.name).join(", ") || null,
+        album: item.track?.album?.name || null,
+      })),
+    });
+  } catch (err) {
     return next(err);
   }
 });

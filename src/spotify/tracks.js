@@ -13,6 +13,16 @@ async function getAllLikedTracks(userId) {
   return tracks;
 }
 
+async function getLikedTracksPage(userId, { limit = 20, offset = 0 } = {}) {
+  const params = new URLSearchParams({
+    limit: String(limit),
+    offset: String(offset),
+  });
+
+  return requestSpotify(userId, `/me/tracks?${params.toString()}`);
+}
+
 module.exports = {
   getAllLikedTracks,
+  getLikedTracksPage,
 };
