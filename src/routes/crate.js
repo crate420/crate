@@ -1,5 +1,6 @@
 const express = require("express");
 const path = require("node:path");
+const config = require("../config");
 const {
   getAdminPlaylistOverview,
   getAdminPlaylistTracks,
@@ -26,6 +27,7 @@ const { syncPlaylists } = require("../crate/syncPlaylists");
 const { syncLikedSongs } = require("../crate/syncLikedSongs");
 const { sortTracks } = require("../crate/sortTracks");
 const { applyTrackOverride, getTrackForReview } = require("../crate/trackOverrides");
+const { importTrainingData } = require("../crate/trainingImport");
 const { getUnmatchedDiagnostics } = require("../crate/unmatchedDiagnostics");
 const { getUnmatchedGenreSummary } = require("../crate/unmatchedGenres");
 const { getUnmatchedTracks } = require("../crate/unmatchedTracks");
@@ -35,6 +37,20 @@ const spotifyTracks = require("../spotify/tracks");
 const { requireCurrentUser } = require("../utils/authSession");
 
 const router = express.Router();
+
+function requireAdminUser(req, res, next) {
+  if (
+    !config.adminSpotifyUserId ||
+    req.currentUser.spotify_user_id !== config.adminSpotifyUserId
+  ) {
+    return res.status(403).json({
+      error: "forbidden",
+      message: "This route is restricted to the configured Crate admin.",
+    });
+  }
+
+  return next();
+}
 
 async function syncLikedHandler(req, res, next) {
   const run = runs.startRun(req.currentUser.id);
@@ -133,6 +149,26 @@ router.get("/spotify/liked-songs", requireCurrentUser, async (req, res, next) =>
 router.get("/admin/playlists", (req, res) => {
   return res.sendFile(path.join(__dirname, "../../public/admin-playlists.html"));
 });
+
+router.post(
+  "/admin/import-training",
+  requireCurrentUser,
+  requireAdminUser,
+  (req, res, next) => {
+    try {
+      return res.json(importTrainingData());
+    } catch (err) {
+      if (err.statusCode) {
+        return res.status(err.statusCode).json({
+          error: err.code || "training_import_error",
+          message: err.message,
+        });
+      }
+
+      return next(err);
+    }
+  },
+);
 
 router.get("/admin/playlists.json", requireCurrentUser, (req, res, next) => {
   try {

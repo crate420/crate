@@ -28,6 +28,7 @@ const config = {
   lastfm: {
     apiKey: process.env.LASTFM_API_KEY || "",
   },
+  adminSpotifyUserId: process.env.ADMIN_SPOTIFY_USER_ID || "",
   rootDir,
 };
 

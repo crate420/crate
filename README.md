@@ -28,6 +28,7 @@ SPOTIFY_CLIENT_SECRET=your-spotify-client-secret
 SPOTIFY_REDIRECT_URI=http://127.0.0.1:3000/auth/spotify/callback
 
 LASTFM_API_KEY=your-lastfm-api-key
+ADMIN_SPOTIFY_USER_ID=your-spotify-user-id
 ```
 
 `SESSION_SECRET` must be at least 32 characters.
@@ -100,6 +101,7 @@ On Render, make sure:
 
 ```txt
 DATABASE_PATH=/var/data/crate.sqlite
+ADMIN_SPOTIFY_USER_ID=your-spotify-user-id
 ```
 
 Safety notes:
@@ -109,6 +111,14 @@ Safety notes:
 - Track overrides are matched by `spotify_track_id`; missing production tracks are skipped.
 - The importer performs no deletes and does not touch production users, tokens, `user_tracks`, or Spotify playlist IDs.
 - Back up `/var/data/crate.sqlite` before importing.
+
+Render free tier does not provide shell access. For the one-time production import, deploy `data/training-export.json`, sign in with the configured admin Spotify account, then call:
+
+```bash
+curl -X POST https://crate-nhfe.onrender.com/crate/admin/import-training
+```
+
+The route requires an active Crate session cookie and only runs when the logged-in Spotify user ID matches `ADMIN_SPOTIFY_USER_ID`.
 
 ## Health Check
 
