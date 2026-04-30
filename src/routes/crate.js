@@ -66,6 +66,14 @@ async function syncLikedHandler(req, res, next) {
     return res.json({
       status: "ok",
       run_id: finishedRun.id,
+      synced: summary.seen,
+      inserted: summary.inserted,
+      updated: summary.updated,
+      skipped: summary.skipped,
+      user_tracks_inserted: summary.userTracksInserted,
+      user_tracks_updated: summary.userTracksUpdated,
+      total_stored_for_user: summary.totalStoredForUser,
+      errors: [],
       summary,
     });
   } catch (err) {
@@ -79,6 +87,7 @@ async function syncLikedHandler(req, res, next) {
 }
 
 router.post("/sync-liked", requireCurrentUser, syncLikedHandler);
+router.post("/sync-liked-songs", requireCurrentUser, syncLikedHandler);
 
 if (process.env.NODE_ENV !== "production") {
   router.get("/sync-liked", requireCurrentUser, syncLikedHandler);

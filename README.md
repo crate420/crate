@@ -195,7 +195,7 @@ This returns the first page of track names, artist names, and albums from Spotif
 After connecting Spotify, import the current user's Liked Songs:
 
 ```bash
-curl -X POST http://127.0.0.1:3000/crate/sync-liked
+curl -X POST http://127.0.0.1:3000/crate/sync-liked-songs
 ```
 
 When called from a browser or API client that has the Crate session cookie, this route:
