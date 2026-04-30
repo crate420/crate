@@ -1,7 +1,8 @@
-require("./db/migrate.js");
-
 const { createApp } = require("./app");
 const config = require("./config");
+const { applyMigrations } = require("./db/migrate");
+
+applyMigrations();
 
 const app = createApp();
 
