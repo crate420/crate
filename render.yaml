@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: crate
+    runtime: node
+    plan: starter
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: 20
+      - key: DATABASE_PATH
+        value: /var/data/crate.sqlite
+    disk:
+      name: crate-data
+      mountPath: /var/data
+      sizeGB: 1

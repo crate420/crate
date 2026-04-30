@@ -40,6 +40,23 @@ npm run dev
 
 The server starts on `http://localhost:3000` by default.
 
+## Render Deployment
+
+Crate pins Node 20 LTS for Render compatibility with `better-sqlite3`.
+
+Recommended Render settings:
+
+- Build command: `npm install`
+- Start command: `npm start`
+- Node version: `20`
+- Persistent disk mount path: `/var/data`
+- `DATABASE_PATH=/var/data/crate.sqlite`
+- `SPOTIFY_REDIRECT_URI=https://crate-nhfe.onrender.com/auth/spotify/callback`
+
+Do not run migrations in the Render build command. The app applies pending SQLite migrations on startup, which is appropriate when using the mounted persistent disk. Without a persistent disk, SQLite data will be lost on deploy/restart.
+
+The included `render.yaml` captures the safe defaults for Node 20, startup, and persistent SQLite storage. Set Spotify credentials, `SESSION_SECRET`, and optional `LASTFM_API_KEY` in Render environment variables.
+
 ## Health Check
 
 ```bash

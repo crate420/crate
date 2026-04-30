@@ -6,7 +6,7 @@ const config = require("./config");
 const app = createApp();
 
 const server = app.listen(config.port, () => {
-  console.log(`Crate MVP listening on http://localhost:${config.port}`);
+  console.log(`Crate MVP listening on port ${config.port}`);
 });
 
 function shutdown(signal) {
