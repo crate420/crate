@@ -179,6 +179,8 @@
         </div>
         <div class="toolbar">
           <button id="refreshButton" type="button">Refresh</button>
+          <button id="syncLikedButton" type="button">Sync liked songs</button>
+          <button id="sortButton" type="button">Run sort</button>
         </div>
       </header>
 
@@ -203,6 +205,8 @@
       const messageEl = document.getElementById("message");
       const summaryEl = document.getElementById("summary");
       const refreshButton = document.getElementById("refreshButton");
+      const syncLikedButton = document.getElementById("syncLikedButton");
+      const sortButton = document.getElementById("sortButton");
 
       function setMessage(text) {
         messageEl.textContent = text || "";
@@ -243,6 +247,7 @@
 
       async function requestJson(url, options = {}) {
         const response = await fetch(url, {
+          credentials: "include",
           headers: {
             "Content-Type": "application/json",
             ...(options.headers || {}),
@@ -377,7 +382,47 @@
         }
       }
 
+      async function syncLikedSongs() {
+        syncLikedButton.disabled = true;
+        setMessage("Syncing liked songs...");
+
+        try {
+          const result = await requestJson("/crate/sync-liked-songs", {
+            method: "POST",
+          });
+          setMessage(`Liked songs sync complete. ${JSON.stringify(result)}`);
+        } catch (err) {
+          setMessage(`Sync liked songs failed: ${err.message}`);
+        } finally {
+          syncLikedButton.disabled = false;
+        }
+      }
+
+      async function runSort() {
+        sortButton.disabled = true;
+        setMessage("Running sort...");
+
+        try {
+          const result = await requestJson("/crate/sort", {
+            method: "POST",
+          });
+          setMessage(
+            `Sort complete. Processed ${result.processed}, matched ${result.matched}, unmatched ${result.unmatched}.`,
+          );
+          await loadQueue();
+          setMessage(
+            `Sort complete. Processed ${result.processed}, matched ${result.matched}, unmatched ${result.unmatched}.`,
+          );
+        } catch (err) {
+          setMessage(`Sort failed: ${err.message}`);
+        } finally {
+          sortButton.disabled = false;
+        }
+      }
+
       refreshButton.addEventListener("click", loadQueue);
+      syncLikedButton.addEventListener("click", syncLikedSongs);
+      sortButton.addEventListener("click", runSort);
       loadQueue();
     </script>
   </body>
