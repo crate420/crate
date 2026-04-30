@@ -1,0 +1,6144 @@
+{
+  "exported_at": "2026-04-30T04:27:45.433Z",
+  "source_database": "data/crate.sqlite",
+  "artist_genres": [
+    {
+      "artist_name": "A.L.T. And The Lost Civilization",
+      "genre": "hiphop",
+      "source": "admin_review",
+      "created_at": "2026-04-27 04:29:32"
+    },
+    {
+      "artist_name": "Big Boss Vette",
+      "genre": "hiphop",
+      "source": "admin_review",
+      "created_at": "2026-04-27 04:03:29"
+    },
+    {
+      "artist_name": "Candyman",
+      "genre": "hiphop",
+      "source": "admin_review",
+      "created_at": "2026-04-27 04:02:32"
+    },
+    {
+      "artist_name": "Choirboys",
+      "genre": "rock",
+      "source": "admin_review",
+      "created_at": "2026-04-27 04:02:01"
+    },
+    {
+      "artist_name": "Classified",
+      "genre": "hiphop",
+      "source": "admin_review",
+      "created_at": "2026-04-27 04:01:42"
+    },
+    {
+      "artist_name": "Diamonique",
+      "genre": "hiphop",
+      "source": "admin_review",
+      "created_at": "2026-04-27 04:20:16"
+    },
+    {
+      "artist_name": "Five",
+      "genre": "dance",
+      "source": "admin_review",
+      "created_at": "2026-04-27 04:02:16"
+    },
+    {
+      "artist_name": "Five",
+      "genre": "pop",
+      "source": "admin_review",
+      "created_at": "2026-04-27 04:02:16"
+    },
+    {
+      "artist_name": "Flawed Mangoes",
+      "genre": "alternative",
+      "source": "admin_review",
+      "created_at": "2026-04-27 04:30:49"
+    },
+    {
+      "artist_name": "Flawed Mangoes",
+      "genre": "electronic",
+      "source": "admin_review",
+      "created_at": "2026-04-27 04:30:49"
+    },
+    {
+      "artist_name": "Flawed Mangoes",
+      "genre": "rock",
+      "source": "admin_review",
+      "created_at": "2026-04-27 04:30:49"
+    },
+    {
+      "artist_name": "Gavin Rossdale",
+      "genre": "alternative",
+      "source": "admin_review",
+      "created_at": "2026-04-27 04:34:07"
+    },
+    {
+      "artist_name": "Gavin Rossdale",
+      "genre": "rock",
+      "source": "admin_review",
+      "created_at": "2026-04-27 04:34:07"
+    },
+    {
+      "artist_name": "Gregory Abbott",
+      "genre": "soul",
+      "source": "admin_review",
+      "created_at": "2026-04-27 04:35:10"
+    },
+    {
+      "artist_name": "Harvey Danger",
+      "genre": "alternative",
+      "source": "admin_review",
+      "created_at": "2026-04-27 04:35:58"
+    },
+    {
+      "artist_name": "Hoku",
+      "genre": "pop",
+      "source": "admin_review",
+      "created_at": "2026-04-29 01:48:09"
+    },
+    {
+      "artist_name": "Howie Day",
+      "genre": "pop",
+      "source": "admin_review",
+      "created_at": "2026-04-29 01:48:09"
+    },
+    {
+      "artist_name": "Howie Day",
+      "genre": "singer_songwriter",
+      "source": "admin_review",
+      "created_at": "2026-04-29 01:48:09"
+    },
+    {
+      "artist_name": "Ima Robot",
+      "genre": "alternative",
+      "source": "admin_review",
+      "created_at": "2026-04-27 04:39:56"
+    },
+    {
+      "artist_name": "Ima Robot",
+      "genre": "rock",
+      "source": "admin_review",
+      "created_at": "2026-04-27 04:39:56"
+    },
+    {
+      "artist_name": "J-Kwon",
+      "genre": "hiphop",
+      "source": "admin_review",
+      "created_at": "2026-04-27 04:40:19"
+    },
+    {
+      "artist_name": "JC Chasez",
+      "genre": "pop",
+      "source": "admin_review",
+      "created_at": "2026-04-27 04:40:33"
+    },
+    {
+      "artist_name": "Jendrik",
+      "genre": "pop",
+      "source": "admin_review",
+      "created_at": "2026-04-29 01:48:09"
+    },
+    {
+      "artist_name": "Jenn Grant",
+      "genre": "alternative",
+      "source": "admin_review",
+      "created_at": "2026-04-27 04:01:26"
+    },
+    {
+      "artist_name": "Jenn Grant",
+      "genre": "folk",
+      "source": "admin_review",
+      "created_at": "2026-04-27 04:01:26"
+    },
+    {
+      "artist_name": "Jenn Grant",
+      "genre": "singer_songwriter",
+      "source": "admin_review",
+      "created_at": "2026-04-27 04:01:26"
+    },
+    {
+      "artist_name": "Jermaine Stewart",
+      "genre": "dance",
+      "source": "admin_review",
+      "created_at": "2026-04-29 01:48:09"
+    },
+    {
+      "artist_name": "Jermaine Stewart",
+      "genre": "pop",
+      "source": "admin_review",
+      "created_at": "2026-04-29 01:48:09"
+    },
+    {
+      "artist_name": "Jimmy Buffett",
+      "genre": "country",
+      "source": "admin_review",
+      "created_at": "2026-04-29 01:48:09"
+    },
+    {
+      "artist_name": "Jimmy Buffett",
+      "genre": "folk",
+      "source": "admin_review",
+      "created_at": "2026-04-29 01:48:09"
+    },
+    {
+      "artist_name": "Johnny Nash",
+      "genre": "pop",
+      "source": "admin_review",
+      "created_at": "2026-04-29 01:48:09"
+    },
+    {
+      "artist_name": "Johnny Nash",
+      "genre": "soul",
+      "source": "admin_review",
+      "created_at": "2026-04-29 01:48:09"
+    },
+    {
+      "artist_name": "Junior Senior",
+      "genre": "dance",
+      "source": "admin_review",
+      "created_at": "2026-04-29 01:48:09"
+    },
+    {
+      "artist_name": "Junior Senior",
+      "genre": "pop",
+      "source": "admin_review",
+      "created_at": "2026-04-29 01:48:09"
+    },
+    {
+      "artist_name": "K's Choice",
+      "genre": "alternative",
+      "source": "admin_review",
+      "created_at": "2026-04-29 01:48:09"
+    },
+    {
+      "artist_name": "K's Choice",
+      "genre": "rock",
+      "source": "admin_review",
+      "created_at": "2026-04-29 01:48:09"
+    },
+    {
+      "artist_name": "Kim Mitchell",
+      "genre": "rock",
+      "source": "admin_review",
+      "created_at": "2026-04-29 01:48:09"
+    },
+    {
+      "artist_name": "LEN",
+      "genre": "alternative",
+      "source": "admin_review",
+      "created_at": "2026-04-29 01:48:09"
+    },
+    {
+      "artist_name": "LEN",
+      "genre": "pop",
+      "source": "admin_review",
+      "created_at": "2026-04-29 01:48:09"
+    },
+    {
+      "artist_name": "Lindsey Buckingham",
+      "genre": "pop",
+      "source": "admin_review",
+      "created_at": "2026-04-29 01:48:09"
+    },
+    {
+      "artist_name": "Lindsey Buckingham",
+      "genre": "rock",
+      "source": "admin_review",
+      "created_at": "2026-04-29 01:48:09"
+    },
+    {
+      "artist_name": "Lola Young",
+      "genre": "pop",
+      "source": "admin_review",
+      "created_at": "2026-04-29 01:48:09"
+    },
+    {
+      "artist_name": "Lola Young",
+      "genre": "soul",
+      "source": "admin_review",
+      "created_at": "2026-04-29 01:48:09"
+    },
+    {
+      "artist_name": "Lord Huron",
+      "genre": "alternative",
+      "source": "admin_review",
+      "created_at": "2026-04-29 01:48:09"
+    },
+    {
+      "artist_name": "Lord Huron",
+      "genre": "folk",
+      "source": "admin_review",
+      "created_at": "2026-04-29 01:48:09"
+    },
+    {
+      "artist_name": "Los Del Rio",
+      "genre": "dance",
+      "source": "admin_review",
+      "created_at": "2026-04-29 01:48:09"
+    },
+    {
+      "artist_name": "Los Del Rio",
+      "genre": "pop",
+      "source": "admin_review",
+      "created_at": "2026-04-29 01:48:09"
+    },
+    {
+      "artist_name": "Los Lonely Boys",
+      "genre": "blues",
+      "source": "admin_review",
+      "created_at": "2026-04-29 01:48:09"
+    },
+    {
+      "artist_name": "Los Lonely Boys",
+      "genre": "rock",
+      "source": "admin_review",
+      "created_at": "2026-04-29 01:48:09"
+    },
+    {
+      "artist_name": "Madison Beer",
+      "genre": "pop",
+      "source": "admin_review",
+      "created_at": "2026-04-29 01:48:09"
+    },
+    {
+      "artist_name": "Mark Morrison",
+      "genre": "pop",
+      "source": "admin_review",
+      "created_at": "2026-04-29 01:48:09"
+    },
+    {
+      "artist_name": "Mark Morrison",
+      "genre": "rb",
+      "source": "admin_review",
+      "created_at": "2026-04-29 01:48:09"
+    },
+    {
+      "artist_name": "Martika",
+      "genre": "pop",
+      "source": "admin_review",
+      "created_at": "2026-04-29 01:48:09"
+    },
+    {
+      "artist_name": "Matthew Wilder",
+      "genre": "pop",
+      "source": "admin_review",
+      "created_at": "2026-04-29 01:48:09"
+    },
+    {
+      "artist_name": "Melissa Etheridge",
+      "genre": "rock",
+      "source": "admin_review",
+      "created_at": "2026-04-29 01:48:09"
+    },
+    {
+      "artist_name": "Melissa Etheridge",
+      "genre": "singer_songwriter",
+      "source": "admin_review",
+      "created_at": "2026-04-29 01:48:09"
+    },
+    {
+      "artist_name": "Mickey Guyton",
+      "genre": "country",
+      "source": "admin_review",
+      "created_at": "2026-04-27 04:51:16"
+    },
+    {
+      "artist_name": "Mother Mother",
+      "genre": "alternative",
+      "source": "admin_review",
+      "created_at": "2026-04-29 01:48:09"
+    },
+    {
+      "artist_name": "Mother Mother",
+      "genre": "rock",
+      "source": "admin_review",
+      "created_at": "2026-04-29 01:48:09"
+    },
+    {
+      "artist_name": "Mr. Cheeks",
+      "genre": "hiphop",
+      "source": "admin_review",
+      "created_at": "2026-04-29 01:48:09"
+    },
+    {
+      "artist_name": "Nik Kershaw",
+      "genre": "newwave",
+      "source": "admin_review",
+      "created_at": "2026-04-29 01:48:09"
+    },
+    {
+      "artist_name": "Nik Kershaw",
+      "genre": "pop",
+      "source": "admin_review",
+      "created_at": "2026-04-29 01:48:09"
+    },
+    {
+      "artist_name": "Paperboy",
+      "genre": "hiphop",
+      "source": "admin_review",
+      "created_at": "2026-04-29 01:48:09"
+    },
+    {
+      "artist_name": "Paul Young",
+      "genre": "pop",
+      "source": "admin_review",
+      "created_at": "2026-04-29 01:48:09"
+    },
+    {
+      "artist_name": "Paul Young",
+      "genre": "soul",
+      "source": "admin_review",
+      "created_at": "2026-04-29 01:48:09"
+    },
+    {
+      "artist_name": "Quarterflash",
+      "genre": "newwave",
+      "source": "admin_review",
+      "created_at": "2026-04-29 01:48:09"
+    },
+    {
+      "artist_name": "Quarterflash",
+      "genre": "rock",
+      "source": "admin_review",
+      "created_at": "2026-04-29 01:48:09"
+    },
+    {
+      "artist_name": "RAYE",
+      "genre": "pop",
+      "source": "admin_review",
+      "created_at": "2026-04-27 04:51:58"
+    },
+    {
+      "artist_name": "Robbie Nevil",
+      "genre": "pop",
+      "source": "admin_review",
+      "created_at": "2026-04-29 01:48:09"
+    },
+    {
+      "artist_name": "Rockwell",
+      "genre": "pop",
+      "source": "admin_review",
+      "created_at": "2026-04-29 01:48:09"
+    },
+    {
+      "artist_name": "Rockwell",
+      "genre": "soul",
+      "source": "admin_review",
+      "created_at": "2026-04-29 01:48:09"
+    },
+    {
+      "artist_name": "Selena Gomez & The Scene",
+      "genre": "pop",
+      "source": "admin_review",
+      "created_at": "2026-04-27 04:52:18"
+    },
+    {
+      "artist_name": "Serj Tankian",
+      "genre": "alternative",
+      "source": "admin_review",
+      "created_at": "2026-04-29 01:48:09"
+    },
+    {
+      "artist_name": "Serj Tankian",
+      "genre": "rock",
+      "source": "admin_review",
+      "created_at": "2026-04-29 01:48:09"
+    },
+    {
+      "artist_name": "Shaboozey",
+      "genre": "country",
+      "source": "admin_review",
+      "created_at": "2026-04-29 01:48:09"
+    },
+    {
+      "artist_name": "Shaboozey",
+      "genre": "hiphop",
+      "source": "admin_review",
+      "created_at": "2026-04-29 01:48:09"
+    },
+    {
+      "artist_name": "SHAED",
+      "genre": "electronic",
+      "source": "admin_review",
+      "created_at": "2026-04-29 01:48:09"
+    },
+    {
+      "artist_name": "SHAED",
+      "genre": "pop",
+      "source": "admin_review",
+      "created_at": "2026-04-29 01:48:09"
+    },
+    {
+      "artist_name": "Shawn Colvin",
+      "genre": "folk",
+      "source": "admin_review",
+      "created_at": "2026-04-29 01:48:09"
+    },
+    {
+      "artist_name": "Shawn Colvin",
+      "genre": "singer_songwriter",
+      "source": "admin_review",
+      "created_at": "2026-04-29 01:48:09"
+    },
+    {
+      "artist_name": "Shawn Mullins",
+      "genre": "rock",
+      "source": "admin_review",
+      "created_at": "2026-04-29 01:48:09"
+    },
+    {
+      "artist_name": "Shawn Mullins",
+      "genre": "singer_songwriter",
+      "source": "admin_review",
+      "created_at": "2026-04-29 01:48:09"
+    },
+    {
+      "artist_name": "SHOP BOYZ",
+      "genre": "hiphop",
+      "source": "admin_review",
+      "created_at": "2026-04-29 01:48:09"
+    },
+    {
+      "artist_name": "Skee-Lo",
+      "genre": "hiphop",
+      "source": "admin_review",
+      "created_at": "2026-04-29 01:48:09"
+    },
+    {
+      "artist_name": "Soulja Boy",
+      "genre": "hiphop",
+      "source": "admin_review",
+      "created_at": "2026-04-29 01:48:09"
+    },
+    {
+      "artist_name": "Spacehog",
+      "genre": "alternative",
+      "source": "admin_review",
+      "created_at": "2026-04-29 01:48:09"
+    },
+    {
+      "artist_name": "Spacehog",
+      "genre": "rock",
+      "source": "admin_review",
+      "created_at": "2026-04-29 01:48:09"
+    },
+    {
+      "artist_name": "State of Mine",
+      "genre": "alternative",
+      "source": "admin_review",
+      "created_at": "2026-04-26 03:42:29"
+    },
+    {
+      "artist_name": "State of Mine",
+      "genre": "rock",
+      "source": "admin_review",
+      "created_at": "2026-04-26 03:42:29"
+    },
+    {
+      "artist_name": "Stealers Wheel",
+      "genre": "pop",
+      "source": "admin_review",
+      "created_at": "2026-04-29 01:48:09"
+    },
+    {
+      "artist_name": "Stealers Wheel",
+      "genre": "rock",
+      "source": "admin_review",
+      "created_at": "2026-04-29 01:48:09"
+    },
+    {
+      "artist_name": "Stevie Nicks",
+      "genre": "pop",
+      "source": "admin_review",
+      "created_at": "2026-04-29 01:48:09"
+    },
+    {
+      "artist_name": "Stevie Nicks",
+      "genre": "rock",
+      "source": "admin_review",
+      "created_at": "2026-04-29 01:48:09"
+    },
+    {
+      "artist_name": "The Buggles",
+      "genre": "newwave",
+      "source": "admin_review",
+      "created_at": "2026-04-29 01:48:09"
+    },
+    {
+      "artist_name": "The Buggles",
+      "genre": "pop",
+      "source": "admin_review",
+      "created_at": "2026-04-29 01:48:09"
+    },
+    {
+      "artist_name": "The Escape Club",
+      "genre": "pop",
+      "source": "admin_review",
+      "created_at": "2026-04-29 01:48:09"
+    },
+    {
+      "artist_name": "The Escape Club",
+      "genre": "rock",
+      "source": "admin_review",
+      "created_at": "2026-04-29 01:48:09"
+    },
+    {
+      "artist_name": "The Fratellis",
+      "genre": "alternative",
+      "source": "admin_review",
+      "created_at": "2026-04-29 01:48:09"
+    },
+    {
+      "artist_name": "The Fratellis",
+      "genre": "rock",
+      "source": "admin_review",
+      "created_at": "2026-04-29 01:48:09"
+    },
+    {
+      "artist_name": "The Kid LAROI",
+      "genre": "hiphop",
+      "source": "admin_review",
+      "created_at": "2026-04-29 01:48:09"
+    },
+    {
+      "artist_name": "The Kid LAROI",
+      "genre": "pop",
+      "source": "admin_review",
+      "created_at": "2026-04-29 01:48:09"
+    },
+    {
+      "artist_name": "The Last Dinner Party",
+      "genre": "alternative",
+      "source": "admin_review",
+      "created_at": "2026-04-29 01:48:09"
+    },
+    {
+      "artist_name": "The Last Dinner Party",
+      "genre": "rock",
+      "source": "admin_review",
+      "created_at": "2026-04-29 01:48:09"
+    },
+    {
+      "artist_name": "The Pussycat Dolls",
+      "genre": "dance",
+      "source": "admin_review",
+      "created_at": "2026-04-29 01:48:09"
+    },
+    {
+      "artist_name": "The Pussycat Dolls",
+      "genre": "pop",
+      "source": "admin_review",
+      "created_at": "2026-04-29 01:48:09"
+    },
+    {
+      "artist_name": "The Score",
+      "genre": "alternative",
+      "source": "admin_review",
+      "created_at": "2026-04-29 01:48:09"
+    },
+    {
+      "artist_name": "The Score",
+      "genre": "rock",
+      "source": "admin_review",
+      "created_at": "2026-04-29 01:48:09"
+    },
+    {
+      "artist_name": "The Weather Girls",
+      "genre": "dance",
+      "source": "admin_review",
+      "created_at": "2026-04-29 01:48:09"
+    },
+    {
+      "artist_name": "The Weather Girls",
+      "genre": "soul",
+      "source": "admin_review",
+      "created_at": "2026-04-29 01:48:09"
+    },
+    {
+      "artist_name": "Tom Cochrane",
+      "genre": "pop",
+      "source": "admin_review",
+      "created_at": "2026-04-29 01:48:09"
+    },
+    {
+      "artist_name": "Tom Cochrane",
+      "genre": "rock",
+      "source": "admin_review",
+      "created_at": "2026-04-29 01:48:09"
+    },
+    {
+      "artist_name": "Tommy James & The Shondells",
+      "genre": "pop",
+      "source": "admin_review",
+      "created_at": "2026-04-29 01:48:09"
+    },
+    {
+      "artist_name": "Tommy James & The Shondells",
+      "genre": "rock",
+      "source": "admin_review",
+      "created_at": "2026-04-29 01:48:09"
+    },
+    {
+      "artist_name": "Tommy Richman",
+      "genre": "pop",
+      "source": "admin_review",
+      "created_at": "2026-04-29 01:48:09"
+    },
+    {
+      "artist_name": "Tommy Richman",
+      "genre": "rb",
+      "source": "admin_review",
+      "created_at": "2026-04-29 01:48:09"
+    },
+    {
+      "artist_name": "Waka Flocka Flame",
+      "genre": "hiphop",
+      "source": "admin_review",
+      "created_at": "2026-04-29 01:48:09"
+    },
+    {
+      "artist_name": "Wale",
+      "genre": "hiphop",
+      "source": "admin_review",
+      "created_at": "2026-04-29 01:48:09"
+    },
+    {
+      "artist_name": "White Town",
+      "genre": "electronic",
+      "source": "admin_review",
+      "created_at": "2026-04-29 01:48:09"
+    },
+    {
+      "artist_name": "White Town",
+      "genre": "pop",
+      "source": "admin_review",
+      "created_at": "2026-04-29 01:48:09"
+    },
+    {
+      "artist_name": "Wild Cherry",
+      "genre": "dance",
+      "source": "admin_review",
+      "created_at": "2026-04-29 01:48:09"
+    },
+    {
+      "artist_name": "Wild Cherry",
+      "genre": "soul",
+      "source": "admin_review",
+      "created_at": "2026-04-29 01:48:09"
+    },
+    {
+      "artist_name": "Wyclef Jean",
+      "genre": "hiphop",
+      "source": "admin_review",
+      "created_at": "2026-04-29 01:48:09"
+    },
+    {
+      "artist_name": "Wyclef Jean",
+      "genre": "pop",
+      "source": "admin_review",
+      "created_at": "2026-04-29 01:48:09"
+    },
+    {
+      "artist_name": "*NSYNC",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:35:44"
+    },
+    {
+      "artist_name": "3OH!3",
+      "genre": "electronic",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:35:49"
+    },
+    {
+      "artist_name": "3OH!3",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:35:49"
+    },
+    {
+      "artist_name": "5 Seconds of Summer",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "5 Seconds of Summer",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "ABBA",
+      "genre": "dance",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:43:47"
+    },
+    {
+      "artist_name": "ABBA",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:43:47"
+    },
+    {
+      "artist_name": "Adam Lambert",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:35:49"
+    },
+    {
+      "artist_name": "Adam Lambert",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:35:49"
+    },
+    {
+      "artist_name": "Adam Levine",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:35:49"
+    },
+    {
+      "artist_name": "Adam Levine",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:35:49"
+    },
+    {
+      "artist_name": "AJR",
+      "genre": "alternative",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "AJR",
+      "genre": "electronic",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "AJR",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Akon",
+      "genre": "hiphop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Akon",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Akon",
+      "genre": "rb",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Alanis Morissette",
+      "genre": "alternative rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:41:21"
+    },
+    {
+      "artist_name": "Alanis Morissette",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:41:21"
+    },
+    {
+      "artist_name": "Alanis Morissette",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:41:21"
+    },
+    {
+      "artist_name": "Alanis Morissette",
+      "genre": "singer-songwriter",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:41:21"
+    },
+    {
+      "artist_name": "Alannah Myles",
+      "genre": "blues",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Alannah Myles",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Alex Warren",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:22:34"
+    },
+    {
+      "artist_name": "Alex Warren",
+      "genre": "singer_songwriter",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:22:34"
+    },
+    {
+      "artist_name": "All-4-One",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "All-4-One",
+      "genre": "rb",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "All-4-One",
+      "genre": "soul",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "American Authors",
+      "genre": "alternative",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "American Authors",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "American Authors",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "Amy Winehouse",
+      "genre": "jazz",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "Amy Winehouse",
+      "genre": "rb",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "Amy Winehouse",
+      "genre": "soul",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "Anastacia",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:35:49"
+    },
+    {
+      "artist_name": "Anastacia",
+      "genre": "soul",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:35:49"
+    },
+    {
+      "artist_name": "Arrested Development",
+      "genre": "hiphop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Arrested Development",
+      "genre": "soul",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Ava Max",
+      "genre": "dance",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "Ava Max",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "AWOLNATION",
+      "genre": "alternative",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "AWOLNATION",
+      "genre": "electronic",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "AWOLNATION",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "B.o.B",
+      "genre": "hiphop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "B.o.B",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Backstreet Boys",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:41:21"
+    },
+    {
+      "artist_name": "Barenaked Ladies",
+      "genre": "alternative",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Barenaked Ladies",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Barenaked Ladies",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "bbno$",
+      "genre": "hiphop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "bbno$",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "Belinda Carlisle",
+      "genre": "newwave",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Belinda Carlisle",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Belinda Carlisle",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Ben Harper And The Innocent Criminals",
+      "genre": "blues",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:35:49"
+    },
+    {
+      "artist_name": "Ben Harper And The Innocent Criminals",
+      "genre": "folk",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:35:49"
+    },
+    {
+      "artist_name": "Ben Harper And The Innocent Criminals",
+      "genre": "soul",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:35:49"
+    },
+    {
+      "artist_name": "Benson Boone",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Benson Boone",
+      "genre": "singer_songwriter",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Berlin",
+      "genre": "electronic",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "Berlin",
+      "genre": "newwave",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "Berlin",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "Better Than Ezra",
+      "genre": "alternative rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:41:21"
+    },
+    {
+      "artist_name": "Better Than Ezra",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:41:21"
+    },
+    {
+      "artist_name": "Beyoncé",
+      "genre": "dance",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:38:13"
+    },
+    {
+      "artist_name": "Beyoncé",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:38:13"
+    },
+    {
+      "artist_name": "Beyoncé",
+      "genre": "r&b",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:38:13"
+    },
+    {
+      "artist_name": "Beyoncé",
+      "genre": "soul",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:38:13"
+    },
+    {
+      "artist_name": "Billie Eilish",
+      "genre": "alternative",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Billie Eilish",
+      "genre": "electronic",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Billie Eilish",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Billy Idol",
+      "genre": "new wave",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:43:47"
+    },
+    {
+      "artist_name": "Billy Idol",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:43:47"
+    },
+    {
+      "artist_name": "Billy Idol",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:43:47"
+    },
+    {
+      "artist_name": "Black Eyed Peas",
+      "genre": "dance",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:38:13"
+    },
+    {
+      "artist_name": "Black Eyed Peas",
+      "genre": "hip hop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:38:13"
+    },
+    {
+      "artist_name": "Black Eyed Peas",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:38:13"
+    },
+    {
+      "artist_name": "Bleachers",
+      "genre": "alternative",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Bleachers",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Bleachers",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Blessid Union Of Souls",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Blessid Union Of Souls",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Blondie",
+      "genre": "newwave",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Blondie",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Blondie",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Blood, Sweat & Tears",
+      "genre": "jazz",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Blood, Sweat & Tears",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Blood, Sweat & Tears",
+      "genre": "soul",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Blue October",
+      "genre": "alternative",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "Blue October",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "Bonnie Tyler",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "Bonnie Tyler",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "Booker T. & the M.G.'s",
+      "genre": "blues",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:35:49"
+    },
+    {
+      "artist_name": "Booker T. & the M.G.'s",
+      "genre": "soul",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:35:49"
+    },
+    {
+      "artist_name": "Bruce Springsteen",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:43:47"
+    },
+    {
+      "artist_name": "Bruce Springsteen",
+      "genre": "singer-songwriter",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:43:47"
+    },
+    {
+      "artist_name": "Bruno Mars",
+      "genre": "funk",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:35:44"
+    },
+    {
+      "artist_name": "Bruno Mars",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:35:44"
+    },
+    {
+      "artist_name": "Bruno Mars",
+      "genre": "r&b",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:35:44"
+    },
+    {
+      "artist_name": "Bruno Mars",
+      "genre": "soul",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:35:44"
+    },
+    {
+      "artist_name": "Bryan Adams",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:43:47"
+    },
+    {
+      "artist_name": "Bryan Adams",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:43:47"
+    },
+    {
+      "artist_name": "Buckcherry",
+      "genre": "alternative",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Buckcherry",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Camila Cabello",
+      "genre": "dance",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "Camila Cabello",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "Camila Cabello",
+      "genre": "rb",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "Cardi B",
+      "genre": "hiphop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:35:49"
+    },
+    {
+      "artist_name": "Cardi B",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:35:49"
+    },
+    {
+      "artist_name": "Carly Rae Jepsen",
+      "genre": "dance",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Carly Rae Jepsen",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Carly Simon",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:35:49"
+    },
+    {
+      "artist_name": "Carly Simon",
+      "genre": "singer_songwriter",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:35:49"
+    },
+    {
+      "artist_name": "CeeLo Green",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "CeeLo Green",
+      "genre": "rb",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "CeeLo Green",
+      "genre": "soul",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Chaka Khan",
+      "genre": "dance",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Chaka Khan",
+      "genre": "rb",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Chaka Khan",
+      "genre": "soul",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Chappell Roan",
+      "genre": "dance",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:43:47"
+    },
+    {
+      "artist_name": "Chappell Roan",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:43:47"
+    },
+    {
+      "artist_name": "Christina Aguilera",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:43:47"
+    },
+    {
+      "artist_name": "Christina Aguilera",
+      "genre": "r&b",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:43:47"
+    },
+    {
+      "artist_name": "Christina Aguilera",
+      "genre": "soul",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:43:47"
+    },
+    {
+      "artist_name": "Ciara",
+      "genre": "dance",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:35:49"
+    },
+    {
+      "artist_name": "Ciara",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:35:49"
+    },
+    {
+      "artist_name": "Ciara",
+      "genre": "rb",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:35:49"
+    },
+    {
+      "artist_name": "Coheed and Cambria",
+      "genre": "alternative rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:35:44"
+    },
+    {
+      "artist_name": "Coheed and Cambria",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:35:44"
+    },
+    {
+      "artist_name": "Coi Leray",
+      "genre": "hiphop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:35:49"
+    },
+    {
+      "artist_name": "Coi Leray",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:35:49"
+    },
+    {
+      "artist_name": "Colbie Caillat",
+      "genre": "folk",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Colbie Caillat",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Colbie Caillat",
+      "genre": "singer_songwriter",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Cold War Kids",
+      "genre": "alternative",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Cold War Kids",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Coldplay",
+      "genre": "alternative rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:38:13"
+    },
+    {
+      "artist_name": "Coldplay",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:38:13"
+    },
+    {
+      "artist_name": "Coldplay",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:38:13"
+    },
+    {
+      "artist_name": "Conan Gray",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "Conan Gray",
+      "genre": "singer_songwriter",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "Counting Crows",
+      "genre": "alternative rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:38:13"
+    },
+    {
+      "artist_name": "Counting Crows",
+      "genre": "folk",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:38:13"
+    },
+    {
+      "artist_name": "Counting Crows",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:38:13"
+    },
+    {
+      "artist_name": "Craig David",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:35:44"
+    },
+    {
+      "artist_name": "Craig David",
+      "genre": "r&b",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:35:44"
+    },
+    {
+      "artist_name": "Craig David",
+      "genre": "soul",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:35:44"
+    },
+    {
+      "artist_name": "Crash Test Dummies",
+      "genre": "alternative",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "Crash Test Dummies",
+      "genre": "folk",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "Crash Test Dummies",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "Crowded House",
+      "genre": "newwave",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "Crowded House",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "Crowded House",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "Crystal Waters",
+      "genre": "dance",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:35:49"
+    },
+    {
+      "artist_name": "Crystal Waters",
+      "genre": "electronic",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:35:49"
+    },
+    {
+      "artist_name": "Cyndi Lauper",
+      "genre": "dance",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Cyndi Lauper",
+      "genre": "newwave",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Cyndi Lauper",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "David Gray",
+      "genre": "folk",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "David Gray",
+      "genre": "singer_songwriter",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Dax",
+      "genre": "hiphop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:35:49"
+    },
+    {
+      "artist_name": "Dax",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:35:49"
+    },
+    {
+      "artist_name": "Debbie Gibson",
+      "genre": "dance",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:35:49"
+    },
+    {
+      "artist_name": "Debbie Gibson",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:35:49"
+    },
+    {
+      "artist_name": "Deep Blue Something",
+      "genre": "alternative",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:35:49"
+    },
+    {
+      "artist_name": "Deep Blue Something",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:35:49"
+    },
+    {
+      "artist_name": "Del The Funky Homosapien",
+      "genre": "hiphop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:35:49"
+    },
+    {
+      "artist_name": "Dermot Kennedy",
+      "genre": "folk",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Dermot Kennedy",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Dermot Kennedy",
+      "genre": "singer_songwriter",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Destiny's Child",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:41:21"
+    },
+    {
+      "artist_name": "Destiny's Child",
+      "genre": "r&b",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:41:21"
+    },
+    {
+      "artist_name": "Destiny's Child",
+      "genre": "soul",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:41:21"
+    },
+    {
+      "artist_name": "Diana King",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:35:49"
+    },
+    {
+      "artist_name": "Diana King",
+      "genre": "rb",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:35:49"
+    },
+    {
+      "artist_name": "Dirty Honey",
+      "genre": "blues",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:35:49"
+    },
+    {
+      "artist_name": "Dirty Honey",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:35:49"
+    },
+    {
+      "artist_name": "Divinyls",
+      "genre": "newwave",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:35:49"
+    },
+    {
+      "artist_name": "Divinyls",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:35:49"
+    },
+    {
+      "artist_name": "DJ Khaled",
+      "genre": "hiphop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:35:49"
+    },
+    {
+      "artist_name": "DJ Khaled",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:35:49"
+    },
+    {
+      "artist_name": "Doechii",
+      "genre": "hiphop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Doechii",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Doechii",
+      "genre": "rb",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Doja Cat",
+      "genre": "hiphop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Doja Cat",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Doja Cat",
+      "genre": "rb",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Dominic Fike",
+      "genre": "alternative",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:43:46"
+    },
+    {
+      "artist_name": "Dominic Fike",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:43:46"
+    },
+    {
+      "artist_name": "Don McLean",
+      "genre": "folk",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:35:49"
+    },
+    {
+      "artist_name": "Don McLean",
+      "genre": "singer_songwriter",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:35:49"
+    },
+    {
+      "artist_name": "Donnie Iris",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:35:49"
+    },
+    {
+      "artist_name": "Donnie Iris",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:35:49"
+    },
+    {
+      "artist_name": "Dusty Springfield",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "Dusty Springfield",
+      "genre": "soul",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "Eagle-Eye Cherry",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:35:49"
+    },
+    {
+      "artist_name": "Eagle-Eye Cherry",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:35:49"
+    },
+    {
+      "artist_name": "Eddie Vedder",
+      "genre": "alternative",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Eddie Vedder",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Eddie Vedder",
+      "genre": "singer_songwriter",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Eddy Grant",
+      "genre": "dance",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:35:49"
+    },
+    {
+      "artist_name": "Eddy Grant",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:35:49"
+    },
+    {
+      "artist_name": "Ellie Goulding",
+      "genre": "dance",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Ellie Goulding",
+      "genre": "electronic",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Ellie Goulding",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Elton John",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:38:13"
+    },
+    {
+      "artist_name": "Elton John",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:38:13"
+    },
+    {
+      "artist_name": "Elton John",
+      "genre": "singer-songwriter",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:38:13"
+    },
+    {
+      "artist_name": "Eve",
+      "genre": "hiphop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Eve",
+      "genre": "rb",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Everything But The Girl",
+      "genre": "electronic",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:35:49"
+    },
+    {
+      "artist_name": "Everything But The Girl",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:35:49"
+    },
+    {
+      "artist_name": "Far East Movement",
+      "genre": "dance",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:35:49"
+    },
+    {
+      "artist_name": "Far East Movement",
+      "genre": "electronic",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:35:49"
+    },
+    {
+      "artist_name": "Far East Movement",
+      "genre": "hiphop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:35:49"
+    },
+    {
+      "artist_name": "Fastball",
+      "genre": "alternative",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "Fastball",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "Feist",
+      "genre": "folk",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:35:49"
+    },
+    {
+      "artist_name": "Feist",
+      "genre": "singer_songwriter",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:35:49"
+    },
+    {
+      "artist_name": "Fergie",
+      "genre": "hiphop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "Fergie",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "Fergie",
+      "genre": "rb",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "Fetty Wap",
+      "genre": "hiphop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Fetty Wap",
+      "genre": "rb",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Fifth Harmony",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:35:49"
+    },
+    {
+      "artist_name": "Fifth Harmony",
+      "genre": "rb",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:35:49"
+    },
+    {
+      "artist_name": "Fine Young Cannibals",
+      "genre": "newwave",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Fine Young Cannibals",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Fine Young Cannibals",
+      "genre": "soul",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Finger Eleven",
+      "genre": "alternative",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "Finger Eleven",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "Fitz and The Tantrums",
+      "genre": "alternative rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:38:13"
+    },
+    {
+      "artist_name": "Fitz and The Tantrums",
+      "genre": "dance",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:38:13"
+    },
+    {
+      "artist_name": "Fitz and The Tantrums",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:38:13"
+    },
+    {
+      "artist_name": "Fitz and The Tantrums",
+      "genre": "soul",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:38:13"
+    },
+    {
+      "artist_name": "Flo Rida",
+      "genre": "dance",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Flo Rida",
+      "genre": "hiphop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Flo Rida",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Foster The People",
+      "genre": "alternative",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Foster The People",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "French Montana",
+      "genre": "hiphop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:43:46"
+    },
+    {
+      "artist_name": "Garbage",
+      "genre": "alternative",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Garbage",
+      "genre": "electronic",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Garbage",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Gavin DeGraw",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Gavin DeGraw",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Gavin DeGraw",
+      "genre": "singer_songwriter",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "GAYLE",
+      "genre": "alternative",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:43:46"
+    },
+    {
+      "artist_name": "GAYLE",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:43:46"
+    },
+    {
+      "artist_name": "George Ezra",
+      "genre": "folk",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "George Ezra",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "George Ezra",
+      "genre": "singer_songwriter",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "George Harrison",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "George Harrison",
+      "genre": "singer_songwriter",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "George Michael",
+      "genre": "dance",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "George Michael",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "George Michael",
+      "genre": "soul",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Gin Blossoms",
+      "genre": "alternative",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Gin Blossoms",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "GloRilla",
+      "genre": "hiphop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "Gnarls Barkley",
+      "genre": "alternative",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Gnarls Barkley",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Gnarls Barkley",
+      "genre": "soul",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Go West",
+      "genre": "newwave",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Go West",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Gorillaz",
+      "genre": "alternative",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:43:46"
+    },
+    {
+      "artist_name": "Gorillaz",
+      "genre": "electronic",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:43:46"
+    },
+    {
+      "artist_name": "Gorillaz",
+      "genre": "hiphop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:43:46"
+    },
+    {
+      "artist_name": "Gracie Abrams",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:43:46"
+    },
+    {
+      "artist_name": "Gracie Abrams",
+      "genre": "singer_songwriter",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:43:46"
+    },
+    {
+      "artist_name": "grandson",
+      "genre": "alternative",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "grandson",
+      "genre": "hiphop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "grandson",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "HAIM",
+      "genre": "alternative",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "HAIM",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "HAIM",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "Halestorm",
+      "genre": "alternative rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:38:13"
+    },
+    {
+      "artist_name": "Halestorm",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:38:13"
+    },
+    {
+      "artist_name": "Halsey",
+      "genre": "alternative",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Halsey",
+      "genre": "electronic",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Halsey",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Hanson",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Hanson",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Harry Styles",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Harry Styles",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Harry Styles",
+      "genre": "singer_songwriter",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Hootie & The Blowfish",
+      "genre": "alternative",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Hootie & The Blowfish",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Hootie & The Blowfish",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Hot Chocolate",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Hot Chocolate",
+      "genre": "soul",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "House Of Pain",
+      "genre": "hiphop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:43:46"
+    },
+    {
+      "artist_name": "Hozier",
+      "genre": "blues",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Hozier",
+      "genre": "folk",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Hozier",
+      "genre": "soul",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Huey Lewis & The News",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:43:47"
+    },
+    {
+      "artist_name": "Huey Lewis & The News",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:43:47"
+    },
+    {
+      "artist_name": "Iggy Azalea",
+      "genre": "hiphop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:43:46"
+    },
+    {
+      "artist_name": "Iggy Azalea",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:43:46"
+    },
+    {
+      "artist_name": "Imagine Dragons",
+      "genre": "modern rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:26:07"
+    },
+    {
+      "artist_name": "Imagine Dragons",
+      "genre": "pop rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:26:07"
+    },
+    {
+      "artist_name": "Imogen Heap",
+      "genre": "electronic",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:43:46"
+    },
+    {
+      "artist_name": "Imogen Heap",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:43:46"
+    },
+    {
+      "artist_name": "Indigo Girls",
+      "genre": "folk",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Indigo Girls",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Indigo Girls",
+      "genre": "singer_songwriter",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Ingrid Michaelson",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:43:46"
+    },
+    {
+      "artist_name": "Ingrid Michaelson",
+      "genre": "singer_songwriter",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:43:46"
+    },
+    {
+      "artist_name": "INXS",
+      "genre": "newwave",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "INXS",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "INXS",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Irene Cara",
+      "genre": "dance",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Irene Cara",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Irene Cara",
+      "genre": "soundtrack",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Iyaz",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "Iyaz",
+      "genre": "rb",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "Jac Ross",
+      "genre": "rb",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:35:49"
+    },
+    {
+      "artist_name": "Jac Ross",
+      "genre": "soul",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:35:49"
+    },
+    {
+      "artist_name": "Jack Harlow",
+      "genre": "hiphop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Jack Harlow",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "James Blunt",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "James Blunt",
+      "genre": "singer_songwriter",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "James Brown & The Famous Flames",
+      "genre": "rb",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:22:34"
+    },
+    {
+      "artist_name": "James Brown & The Famous Flames",
+      "genre": "soul",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:22:34"
+    },
+    {
+      "artist_name": "Jason Derulo",
+      "genre": "dance",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Jason Derulo",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Jason Derulo",
+      "genre": "rb",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Jax",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "Jeff Buckley",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:43:46"
+    },
+    {
+      "artist_name": "Jeff Buckley",
+      "genre": "singer_songwriter",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:43:46"
+    },
+    {
+      "artist_name": "Jennifer Lopez",
+      "genre": "dance",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:43:46"
+    },
+    {
+      "artist_name": "Jennifer Lopez",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:43:46"
+    },
+    {
+      "artist_name": "Jess Glynne",
+      "genre": "dance",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Jess Glynne",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Jess Glynne",
+      "genre": "soul",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Jesse McCartney",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Jesse McCartney",
+      "genre": "rb",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Jessie J",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Jessie J",
+      "genre": "rb",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Jessie J",
+      "genre": "soul",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Jet",
+      "genre": "alternative",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:22:34"
+    },
+    {
+      "artist_name": "Jet",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:22:34"
+    },
+    {
+      "artist_name": "Joe Cocker",
+      "genre": "blues",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:22:34"
+    },
+    {
+      "artist_name": "Joe Cocker",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:22:34"
+    },
+    {
+      "artist_name": "Joe Cocker",
+      "genre": "soul",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:22:34"
+    },
+    {
+      "artist_name": "Joe Satriani",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "John Parr",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "John Parr",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Jon Batiste",
+      "genre": "jazz",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Jon Batiste",
+      "genre": "soul",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Jonas Brothers",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Jonas Brothers",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Julia Michaels",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Julia Michaels",
+      "genre": "singer_songwriter",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Justin Bieber",
+      "genre": "dance",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:41:21"
+    },
+    {
+      "artist_name": "Justin Bieber",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:41:21"
+    },
+    {
+      "artist_name": "Justin Bieber",
+      "genre": "r&b",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:41:21"
+    },
+    {
+      "artist_name": "Justin Timberlake",
+      "genre": "dance",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:41:21"
+    },
+    {
+      "artist_name": "Justin Timberlake",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:41:21"
+    },
+    {
+      "artist_name": "Justin Timberlake",
+      "genre": "r&b",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:41:21"
+    },
+    {
+      "artist_name": "Justin Timberlake",
+      "genre": "soul",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:41:21"
+    },
+    {
+      "artist_name": "K.Flay",
+      "genre": "alternative",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "K.Flay",
+      "genre": "hiphop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Kacey Musgraves",
+      "genre": "country",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:43:46"
+    },
+    {
+      "artist_name": "Kacey Musgraves",
+      "genre": "folk",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:43:46"
+    },
+    {
+      "artist_name": "KALEO",
+      "genre": "alternative",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "KALEO",
+      "genre": "blues",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "KALEO",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Kehlani",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:43:46"
+    },
+    {
+      "artist_name": "Kehlani",
+      "genre": "rb",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:43:46"
+    },
+    {
+      "artist_name": "Kelis",
+      "genre": "dance",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:43:46"
+    },
+    {
+      "artist_name": "Kelis",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:43:46"
+    },
+    {
+      "artist_name": "Kelis",
+      "genre": "rb",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:43:46"
+    },
+    {
+      "artist_name": "Kesha",
+      "genre": "dance",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Kesha",
+      "genre": "electronic",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Kesha",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Kim Wilde",
+      "genre": "newwave",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Kim Wilde",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Kings of Leon",
+      "genre": "alternative",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Kings of Leon",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Kris Kross",
+      "genre": "hiphop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:43:46"
+    },
+    {
+      "artist_name": "La Roux",
+      "genre": "dance",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "La Roux",
+      "genre": "electronic",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "La Roux",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Latto",
+      "genre": "hiphop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Latto",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Lauv",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Lauv",
+      "genre": "singer_songwriter",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Lenny Kravitz",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Lenny Kravitz",
+      "genre": "soul",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Lil Nas X",
+      "genre": "hiphop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:22:34"
+    },
+    {
+      "artist_name": "Lil Nas X",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:22:34"
+    },
+    {
+      "artist_name": "Liz Phair",
+      "genre": "alternative",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Liz Phair",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Liz Phair",
+      "genre": "singer_songwriter",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Lizzo",
+      "genre": "hiphop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Lizzo",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Lizzo",
+      "genre": "soul",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "LMFAO",
+      "genre": "dance",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "LMFAO",
+      "genre": "electronic",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "LMFAO",
+      "genre": "hiphop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Lorde",
+      "genre": "alternative",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Lorde",
+      "genre": "electronic",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Lorde",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Loverboy",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Loverboy",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "M.I.A.",
+      "genre": "electronic",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:43:46"
+    },
+    {
+      "artist_name": "M.I.A.",
+      "genre": "hiphop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:43:46"
+    },
+    {
+      "artist_name": "Macklemore",
+      "genre": "hiphop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:22:34"
+    },
+    {
+      "artist_name": "Macklemore",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:22:34"
+    },
+    {
+      "artist_name": "Madonna",
+      "genre": "dance",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:35:44"
+    },
+    {
+      "artist_name": "Madonna",
+      "genre": "electronic",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:35:44"
+    },
+    {
+      "artist_name": "Madonna",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:35:44"
+    },
+    {
+      "artist_name": "MC Hammer",
+      "genre": "dance",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "MC Hammer",
+      "genre": "hiphop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "MC Hammer",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Meat Loaf",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Meat Loaf",
+      "genre": "soundtrack",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Megan Thee Stallion",
+      "genre": "hiphop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:43:46"
+    },
+    {
+      "artist_name": "Meghan Trainor",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:22:34"
+    },
+    {
+      "artist_name": "Meghan Trainor",
+      "genre": "soul",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:22:34"
+    },
+    {
+      "artist_name": "Men At Work",
+      "genre": "newwave",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "Men At Work",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "Men At Work",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "Michael Franti & Spearhead",
+      "genre": "folk",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:22:34"
+    },
+    {
+      "artist_name": "Michael Franti & Spearhead",
+      "genre": "rb",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:22:34"
+    },
+    {
+      "artist_name": "Michael Franti & Spearhead",
+      "genre": "soul",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:22:34"
+    },
+    {
+      "artist_name": "Michael Jackson",
+      "genre": "funk",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:35:44"
+    },
+    {
+      "artist_name": "Michael Jackson",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:35:44"
+    },
+    {
+      "artist_name": "Michael Jackson",
+      "genre": "r&b",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:35:44"
+    },
+    {
+      "artist_name": "Michael Jackson",
+      "genre": "soul",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:35:44"
+    },
+    {
+      "artist_name": "Michigander",
+      "genre": "alternative",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:35:49"
+    },
+    {
+      "artist_name": "Michigander",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:35:49"
+    },
+    {
+      "artist_name": "MIKA",
+      "genre": "dance",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "MIKA",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Mike Posner",
+      "genre": "electronic",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:43:46"
+    },
+    {
+      "artist_name": "Mike Posner",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:43:46"
+    },
+    {
+      "artist_name": "Miley Cyrus",
+      "genre": "country",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:35:44"
+    },
+    {
+      "artist_name": "Miley Cyrus",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:35:44"
+    },
+    {
+      "artist_name": "Miley Cyrus",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:35:44"
+    },
+    {
+      "artist_name": "Milli Vanilli",
+      "genre": "dance",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "Milli Vanilli",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "MisterWives",
+      "genre": "alternative",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:22:34"
+    },
+    {
+      "artist_name": "MisterWives",
+      "genre": "dance",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:22:34"
+    },
+    {
+      "artist_name": "MisterWives",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:22:34"
+    },
+    {
+      "artist_name": "Mr. Mister",
+      "genre": "newwave",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Mr. Mister",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Mr. Mister",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Måneskin",
+      "genre": "alternative",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Måneskin",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Mýa",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:22:34"
+    },
+    {
+      "artist_name": "Mýa",
+      "genre": "rb",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:22:34"
+    },
+    {
+      "artist_name": "Mýa",
+      "genre": "soul",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:22:34"
+    },
+    {
+      "artist_name": "Natasha Bedingfield",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "Ne-Yo",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Ne-Yo",
+      "genre": "rb",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Ne-Yo",
+      "genre": "soul",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Neil Diamond",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:38:13"
+    },
+    {
+      "artist_name": "Neil Diamond",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:38:13"
+    },
+    {
+      "artist_name": "Neil Diamond",
+      "genre": "singer-songwriter",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:38:13"
+    },
+    {
+      "artist_name": "Nelly",
+      "genre": "hiphop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "Nelly",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "Nelly",
+      "genre": "rb",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "Nelly Furtado",
+      "genre": "dance",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "Nelly Furtado",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "Nelly Furtado",
+      "genre": "rb",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "New Radicals",
+      "genre": "alternative",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "New Radicals",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "New Radicals",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Niall Horan",
+      "genre": "folk",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "Niall Horan",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "Niall Horan",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "Nicki Minaj",
+      "genre": "hiphop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "Nicki Minaj",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "No Doubt",
+      "genre": "newwave",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "No Doubt",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "No Doubt",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Noah Cyrus",
+      "genre": "country",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:43:46"
+    },
+    {
+      "artist_name": "Noah Cyrus",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:43:46"
+    },
+    {
+      "artist_name": "Noah Kahan",
+      "genre": "folk",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Noah Kahan",
+      "genre": "singer_songwriter",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Nothing But Thieves",
+      "genre": "alternative",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:22:34"
+    },
+    {
+      "artist_name": "Nothing But Thieves",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:22:34"
+    },
+    {
+      "artist_name": "OK Go",
+      "genre": "alternative",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:43:46"
+    },
+    {
+      "artist_name": "OK Go",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:43:46"
+    },
+    {
+      "artist_name": "Olivia Rodrigo",
+      "genre": "alternative",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Olivia Rodrigo",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Olivia Rodrigo",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "P!nk",
+      "genre": "dance pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:26:08"
+    },
+    {
+      "artist_name": "P!nk",
+      "genre": "pop rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:26:08"
+    },
+    {
+      "artist_name": "P.M. Dawn",
+      "genre": "hiphop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:22:34"
+    },
+    {
+      "artist_name": "P.M. Dawn",
+      "genre": "rb",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:22:34"
+    },
+    {
+      "artist_name": "P.M. Dawn",
+      "genre": "soul",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:22:34"
+    },
+    {
+      "artist_name": "Palaye Royale",
+      "genre": "alternative",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:35:49"
+    },
+    {
+      "artist_name": "Palaye Royale",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:35:49"
+    },
+    {
+      "artist_name": "Paul McCartney",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:43:46"
+    },
+    {
+      "artist_name": "Paul McCartney",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:43:46"
+    },
+    {
+      "artist_name": "Pharrell Williams",
+      "genre": "hiphop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Pharrell Williams",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Pharrell Williams",
+      "genre": "soul",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Pitbull",
+      "genre": "dance",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:43:46"
+    },
+    {
+      "artist_name": "Pitbull",
+      "genre": "hiphop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:43:46"
+    },
+    {
+      "artist_name": "Pitbull",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:43:46"
+    },
+    {
+      "artist_name": "Plain White T's",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:22:34"
+    },
+    {
+      "artist_name": "Plain White T's",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:22:34"
+    },
+    {
+      "artist_name": "Pop Evil",
+      "genre": "alternative",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "Pop Evil",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "Portugal. The Man",
+      "genre": "alternative",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "Portugal. The Man",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "Portugal. The Man",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "Post Malone",
+      "genre": "hip hop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:43:47"
+    },
+    {
+      "artist_name": "Post Malone",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:43:47"
+    },
+    {
+      "artist_name": "Post Malone",
+      "genre": "r&b",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:43:47"
+    },
+    {
+      "artist_name": "Rachel Platten",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Rachel Platten",
+      "genre": "singer_songwriter",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Ray Parker Jr.",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:35:49"
+    },
+    {
+      "artist_name": "Ray Parker Jr.",
+      "genre": "soul",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:35:49"
+    },
+    {
+      "artist_name": "Ray Parker Jr.",
+      "genre": "soundtrack",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:35:49"
+    },
+    {
+      "artist_name": "Rev Theory",
+      "genre": "alternative",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:35:49"
+    },
+    {
+      "artist_name": "Rev Theory",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:35:49"
+    },
+    {
+      "artist_name": "Rick Astley",
+      "genre": "dance",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Rick Astley",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Rihanna",
+      "genre": "dance",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:38:13"
+    },
+    {
+      "artist_name": "Rihanna",
+      "genre": "hip hop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:38:13"
+    },
+    {
+      "artist_name": "Rihanna",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:38:13"
+    },
+    {
+      "artist_name": "Rihanna",
+      "genre": "r&b",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:38:13"
+    },
+    {
+      "artist_name": "Ringo Starr",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:22:34"
+    },
+    {
+      "artist_name": "Ringo Starr",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:22:34"
+    },
+    {
+      "artist_name": "Robert Plant",
+      "genre": "blues",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Robert Plant",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Ruth B.",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:35:49"
+    },
+    {
+      "artist_name": "Ruth B.",
+      "genre": "singer_songwriter",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:35:49"
+    },
+    {
+      "artist_name": "Sade",
+      "genre": "jazz",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:22:34"
+    },
+    {
+      "artist_name": "Sade",
+      "genre": "rb",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:22:34"
+    },
+    {
+      "artist_name": "Sade",
+      "genre": "soul",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:22:34"
+    },
+    {
+      "artist_name": "Sananda Maitreya",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:35:49"
+    },
+    {
+      "artist_name": "Sananda Maitreya",
+      "genre": "rb",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:35:49"
+    },
+    {
+      "artist_name": "Sananda Maitreya",
+      "genre": "soul",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:35:49"
+    },
+    {
+      "artist_name": "Scandal",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:35:49"
+    },
+    {
+      "artist_name": "Scandal",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:35:49"
+    },
+    {
+      "artist_name": "Scissor Sisters",
+      "genre": "dance",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "Scissor Sisters",
+      "genre": "electronic",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "Scissor Sisters",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "Seal",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "Seal",
+      "genre": "rb",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "Seal",
+      "genre": "soul",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "Sean Kingston",
+      "genre": "dance",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "Sean Kingston",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "Sean Kingston",
+      "genre": "rb",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "Selena Gomez",
+      "genre": "dance",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Selena Gomez",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Semisonic",
+      "genre": "alternative",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Semisonic",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Shawn Mendes",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:43:46"
+    },
+    {
+      "artist_name": "Shawn Mendes",
+      "genre": "singer_songwriter",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:43:46"
+    },
+    {
+      "artist_name": "Sheena Easton",
+      "genre": "dance",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Sheena Easton",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "SICK PUPPIES",
+      "genre": "alternative",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "SICK PUPPIES",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "Silversun Pickups",
+      "genre": "alternative",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:43:46"
+    },
+    {
+      "artist_name": "Silversun Pickups",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:43:46"
+    },
+    {
+      "artist_name": "Sinéad O'Connor",
+      "genre": "alternative",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Sinéad O'Connor",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Sinéad O'Connor",
+      "genre": "singer_songwriter",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Sister Hazel",
+      "genre": "alternative",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Sister Hazel",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Sixpence None The Richer",
+      "genre": "alternative",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Sixpence None The Richer",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Sixpence None The Richer",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Sly Fox",
+      "genre": "newwave",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:35:49"
+    },
+    {
+      "artist_name": "Sly Fox",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:35:49"
+    },
+    {
+      "artist_name": "Smash Mouth",
+      "genre": "alternative",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Smash Mouth",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Smash Mouth",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Smith & Myers",
+      "genre": "alternative",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:35:49"
+    },
+    {
+      "artist_name": "Smith & Myers",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:35:49"
+    },
+    {
+      "artist_name": "Sophie B. Hawkins",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:35:49"
+    },
+    {
+      "artist_name": "Sophie B. Hawkins",
+      "genre": "singer_songwriter",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:35:49"
+    },
+    {
+      "artist_name": "Spin Doctors",
+      "genre": "alternative",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:22:34"
+    },
+    {
+      "artist_name": "Spin Doctors",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:22:34"
+    },
+    {
+      "artist_name": "Starship",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:22:34"
+    },
+    {
+      "artist_name": "Starship",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:22:34"
+    },
+    {
+      "artist_name": "T-Pain",
+      "genre": "hiphop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "T-Pain",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "T-Pain",
+      "genre": "rb",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Tate McRae",
+      "genre": "dance",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "Tate McRae",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "Taylor Swift",
+      "genre": "country",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:35:44"
+    },
+    {
+      "artist_name": "Taylor Swift",
+      "genre": "folk",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:35:44"
+    },
+    {
+      "artist_name": "Taylor Swift",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:35:44"
+    },
+    {
+      "artist_name": "Teddy Swims",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:22:34"
+    },
+    {
+      "artist_name": "Teddy Swims",
+      "genre": "rb",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:22:34"
+    },
+    {
+      "artist_name": "Teddy Swims",
+      "genre": "soul",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:22:34"
+    },
+    {
+      "artist_name": "The 1975",
+      "genre": "alternative",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:43:46"
+    },
+    {
+      "artist_name": "The 1975",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:43:46"
+    },
+    {
+      "artist_name": "The 5 Heartbeats",
+      "genre": "soul",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:35:49"
+    },
+    {
+      "artist_name": "The 5 Heartbeats",
+      "genre": "soundtrack",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:35:49"
+    },
+    {
+      "artist_name": "The Cranberries",
+      "genre": "alternative rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:35:44"
+    },
+    {
+      "artist_name": "The Cranberries",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:35:44"
+    },
+    {
+      "artist_name": "THE DRIVER ERA",
+      "genre": "alternative",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:22:34"
+    },
+    {
+      "artist_name": "THE DRIVER ERA",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:22:34"
+    },
+    {
+      "artist_name": "THE DRIVER ERA",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:22:34"
+    },
+    {
+      "artist_name": "The Fray",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:43:46"
+    },
+    {
+      "artist_name": "The Fray",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:43:46"
+    },
+    {
+      "artist_name": "The Goo Goo Dolls",
+      "genre": "alternative rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:41:21"
+    },
+    {
+      "artist_name": "The Goo Goo Dolls",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:41:21"
+    },
+    {
+      "artist_name": "The Goo Goo Dolls",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:41:21"
+    },
+    {
+      "artist_name": "The Greg Kihn Band",
+      "genre": "newwave",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:35:49"
+    },
+    {
+      "artist_name": "The Greg Kihn Band",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:35:49"
+    },
+    {
+      "artist_name": "The Hollies",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "The Hollies",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "The Hooters",
+      "genre": "newwave",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "The Hooters",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "The Hooters",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "The Outfield",
+      "genre": "newwave",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "The Outfield",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "The Outfield",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "The Police",
+      "genre": "new wave",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:35:44"
+    },
+    {
+      "artist_name": "The Police",
+      "genre": "reggae",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:35:44"
+    },
+    {
+      "artist_name": "The Police",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:35:44"
+    },
+    {
+      "artist_name": "The Power Station",
+      "genre": "newwave",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "The Power Station",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "The Tubes",
+      "genre": "newwave",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:35:49"
+    },
+    {
+      "artist_name": "The Tubes",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:35:49"
+    },
+    {
+      "artist_name": "The Wallflowers",
+      "genre": "alternative",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "The Wallflowers",
+      "genre": "folk",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "The Wallflowers",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "The Weeknd",
+      "genre": "dance",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:43:47"
+    },
+    {
+      "artist_name": "The Weeknd",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:43:47"
+    },
+    {
+      "artist_name": "The Weeknd",
+      "genre": "r&b",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:43:47"
+    },
+    {
+      "artist_name": "The Weeknd",
+      "genre": "soul",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:43:47"
+    },
+    {
+      "artist_name": "Third Eye Blind",
+      "genre": "alternative",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Third Eye Blind",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Third Eye Blind",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Thirty Seconds To Mars",
+      "genre": "alternative rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:41:21"
+    },
+    {
+      "artist_name": "Thirty Seconds To Mars",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:41:21"
+    },
+    {
+      "artist_name": "Three Dog Night",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Three Dog Night",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Three Dog Night",
+      "genre": "soul",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Timbaland",
+      "genre": "hiphop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:43:46"
+    },
+    {
+      "artist_name": "Timbaland",
+      "genre": "rb",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:43:46"
+    },
+    {
+      "artist_name": "Tina Turner",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "Tina Turner",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "Tina Turner",
+      "genre": "soul",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "TLC",
+      "genre": "hip hop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:41:21"
+    },
+    {
+      "artist_name": "TLC",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:41:21"
+    },
+    {
+      "artist_name": "TLC",
+      "genre": "r&b",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:41:21"
+    },
+    {
+      "artist_name": "TLC",
+      "genre": "soul",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:41:21"
+    },
+    {
+      "artist_name": "Toad The Wet Sprocket",
+      "genre": "alternative rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:21:39"
+    },
+    {
+      "artist_name": "Toad The Wet Sprocket",
+      "genre": "jangle pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:21:39"
+    },
+    {
+      "artist_name": "Tone-Loc",
+      "genre": "hiphop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Tones And I",
+      "genre": "dance",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "Tones And I",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "Tonic",
+      "genre": "alternative",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Tonic",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Tracy Chapman",
+      "genre": "folk",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:38:13"
+    },
+    {
+      "artist_name": "Tracy Chapman",
+      "genre": "singer-songwriter",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:38:13"
+    },
+    {
+      "artist_name": "Tracy Chapman",
+      "genre": "soul",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:38:13"
+    },
+    {
+      "artist_name": "Traveling Wilburys",
+      "genre": "folk",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:41:21"
+    },
+    {
+      "artist_name": "Traveling Wilburys",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:41:21"
+    },
+    {
+      "artist_name": "Traveling Wilburys",
+      "genre": "singer-songwriter",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:41:21"
+    },
+    {
+      "artist_name": "Treble Charger",
+      "genre": "alternative",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:35:49"
+    },
+    {
+      "artist_name": "Treble Charger",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:35:49"
+    },
+    {
+      "artist_name": "Troye Sivan",
+      "genre": "dance",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "Troye Sivan",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "Tyler, The Creator",
+      "genre": "alternative",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Tyler, The Creator",
+      "genre": "hiphop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Uncle Kracker",
+      "genre": "country",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Uncle Kracker",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Uncle Kracker",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Van Morrison",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Van Morrison",
+      "genre": "singer_songwriter",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Van Morrison",
+      "genre": "soul",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Vanilla Ice",
+      "genre": "hiphop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:43:46"
+    },
+    {
+      "artist_name": "Vertical Horizon",
+      "genre": "alternative",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Vertical Horizon",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "War",
+      "genre": "rb",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "War",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "War",
+      "genre": "soul",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "Whitney Houston",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:43:47"
+    },
+    {
+      "artist_name": "Whitney Houston",
+      "genre": "r&b",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:43:47"
+    },
+    {
+      "artist_name": "Whitney Houston",
+      "genre": "soul",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:43:47"
+    },
+    {
+      "artist_name": "Will Smith",
+      "genre": "hiphop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "Will Smith",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 05:48:22"
+    },
+    {
+      "artist_name": "WILLOW",
+      "genre": "alternative",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "WILLOW",
+      "genre": "rb",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "WILLOW",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Wings",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "Wings",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "Wiz Khalifa",
+      "genre": "hiphop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Wiz Khalifa",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "World Party",
+      "genre": "alternative",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "World Party",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "World Party",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Young MC",
+      "genre": "hiphop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Young the Giant",
+      "genre": "alternative",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "Young the Giant",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 06:03:15"
+    },
+    {
+      "artist_name": "YUNGBLUD",
+      "genre": "alternative",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "YUNGBLUD",
+      "genre": "rock",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:29:45"
+    },
+    {
+      "artist_name": "Zara Larsson",
+      "genre": "dance",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:43:46"
+    },
+    {
+      "artist_name": "Zara Larsson",
+      "genre": "pop",
+      "source": "curated_seed",
+      "created_at": "2026-04-25 17:43:46"
+    },
+    {
+      "artist_name": "AJ McLean",
+      "genre": "dance",
+      "source": "lastfm",
+      "created_at": "2026-04-26 03:05:39"
+    },
+    {
+      "artist_name": "AJ McLean",
+      "genre": "pop",
+      "source": "lastfm",
+      "created_at": "2026-04-26 03:05:39"
+    },
+    {
+      "artist_name": "AJ McLean",
+      "genre": "rock",
+      "source": "lastfm",
+      "created_at": "2026-04-26 03:05:39"
+    },
+    {
+      "artist_name": "Alessandra",
+      "genre": "dance",
+      "source": "lastfm",
+      "created_at": "2026-04-26 03:05:39"
+    },
+    {
+      "artist_name": "Alessandra",
+      "genre": "electronic",
+      "source": "lastfm",
+      "created_at": "2026-04-26 03:05:39"
+    },
+    {
+      "artist_name": "Alessandra",
+      "genre": "pop",
+      "source": "lastfm",
+      "created_at": "2026-04-26 03:05:39"
+    },
+    {
+      "artist_name": "Arkells",
+      "genre": "alternative",
+      "source": "lastfm",
+      "created_at": "2026-04-26 02:54:39"
+    },
+    {
+      "artist_name": "Arkells",
+      "genre": "rock",
+      "source": "lastfm",
+      "created_at": "2026-04-26 02:54:39"
+    },
+    {
+      "artist_name": "Bazzi",
+      "genre": "pop",
+      "source": "lastfm",
+      "created_at": "2026-04-26 03:05:39"
+    },
+    {
+      "artist_name": "Bazzi",
+      "genre": "rb",
+      "source": "lastfm",
+      "created_at": "2026-04-26 03:05:39"
+    },
+    {
+      "artist_name": "Bazzi",
+      "genre": "singer_songwriter",
+      "source": "lastfm",
+      "created_at": "2026-04-26 03:05:39"
+    },
+    {
+      "artist_name": "Bedouin Soundclash",
+      "genre": "alternative",
+      "source": "lastfm",
+      "created_at": "2026-04-26 03:05:39"
+    },
+    {
+      "artist_name": "Bedouin Soundclash",
+      "genre": "rock",
+      "source": "lastfm",
+      "created_at": "2026-04-26 03:05:39"
+    },
+    {
+      "artist_name": "Ben Rector",
+      "genre": "pop",
+      "source": "lastfm",
+      "created_at": "2026-04-26 02:55:42"
+    },
+    {
+      "artist_name": "Ben Rector",
+      "genre": "rock",
+      "source": "lastfm",
+      "created_at": "2026-04-26 02:55:42"
+    },
+    {
+      "artist_name": "Ben Rector",
+      "genre": "singer_songwriter",
+      "source": "lastfm",
+      "created_at": "2026-04-26 02:55:42"
+    },
+    {
+      "artist_name": "blackbear",
+      "genre": "electronic",
+      "source": "lastfm",
+      "created_at": "2026-04-26 03:05:39"
+    },
+    {
+      "artist_name": "blackbear",
+      "genre": "hiphop",
+      "source": "lastfm",
+      "created_at": "2026-04-26 03:05:39"
+    },
+    {
+      "artist_name": "blackbear",
+      "genre": "pop",
+      "source": "lastfm",
+      "created_at": "2026-04-26 03:05:39"
+    },
+    {
+      "artist_name": "Boy Meets Girl",
+      "genre": "dance",
+      "source": "lastfm",
+      "created_at": "2026-04-26 03:05:39"
+    },
+    {
+      "artist_name": "Boy Meets Girl",
+      "genre": "newwave",
+      "source": "lastfm",
+      "created_at": "2026-04-26 03:05:39"
+    },
+    {
+      "artist_name": "Boy Meets Girl",
+      "genre": "pop",
+      "source": "lastfm",
+      "created_at": "2026-04-26 03:05:39"
+    },
+    {
+      "artist_name": "Bradley Cooper",
+      "genre": "country",
+      "source": "lastfm",
+      "created_at": "2026-04-26 03:05:39"
+    },
+    {
+      "artist_name": "Bradley Cooper",
+      "genre": "folk",
+      "source": "lastfm",
+      "created_at": "2026-04-26 03:05:39"
+    },
+    {
+      "artist_name": "Bradley Cooper",
+      "genre": "rock",
+      "source": "lastfm",
+      "created_at": "2026-04-26 03:05:39"
+    },
+    {
+      "artist_name": "Brett Dennen",
+      "genre": "alternative",
+      "source": "lastfm",
+      "created_at": "2026-04-26 02:55:53"
+    },
+    {
+      "artist_name": "Brett Dennen",
+      "genre": "folk",
+      "source": "lastfm",
+      "created_at": "2026-04-26 02:55:53"
+    },
+    {
+      "artist_name": "Brett Dennen",
+      "genre": "singer_songwriter",
+      "source": "lastfm",
+      "created_at": "2026-04-26 02:55:53"
+    },
+    {
+      "artist_name": "Buster Poindexter And His Banshees Of Blue",
+      "genre": "blues",
+      "source": "lastfm",
+      "created_at": "2026-04-26 03:05:39"
+    },
+    {
+      "artist_name": "Buster Poindexter And His Banshees Of Blue",
+      "genre": "jazz",
+      "source": "lastfm",
+      "created_at": "2026-04-26 03:05:39"
+    },
+    {
+      "artist_name": "Buster Poindexter And His Banshees Of Blue",
+      "genre": "pop",
+      "source": "lastfm",
+      "created_at": "2026-04-26 03:05:39"
+    },
+    {
+      "artist_name": "Capital Cities",
+      "genre": "alternative",
+      "source": "lastfm",
+      "created_at": "2026-04-26 02:55:34"
+    },
+    {
+      "artist_name": "Capital Cities",
+      "genre": "electronic",
+      "source": "lastfm",
+      "created_at": "2026-04-26 02:55:34"
+    },
+    {
+      "artist_name": "Capital Cities",
+      "genre": "pop",
+      "source": "lastfm",
+      "created_at": "2026-04-26 02:55:34"
+    },
+    {
+      "artist_name": "Chad Kroeger",
+      "genre": "alternative",
+      "source": "lastfm",
+      "created_at": "2026-04-26 03:05:39"
+    },
+    {
+      "artist_name": "Chad Kroeger",
+      "genre": "pop",
+      "source": "lastfm",
+      "created_at": "2026-04-26 03:05:39"
+    },
+    {
+      "artist_name": "Chad Kroeger",
+      "genre": "rock",
+      "source": "lastfm",
+      "created_at": "2026-04-26 03:05:39"
+    },
+    {
+      "artist_name": "Charles & Eddie",
+      "genre": "pop",
+      "source": "lastfm",
+      "created_at": "2026-04-26 03:05:39"
+    },
+    {
+      "artist_name": "Charles & Eddie",
+      "genre": "rock",
+      "source": "lastfm",
+      "created_at": "2026-04-26 03:05:39"
+    },
+    {
+      "artist_name": "Charles & Eddie",
+      "genre": "soul",
+      "source": "lastfm",
+      "created_at": "2026-04-26 03:05:39"
+    },
+    {
+      "artist_name": "Citizen King",
+      "genre": "alternative",
+      "source": "lastfm",
+      "created_at": "2026-04-26 03:05:39"
+    },
+    {
+      "artist_name": "Citizen King",
+      "genre": "hiphop",
+      "source": "lastfm",
+      "created_at": "2026-04-26 03:05:39"
+    },
+    {
+      "artist_name": "Citizen King",
+      "genre": "rock",
+      "source": "lastfm",
+      "created_at": "2026-04-26 03:05:39"
+    },
+    {
+      "artist_name": "City High",
+      "genre": "hiphop",
+      "source": "lastfm",
+      "created_at": "2026-04-26 03:05:39"
+    },
+    {
+      "artist_name": "City High",
+      "genre": "rb",
+      "source": "lastfm",
+      "created_at": "2026-04-26 03:05:39"
+    },
+    {
+      "artist_name": "City High",
+      "genre": "soul",
+      "source": "lastfm",
+      "created_at": "2026-04-26 03:05:39"
+    },
+    {
+      "artist_name": "Dada",
+      "genre": "alternative",
+      "source": "lastfm",
+      "created_at": "2026-04-26 03:05:39"
+    },
+    {
+      "artist_name": "Dada",
+      "genre": "newwave",
+      "source": "lastfm",
+      "created_at": "2026-04-26 03:05:39"
+    },
+    {
+      "artist_name": "Dada",
+      "genre": "rock",
+      "source": "lastfm",
+      "created_at": "2026-04-26 03:05:39"
+    },
+    {
+      "artist_name": "Dasha",
+      "genre": "country",
+      "source": "lastfm",
+      "created_at": "2026-04-26 03:05:39"
+    },
+    {
+      "artist_name": "Dasha",
+      "genre": "pop",
+      "source": "lastfm",
+      "created_at": "2026-04-26 03:05:39"
+    },
+    {
+      "artist_name": "Dasha",
+      "genre": "rb",
+      "source": "lastfm",
+      "created_at": "2026-04-26 03:05:39"
+    },
+    {
+      "artist_name": "Deadeye Dick",
+      "genre": "alternative",
+      "source": "lastfm",
+      "created_at": "2026-04-26 03:05:39"
+    },
+    {
+      "artist_name": "Deadeye Dick",
+      "genre": "metal",
+      "source": "lastfm",
+      "created_at": "2026-04-26 03:05:39"
+    },
+    {
+      "artist_name": "Deadeye Dick",
+      "genre": "rock",
+      "source": "lastfm",
+      "created_at": "2026-04-26 03:05:39"
+    },
+    {
+      "artist_name": "Eddie Benjamin",
+      "genre": "alternative",
+      "source": "lastfm",
+      "created_at": "2026-04-26 03:05:39"
+    },
+    {
+      "artist_name": "Eddie Benjamin",
+      "genre": "pop",
+      "source": "lastfm",
+      "created_at": "2026-04-26 03:05:39"
+    },
+    {
+      "artist_name": "Eddie Benjamin",
+      "genre": "singer_songwriter",
+      "source": "lastfm",
+      "created_at": "2026-04-26 03:05:39"
+    },
+    {
+      "artist_name": "Edie Brickell & New Bohemians",
+      "genre": "alternative",
+      "source": "lastfm",
+      "created_at": "2026-04-26 03:05:39"
+    },
+    {
+      "artist_name": "Edie Brickell & New Bohemians",
+      "genre": "folk",
+      "source": "lastfm",
+      "created_at": "2026-04-26 03:05:39"
+    },
+    {
+      "artist_name": "Edie Brickell & New Bohemians",
+      "genre": "rock",
+      "source": "lastfm",
+      "created_at": "2026-04-26 03:05:39"
+    },
+    {
+      "artist_name": "Edward Sharpe & The Magnetic Zeros",
+      "genre": "alternative",
+      "source": "lastfm",
+      "created_at": "2026-04-26 03:05:39"
+    },
+    {
+      "artist_name": "Edward Sharpe & The Magnetic Zeros",
+      "genre": "country",
+      "source": "lastfm",
+      "created_at": "2026-04-26 03:05:39"
+    },
+    {
+      "artist_name": "Edward Sharpe & The Magnetic Zeros",
+      "genre": "folk",
+      "source": "lastfm",
+      "created_at": "2026-04-26 03:05:39"
+    },
+    {
+      "artist_name": "Elwood",
+      "genre": "blues",
+      "source": "lastfm",
+      "created_at": "2026-04-26 03:05:39"
+    },
+    {
+      "artist_name": "Elwood",
+      "genre": "dance",
+      "source": "lastfm",
+      "created_at": "2026-04-26 03:05:39"
+    },
+    {
+      "artist_name": "Elwood",
+      "genre": "electronic",
+      "source": "lastfm",
+      "created_at": "2026-04-26 03:05:39"
+    },
+    {
+      "artist_name": "Emilie Mover",
+      "genre": "alternative",
+      "source": "lastfm",
+      "created_at": "2026-04-26 03:05:39"
+    },
+    {
+      "artist_name": "Emilie Mover",
+      "genre": "folk",
+      "source": "lastfm",
+      "created_at": "2026-04-26 03:05:39"
+    },
+    {
+      "artist_name": "Emilie Mover",
+      "genre": "singer_songwriter",
+      "source": "lastfm",
+      "created_at": "2026-04-26 03:05:39"
+    },
+    {
+      "artist_name": "Empire Cast",
+      "genre": "hiphop",
+      "source": "lastfm",
+      "created_at": "2026-04-26 03:05:39"
+    },
+    {
+      "artist_name": "Empire Cast",
+      "genre": "rb",
+      "source": "lastfm",
+      "created_at": "2026-04-26 03:05:39"
+    },
+    {
+      "artist_name": "Empire Cast",
+      "genre": "soundtrack",
+      "source": "lastfm",
+      "created_at": "2026-04-26 03:05:39"
+    },
+    {
+      "artist_name": "Eric Hutchinson",
+      "genre": "alternative",
+      "source": "lastfm",
+      "created_at": "2026-04-26 03:05:39"
+    },
+    {
+      "artist_name": "Eric Hutchinson",
+      "genre": "pop",
+      "source": "lastfm",
+      "created_at": "2026-04-26 03:05:39"
+    },
+    {
+      "artist_name": "Eric Hutchinson",
+      "genre": "singer_songwriter",
+      "source": "lastfm",
+      "created_at": "2026-04-26 03:05:39"
+    },
+    {
+      "artist_name": "Everything",
+      "genre": "alternative",
+      "source": "lastfm",
+      "created_at": "2026-04-26 03:05:39"
+    },
+    {
+      "artist_name": "Everything",
+      "genre": "metal",
+      "source": "lastfm",
+      "created_at": "2026-04-26 03:05:39"
+    },
+    {
+      "artist_name": "Everything",
+      "genre": "rock",
+      "source": "lastfm",
+      "created_at": "2026-04-26 03:05:39"
+    },
+    {
+      "artist_name": "Fabolous",
+      "genre": "hiphop",
+      "source": "lastfm",
+      "created_at": "2026-04-26 03:05:39"
+    },
+    {
+      "artist_name": "Fabolous",
+      "genre": "rb",
+      "source": "lastfm",
+      "created_at": "2026-04-26 03:05:39"
+    },
+    {
+      "artist_name": "Fatman Scoop",
+      "genre": "dance",
+      "source": "lastfm",
+      "created_at": "2026-04-26 03:05:39"
+    },
+    {
+      "artist_name": "Fatman Scoop",
+      "genre": "hiphop",
+      "source": "lastfm",
+      "created_at": "2026-04-26 03:05:39"
+    },
+    {
+      "artist_name": "Fatman Scoop",
+      "genre": "rb",
+      "source": "lastfm",
+      "created_at": "2026-04-26 03:05:39"
+    },
+    {
+      "artist_name": "Mammoth",
+      "genre": "metal",
+      "source": "lastfm",
+      "created_at": "2026-04-26 02:51:10"
+    },
+    {
+      "artist_name": "Mammoth",
+      "genre": "rock",
+      "source": "lastfm",
+      "created_at": "2026-04-26 02:51:10"
+    }
+  ],
+  "lastfm_artist_tags": [
+    {
+      "artist_name": "A.L.T. And The Lost Civilization",
+      "source_artist_name": "A.L.T. & The Lost Civilization",
+      "raw_tags_json": "[{\"name\":\"american\",\"count\":100},{\"name\":\"hip hop\",\"count\":100},{\"name\":\"United States\",\"count\":66}]",
+      "mapped_genres_json": "[\"hiphop\"]",
+      "suggested_playlist_code": "hiphop",
+      "confidence": "low",
+      "status": "applied",
+      "error_code": null,
+      "error_message": null,
+      "fetched_at": "2026-04-26T02:46:18.090Z",
+      "updated_at": "2026-04-27T04:29:32.813Z"
+    },
+    {
+      "artist_name": "AJ McLean",
+      "source_artist_name": "AJ McLean",
+      "raw_tags_json": "[{\"name\":\"pop\",\"count\":100},{\"name\":\"rock\",\"count\":79},{\"name\":\"male vocalists\",\"count\":33},{\"name\":\"pop rock\",\"count\":27},{\"name\":\"backstreet boys\",\"count\":14},{\"name\":\"american\",\"count\":12},{\"name\":\"howie d\",\"count\":11},{\"name\":\"dance\",\"count\":3},{\"name\":\"boybands\",\"count\":3},{\"name\":\"10s\",\"count\":3}]",
+      "mapped_genres_json": "[\"pop\",\"rock\",\"dance\"]",
+      "suggested_playlist_code": "pop",
+      "confidence": "medium",
+      "status": "applied",
+      "error_code": null,
+      "error_message": null,
+      "fetched_at": "2026-04-26T02:46:18.432Z",
+      "updated_at": "2026-04-26T03:05:39.900Z"
+    },
+    {
+      "artist_name": "Alessandra",
+      "source_artist_name": "Alessandra",
+      "raw_tags_json": "[{\"name\":\"pop\",\"count\":100},{\"name\":\"norwegian\",\"count\":68},{\"name\":\"electronic\",\"count\":27},{\"name\":\"female vocalists\",\"count\":20},{\"name\":\"Eurovision\",\"count\":7},{\"name\":\"dance\",\"count\":4},{\"name\":\"Norway\",\"count\":4},{\"name\":\"italian\",\"count\":1},{\"name\":\"Eurovision 2023\",\"count\":1},{\"name\":\"ESC\",\"count\":1}]",
+      "mapped_genres_json": "[\"pop\",\"electronic\",\"dance\"]",
+      "suggested_playlist_code": "pop",
+      "confidence": "medium",
+      "status": "applied",
+      "error_code": null,
+      "error_message": null,
+      "fetched_at": "2026-04-26T02:46:18.799Z",
+      "updated_at": "2026-04-26T03:05:39.901Z"
+    },
+    {
+      "artist_name": "Arkells",
+      "source_artist_name": "Arkells",
+      "raw_tags_json": "[{\"name\":\"Canadian\",\"count\":100},{\"name\":\"indie rock\",\"count\":71},{\"name\":\"rock\",\"count\":44},{\"name\":\"indie\",\"count\":28},{\"name\":\"alternative\",\"count\":9},{\"name\":\"canada\",\"count\":8},{\"name\":\"alternative rock\",\"count\":3},{\"name\":\"hamilton\",\"count\":1},{\"name\":\"ontario\",\"count\":1},{\"name\":\"All\",\"count\":1}]",
+      "mapped_genres_json": "[\"alternative\",\"rock\"]",
+      "suggested_playlist_code": "alternative",
+      "confidence": "medium",
+      "status": "applied",
+      "error_code": null,
+      "error_message": null,
+      "fetched_at": "2026-04-26T02:46:19.128Z",
+      "updated_at": "2026-04-26T02:54:39.971Z"
+    },
+    {
+      "artist_name": "Band of Oz",
+      "source_artist_name": "Band of Oz",
+      "raw_tags_json": "[{\"name\":\"beach music\",\"count\":100}]",
+      "mapped_genres_json": "[]",
+      "suggested_playlist_code": null,
+      "confidence": "low",
+      "status": "ignored",
+      "error_code": null,
+      "error_message": null,
+      "fetched_at": "2026-04-26T02:46:19.474Z",
+      "updated_at": "2026-04-27T04:04:55.860Z"
+    },
+    {
+      "artist_name": "Bazzi",
+      "source_artist_name": "Bazzi",
+      "raw_tags_json": "[{\"name\":\"rnb\",\"count\":100},{\"name\":\"pop\",\"count\":80},{\"name\":\"american\",\"count\":7},{\"name\":\"singer-songwriter\",\"count\":2},{\"name\":\"male vocalists\",\"count\":1},{\"name\":\"Hip-Hop\",\"count\":1},{\"name\":\"bazzi\",\"count\":1},{\"name\":\"lidarr\",\"count\":1},{\"name\":\"funk_add_to_lidarr_batch_3\",\"count\":1},{\"name\":\"Arab excellence\",\"count\":1}]",
+      "mapped_genres_json": "[\"rb\",\"pop\",\"singer_songwriter\"]",
+      "suggested_playlist_code": "rb",
+      "confidence": "medium",
+      "status": "applied",
+      "error_code": null,
+      "error_message": null,
+      "fetched_at": "2026-04-26T02:46:19.847Z",
+      "updated_at": "2026-04-26T03:05:39.901Z"
+    },
+    {
+      "artist_name": "Bedouin Soundclash",
+      "source_artist_name": "Bedouin Soundclash",
+      "raw_tags_json": "[{\"name\":\"reggae\",\"count\":100},{\"name\":\"ska\",\"count\":63},{\"name\":\"Canadian\",\"count\":32},{\"name\":\"indie\",\"count\":28},{\"name\":\"alternative\",\"count\":12},{\"name\":\"canada\",\"count\":3},{\"name\":\"rock\",\"count\":2},{\"name\":\"dub\",\"count\":1},{\"name\":\"acoustic\",\"count\":1},{\"name\":\"Reggae Rock\",\"count\":1}]",
+      "mapped_genres_json": "[\"alternative\",\"rock\"]",
+      "suggested_playlist_code": "alternative",
+      "confidence": "medium",
+      "status": "applied",
+      "error_code": null,
+      "error_message": null,
+      "fetched_at": "2026-04-26T02:46:20.210Z",
+      "updated_at": "2026-04-26T03:05:39.901Z"
+    },
+    {
+      "artist_name": "Ben Rector",
+      "source_artist_name": "Ben Rector",
+      "raw_tags_json": "[{\"name\":\"singer-songwriter\",\"count\":100},{\"name\":\"piano rock\",\"count\":52},{\"name\":\"piano\",\"count\":20},{\"name\":\"christian\",\"count\":8},{\"name\":\"pop rock\",\"count\":3},{\"name\":\"pop\",\"count\":1},{\"name\":\"oklahoma\",\"count\":1},{\"name\":\"male vocalists\",\"count\":1},{\"name\":\"tulsa\",\"count\":1},{\"name\":\"american\",\"count\":1}]",
+      "mapped_genres_json": "[\"singer_songwriter\",\"rock\",\"pop\"]",
+      "suggested_playlist_code": "singer_songwriter",
+      "confidence": "medium",
+      "status": "applied",
+      "error_code": null,
+      "error_message": null,
+      "fetched_at": "2026-04-26T02:46:20.566Z",
+      "updated_at": "2026-04-26T02:55:42.037Z"
+    },
+    {
+      "artist_name": "Big Boss Vette",
+      "source_artist_name": "Big Boss Vette",
+      "raw_tags_json": "[{\"name\":\"rap\",\"count\":100},{\"name\":\"Hip-Hop\",\"count\":100},{\"name\":\"female vocalist\",\"count\":7},{\"name\":\"USA\",\"count\":7},{\"name\":\"Trap Queen\",\"count\":4},{\"name\":\"st louis\",\"count\":4},{\"name\":\"trap\",\"count\":4}]",
+      "mapped_genres_json": "[\"hiphop\"]",
+      "suggested_playlist_code": "hiphop",
+      "confidence": "low",
+      "status": "applied",
+      "error_code": null,
+      "error_message": null,
+      "fetched_at": "2026-04-26T02:46:20.980Z",
+      "updated_at": "2026-04-27T04:03:29.172Z"
+    },
+    {
+      "artist_name": "blackbear",
+      "source_artist_name": "blackbear",
+      "raw_tags_json": "[{\"name\":\"electronic\",\"count\":100},{\"name\":\"pop\",\"count\":83},{\"name\":\"hip hop\",\"count\":48},{\"name\":\"Hip-Hop\",\"count\":40},{\"name\":\"rnb\",\"count\":20},{\"name\":\"r&b\",\"count\":7},{\"name\":\"american\",\"count\":7},{\"name\":\"alternative rnb\",\"count\":2},{\"name\":\"rap\",\"count\":1},{\"name\":\"powerpop\",\"count\":1}]",
+      "mapped_genres_json": "[\"electronic\",\"pop\",\"hiphop\"]",
+      "suggested_playlist_code": "electronic",
+      "confidence": "medium",
+      "status": "applied",
+      "error_code": null,
+      "error_message": null,
+      "fetched_at": "2026-04-26T02:46:21.418Z",
+      "updated_at": "2026-04-26T03:05:39.901Z"
+    },
+    {
+      "artist_name": "Boy Meets Girl",
+      "source_artist_name": "Boy Meets Girl",
+      "raw_tags_json": "[{\"name\":\"80s\",\"count\":100},{\"name\":\"pop\",\"count\":90},{\"name\":\"new wave\",\"count\":33},{\"name\":\"80s Pop\",\"count\":16},{\"name\":\"american\",\"count\":3},{\"name\":\"oldies\",\"count\":2},{\"name\":\"dance\",\"count\":1},{\"name\":\"USA\",\"count\":1},{\"name\":\"singer-songwriter\",\"count\":1},{\"name\":\"electronic\",\"count\":1}]",
+      "mapped_genres_json": "[\"pop\",\"newwave\",\"dance\"]",
+      "suggested_playlist_code": "pop",
+      "confidence": "medium",
+      "status": "applied",
+      "error_code": null,
+      "error_message": null,
+      "fetched_at": "2026-04-26T02:46:21.770Z",
+      "updated_at": "2026-04-26T03:05:39.901Z"
+    },
+    {
+      "artist_name": "Bradley Cooper",
+      "source_artist_name": "Bradley Cooper",
+      "raw_tags_json": "[{\"name\":\"actor\",\"count\":100},{\"name\":\"rock\",\"count\":25},{\"name\":\"country\",\"count\":4},{\"name\":\"folk\",\"count\":4},{\"name\":\"pop\",\"count\":2},{\"name\":\"USA\",\"count\":2},{\"name\":\"Soundtrack\",\"count\":2},{\"name\":\"folk rock\",\"count\":1},{\"name\":\"singer\",\"count\":1},{\"name\":\"american\",\"count\":1}]",
+      "mapped_genres_json": "[\"rock\",\"country\",\"folk\"]",
+      "suggested_playlist_code": "rock",
+      "confidence": "medium",
+      "status": "applied",
+      "error_code": null,
+      "error_message": null,
+      "fetched_at": "2026-04-26T02:46:22.102Z",
+      "updated_at": "2026-04-26T03:05:39.902Z"
+    },
+    {
+      "artist_name": "Brett Dennen",
+      "source_artist_name": "Brett Dennen",
+      "raw_tags_json": "[{\"name\":\"folk\",\"count\":100},{\"name\":\"singer-songwriter\",\"count\":97},{\"name\":\"acoustic\",\"count\":51},{\"name\":\"indie\",\"count\":36},{\"name\":\"Mellow\",\"count\":11},{\"name\":\"Brett Dennen\",\"count\":3},{\"name\":\"american\",\"count\":3},{\"name\":\"indie folk\",\"count\":1},{\"name\":\"male vocalists\",\"count\":1},{\"name\":\"chill\",\"count\":1}]",
+      "mapped_genres_json": "[\"folk\",\"singer_songwriter\",\"alternative\"]",
+      "suggested_playlist_code": "folk",
+      "confidence": "medium",
+      "status": "applied",
+      "error_code": null,
+      "error_message": null,
+      "fetched_at": "2026-04-26T02:46:22.469Z",
+      "updated_at": "2026-04-26T02:55:53.030Z"
+    },
+    {
+      "artist_name": "Buster Poindexter And His Banshees Of Blue",
+      "source_artist_name": "Buster Poindexter and His Banshees Of Blue",
+      "raw_tags_json": "[{\"name\":\"psychobilly\",\"count\":100},{\"name\":\"comedy\",\"count\":100},{\"name\":\"novelty\",\"count\":66},{\"name\":\"USA\",\"count\":66},{\"name\":\"male vocalists\",\"count\":8},{\"name\":\"jazz\",\"count\":8},{\"name\":\"All\",\"count\":8},{\"name\":\"jump blues\",\"count\":3},{\"name\":\"Contemporary pop\",\"count\":3}]",
+      "mapped_genres_json": "[\"jazz\",\"blues\",\"pop\"]",
+      "suggested_playlist_code": "jazz",
+      "confidence": "medium",
+      "status": "applied",
+      "error_code": null,
+      "error_message": null,
+      "fetched_at": "2026-04-26T02:46:22.819Z",
+      "updated_at": "2026-04-26T03:05:39.902Z"
+    },
+    {
+      "artist_name": "Candyman",
+      "source_artist_name": "Candyman",
+      "raw_tags_json": "[{\"name\":\"rap\",\"count\":100},{\"name\":\"Hip-Hop\",\"count\":39},{\"name\":\"hip hop\",\"count\":9},{\"name\":\"Reggaeton\",\"count\":9},{\"name\":\"los angeles\",\"count\":2},{\"name\":\"Juke\",\"count\":2},{\"name\":\"west coast hip hop\",\"count\":2},{\"name\":\"Home collection\",\"count\":1},{\"name\":\"Need to Rate\",\"count\":1},{\"name\":\"pop rap\",\"count\":1}]",
+      "mapped_genres_json": "[\"hiphop\"]",
+      "suggested_playlist_code": "hiphop",
+      "confidence": "low",
+      "status": "applied",
+      "error_code": null,
+      "error_message": null,
+      "fetched_at": "2026-04-26T02:46:23.164Z",
+      "updated_at": "2026-04-27T04:02:32.908Z"
+    },
+    {
+      "artist_name": "Capital Cities",
+      "source_artist_name": "Capital Cities",
+      "raw_tags_json": "[{\"name\":\"electronic\",\"count\":100},{\"name\":\"indie\",\"count\":94},{\"name\":\"electropop\",\"count\":50},{\"name\":\"pop\",\"count\":40},{\"name\":\"rock\",\"count\":12},{\"name\":\"indie pop\",\"count\":9},{\"name\":\"american\",\"count\":5},{\"name\":\"synthpop\",\"count\":1},{\"name\":\"indietronica\",\"count\":1},{\"name\":\"male vocalists\",\"count\":1}]",
+      "mapped_genres_json": "[\"electronic\",\"alternative\",\"pop\"]",
+      "suggested_playlist_code": "electronic",
+      "confidence": "medium",
+      "status": "applied",
+      "error_code": null,
+      "error_message": null,
+      "fetched_at": "2026-04-26T02:46:23.532Z",
+      "updated_at": "2026-04-26T02:55:34.202Z"
+    },
+    {
+      "artist_name": "Chad Kroeger",
+      "source_artist_name": "Chad Kroeger",
+      "raw_tags_json": "[{\"name\":\"rock\",\"count\":100},{\"name\":\"alternative rock\",\"count\":74},{\"name\":\"Canadian\",\"count\":40},{\"name\":\"alternative\",\"count\":29},{\"name\":\"pop\",\"count\":7},{\"name\":\"hard rock\",\"count\":5},{\"name\":\"post-grunge\",\"count\":4},{\"name\":\"male vocalists\",\"count\":1},{\"name\":\"canada\",\"count\":1},{\"name\":\"00s\",\"count\":1}]",
+      "mapped_genres_json": "[\"rock\",\"alternative\",\"pop\"]",
+      "suggested_playlist_code": "rock",
+      "confidence": "medium",
+      "status": "applied",
+      "error_code": null,
+      "error_message": null,
+      "fetched_at": "2026-04-26T02:47:25.381Z",
+      "updated_at": "2026-04-26T03:05:39.902Z"
+    },
+    {
+      "artist_name": "Charles & Eddie",
+      "source_artist_name": "Charles & Eddie",
+      "raw_tags_json": "[{\"name\":\"soul\",\"count\":100},{\"name\":\"pop\",\"count\":80},{\"name\":\"90s\",\"count\":38},{\"name\":\"soft rock\",\"count\":23},{\"name\":\"male vocalists\",\"count\":4},{\"name\":\"USA\",\"count\":3},{\"name\":\"80s\",\"count\":3},{\"name\":\"one hit wonder\",\"count\":1},{\"name\":\"rnb\",\"count\":1},{\"name\":\"american\",\"count\":1}]",
+      "mapped_genres_json": "[\"soul\",\"pop\",\"rock\"]",
+      "suggested_playlist_code": "soul",
+      "confidence": "medium",
+      "status": "applied",
+      "error_code": null,
+      "error_message": null,
+      "fetched_at": "2026-04-26T02:47:25.732Z",
+      "updated_at": "2026-04-26T03:05:39.902Z"
+    },
+    {
+      "artist_name": "Choirboys",
+      "source_artist_name": "Choirboys",
+      "raw_tags_json": "[{\"name\":\"australian\",\"count\":100},{\"name\":\"80s\",\"count\":36},{\"name\":\"hard rock\",\"count\":24},{\"name\":\"rock\",\"count\":24},{\"name\":\"AOR\",\"count\":1},{\"name\":\"opera\",\"count\":1},{\"name\":\"All\",\"count\":1},{\"name\":\"satan and hell\",\"count\":1},{\"name\":\"drdbchoir\",\"count\":1},{\"name\":\"drdtreble\",\"count\":1}]",
+      "mapped_genres_json": "[\"rock\"]",
+      "suggested_playlist_code": "rock",
+      "confidence": "low",
+      "status": "applied",
+      "error_code": null,
+      "error_message": null,
+      "fetched_at": "2026-04-26T02:47:26.076Z",
+      "updated_at": "2026-04-27T04:02:01.382Z"
+    },
+    {
+      "artist_name": "Citizen King",
+      "source_artist_name": "Citizen King",
+      "raw_tags_json": "[{\"name\":\"alternative rock\",\"count\":100},{\"name\":\"alternative\",\"count\":79},{\"name\":\"rock\",\"count\":45},{\"name\":\"rap\",\"count\":13},{\"name\":\"alternative hip hop\",\"count\":6},{\"name\":\"Hip-Hop\",\"count\":3},{\"name\":\"90s\",\"count\":2},{\"name\":\"rap rock\",\"count\":1},{\"name\":\"alternative hip-hop\",\"count\":1},{\"name\":\"All\",\"count\":1}]",
+      "mapped_genres_json": "[\"alternative\",\"rock\",\"hiphop\"]",
+      "suggested_playlist_code": "alternative",
+      "confidence": "medium",
+      "status": "applied",
+      "error_code": null,
+      "error_message": null,
+      "fetched_at": "2026-04-26T02:47:26.431Z",
+      "updated_at": "2026-04-26T03:05:39.902Z"
+    },
+    {
+      "artist_name": "City High",
+      "source_artist_name": "City High",
+      "raw_tags_json": "[{\"name\":\"rnb\",\"count\":100},{\"name\":\"Hip-Hop\",\"count\":95},{\"name\":\"rap\",\"count\":38},{\"name\":\"hip hop\",\"count\":38},{\"name\":\"female vocalists\",\"count\":6},{\"name\":\"soul\",\"count\":3},{\"name\":\"City High\",\"count\":1},{\"name\":\"new jersey\",\"count\":1},{\"name\":\"carols\",\"count\":1},{\"name\":\"dance\",\"count\":1}]",
+      "mapped_genres_json": "[\"rb\",\"hiphop\",\"soul\"]",
+      "suggested_playlist_code": "rb",
+      "confidence": "medium",
+      "status": "applied",
+      "error_code": null,
+      "error_message": null,
+      "fetched_at": "2026-04-26T02:47:26.791Z",
+      "updated_at": "2026-04-26T03:05:39.902Z"
+    },
+    {
+      "artist_name": "Classified",
+      "source_artist_name": "Classified",
+      "raw_tags_json": "[{\"name\":\"Hip-Hop\",\"count\":100},{\"name\":\"Canadian\",\"count\":83},{\"name\":\"rap\",\"count\":44},{\"name\":\"underground hip hop\",\"count\":22},{\"name\":\"hip hop\",\"count\":10},{\"name\":\"underground hip-hop\",\"count\":8},{\"name\":\"Canadian Hip-Hop\",\"count\":8},{\"name\":\"canada\",\"count\":2},{\"name\":\"underground rap\",\"count\":1},{\"name\":\"canadian rap\",\"count\":1}]",
+      "mapped_genres_json": "[\"hiphop\"]",
+      "suggested_playlist_code": "hiphop",
+      "confidence": "low",
+      "status": "applied",
+      "error_code": null,
+      "error_message": null,
+      "fetched_at": "2026-04-26T02:47:27.171Z",
+      "updated_at": "2026-04-27T04:01:42.192Z"
+    },
+    {
+      "artist_name": "Cutfather & Joe",
+      "source_artist_name": "Cutfather & Joe",
+      "raw_tags_json": "[]",
+      "mapped_genres_json": "[]",
+      "suggested_playlist_code": null,
+      "confidence": "low",
+      "status": "ignored",
+      "error_code": null,
+      "error_message": null,
+      "fetched_at": "2026-04-26T02:47:27.551Z",
+      "updated_at": "2026-04-27T04:04:18.795Z"
+    },
+    {
+      "artist_name": "D. Pritzker",
+      "source_artist_name": "D. Pritzker",
+      "raw_tags_json": "[]",
+      "mapped_genres_json": "[]",
+      "suggested_playlist_code": null,
+      "confidence": "low",
+      "status": "ignored",
+      "error_code": null,
+      "error_message": null,
+      "fetched_at": "2026-04-26T02:47:27.890Z",
+      "updated_at": "2026-04-27T04:04:31.873Z"
+    },
+    {
+      "artist_name": "Dada",
+      "source_artist_name": "Dada",
+      "raw_tags_json": "[{\"name\":\"new wave\",\"count\":100},{\"name\":\"alternative\",\"count\":100},{\"name\":\"All\",\"count\":51},{\"name\":\"rock\",\"count\":37},{\"name\":\"alternative rock\",\"count\":19},{\"name\":\"90s\",\"count\":8},{\"name\":\"minimal wave\",\"count\":8},{\"name\":\"post-punk\",\"count\":1},{\"name\":\"electronic\",\"count\":1},{\"name\":\"electro\",\"count\":1}]",
+      "mapped_genres_json": "[\"newwave\",\"alternative\",\"rock\"]",
+      "suggested_playlist_code": "newwave",
+      "confidence": "medium",
+      "status": "applied",
+      "error_code": null,
+      "error_message": null,
+      "fetched_at": "2026-04-26T02:47:28.242Z",
+      "updated_at": "2026-04-26T03:05:39.903Z"
+    },
+    {
+      "artist_name": "Dasha",
+      "source_artist_name": "Dasha",
+      "raw_tags_json": "[{\"name\":\"country\",\"count\":100},{\"name\":\"pop\",\"count\":49},{\"name\":\"rnb\",\"count\":6},{\"name\":\"indie rock\",\"count\":6},{\"name\":\"idm\",\"count\":1},{\"name\":\"indie pop\",\"count\":1},{\"name\":\"USA\",\"count\":1},{\"name\":\"Acid\",\"count\":1},{\"name\":\"female\",\"count\":1},{\"name\":\"american\",\"count\":1}]",
+      "mapped_genres_json": "[\"country\",\"pop\",\"rb\"]",
+      "suggested_playlist_code": "country",
+      "confidence": "medium",
+      "status": "applied",
+      "error_code": null,
+      "error_message": null,
+      "fetched_at": "2026-04-26T02:47:28.631Z",
+      "updated_at": "2026-04-26T03:05:39.903Z"
+    },
+    {
+      "artist_name": "Deadeye Dick",
+      "source_artist_name": "Deadeye Dick",
+      "raw_tags_json": "[{\"name\":\"rock\",\"count\":100},{\"name\":\"alternative rock\",\"count\":69},{\"name\":\"90s\",\"count\":29},{\"name\":\"alternative\",\"count\":16},{\"name\":\"american\",\"count\":4},{\"name\":\"metalcore\",\"count\":4},{\"name\":\"Romanian\",\"count\":4},{\"name\":\"one hit wonder\",\"count\":1},{\"name\":\"New Orleans\",\"count\":1},{\"name\":\"NOLA\",\"count\":1}]",
+      "mapped_genres_json": "[\"rock\",\"alternative\",\"metal\"]",
+      "suggested_playlist_code": "rock",
+      "confidence": "medium",
+      "status": "applied",
+      "error_code": null,
+      "error_message": null,
+      "fetched_at": "2026-04-26T02:47:29.051Z",
+      "updated_at": "2026-04-26T03:05:39.903Z"
+    },
+    {
+      "artist_name": "Diamonique",
+      "source_artist_name": "Diamonique",
+      "raw_tags_json": "[{\"name\":\"Hip-Hop\",\"count\":100},{\"name\":\"Chicano Rap\",\"count\":100}]",
+      "mapped_genres_json": "[\"hiphop\"]",
+      "suggested_playlist_code": "hiphop",
+      "confidence": "low",
+      "status": "applied",
+      "error_code": null,
+      "error_message": null,
+      "fetched_at": "2026-04-26T02:47:29.386Z",
+      "updated_at": "2026-04-27T04:20:16.651Z"
+    },
+    {
+      "artist_name": "DjRichieRich888",
+      "source_artist_name": "DjRichieRich888",
+      "raw_tags_json": "[]",
+      "mapped_genres_json": "[]",
+      "suggested_playlist_code": null,
+      "confidence": "low",
+      "status": "ignored",
+      "error_code": null,
+      "error_message": null,
+      "fetched_at": "2026-04-26T02:47:29.718Z",
+      "updated_at": "2026-04-27T04:04:46.123Z"
+    },
+    {
+      "artist_name": "Eddie Benjamin",
+      "source_artist_name": "Eddie Benjamin",
+      "raw_tags_json": "[{\"name\":\"pop\",\"count\":100},{\"name\":\"singer-songwriter\",\"count\":44},{\"name\":\"indie\",\"count\":7},{\"name\":\"indie pop\",\"count\":7},{\"name\":\"australian\",\"count\":4}]",
+      "mapped_genres_json": "[\"pop\",\"singer_songwriter\",\"alternative\"]",
+      "suggested_playlist_code": "pop",
+      "confidence": "medium",
+      "status": "applied",
+      "error_code": null,
+      "error_message": null,
+      "fetched_at": "2026-04-26T02:47:30.099Z",
+      "updated_at": "2026-04-26T03:05:39.903Z"
+    },
+    {
+      "artist_name": "Edie Brickell & New Bohemians",
+      "source_artist_name": "Edie Brickell and New Bohemians",
+      "raw_tags_json": "[{\"name\":\"female vocalists\",\"count\":100},{\"name\":\"folk rock\",\"count\":76},{\"name\":\"alternative\",\"count\":43},{\"name\":\"rock\",\"count\":42},{\"name\":\"pop\",\"count\":16},{\"name\":\"80s\",\"count\":5},{\"name\":\"folk\",\"count\":3},{\"name\":\"alternative rock\",\"count\":1},{\"name\":\"USA\",\"count\":1},{\"name\":\"american\",\"count\":1}]",
+      "mapped_genres_json": "[\"folk\",\"alternative\",\"rock\"]",
+      "suggested_playlist_code": "folk",
+      "confidence": "medium",
+      "status": "applied",
+      "error_code": null,
+      "error_message": null,
+      "fetched_at": "2026-04-26T02:47:30.468Z",
+      "updated_at": "2026-04-26T03:05:39.903Z"
+    },
+    {
+      "artist_name": "Edward Sharpe & The Magnetic Zeros",
+      "source_artist_name": "Edward Sharpe & The Magnetic Zeros",
+      "raw_tags_json": "[{\"name\":\"folk\",\"count\":100},{\"name\":\"indie\",\"count\":84},{\"name\":\"indie folk\",\"count\":43},{\"name\":\"indie pop\",\"count\":31},{\"name\":\"Alt-country\",\"count\":13},{\"name\":\"american\",\"count\":4},{\"name\":\"alternative\",\"count\":3},{\"name\":\"indie rock\",\"count\":1},{\"name\":\"folk rock\",\"count\":1},{\"name\":\"hippie\",\"count\":1}]",
+      "mapped_genres_json": "[\"folk\",\"alternative\",\"country\"]",
+      "suggested_playlist_code": "folk",
+      "confidence": "medium",
+      "status": "applied",
+      "error_code": null,
+      "error_message": null,
+      "fetched_at": "2026-04-26T02:47:30.848Z",
+      "updated_at": "2026-04-26T03:05:39.903Z"
+    },
+    {
+      "artist_name": "Elwood",
+      "source_artist_name": "Elwood",
+      "raw_tags_json": "[{\"name\":\"demoscene\",\"count\":100},{\"name\":\"finnish\",\"count\":31},{\"name\":\"electronic\",\"count\":13},{\"name\":\"dance\",\"count\":3},{\"name\":\"dariacore\",\"count\":2},{\"name\":\"blues\",\"count\":1},{\"name\":\"folk\",\"count\":1},{\"name\":\"synthpop\",\"count\":1},{\"name\":\"rhythm and blues\",\"count\":1},{\"name\":\"post-rock\",\"count\":1}]",
+      "mapped_genres_json": "[\"electronic\",\"dance\",\"blues\"]",
+      "suggested_playlist_code": "electronic",
+      "confidence": "medium",
+      "status": "applied",
+      "error_code": null,
+      "error_message": null,
+      "fetched_at": "2026-04-26T02:47:31.233Z",
+      "updated_at": "2026-04-26T03:05:39.903Z"
+    },
+    {
+      "artist_name": "Emilie Mover",
+      "source_artist_name": "Emilie Mover",
+      "raw_tags_json": "[{\"name\":\"folk\",\"count\":100},{\"name\":\"indie\",\"count\":92},{\"name\":\"Canadian\",\"count\":56},{\"name\":\"female vocalist\",\"count\":32},{\"name\":\"female vocalists\",\"count\":6},{\"name\":\"chill\",\"count\":2},{\"name\":\"singer-songwriter\",\"count\":2},{\"name\":\"Grey's Anatomy\",\"count\":1},{\"name\":\"new\",\"count\":1},{\"name\":\"mountain\",\"count\":1}]",
+      "mapped_genres_json": "[\"folk\",\"alternative\",\"singer_songwriter\"]",
+      "suggested_playlist_code": "folk",
+      "confidence": "medium",
+      "status": "applied",
+      "error_code": null,
+      "error_message": null,
+      "fetched_at": "2026-04-26T02:47:31.580Z",
+      "updated_at": "2026-04-26T03:05:39.903Z"
+    },
+    {
+      "artist_name": "Emily Reid",
+      "source_artist_name": "Emily Reid",
+      "raw_tags_json": "[]",
+      "mapped_genres_json": "[]",
+      "suggested_playlist_code": null,
+      "confidence": "low",
+      "status": "ignored",
+      "error_code": null,
+      "error_message": null,
+      "fetched_at": "2026-04-26T02:47:31.916Z",
+      "updated_at": "2026-04-29T01:48:09.081Z"
+    },
+    {
+      "artist_name": "Empire Cast",
+      "source_artist_name": "Empire Cast",
+      "raw_tags_json": "[{\"name\":\"Soundtrack\",\"count\":100},{\"name\":\"r&b\",\"count\":69},{\"name\":\"hip hop\",\"count\":29},{\"name\":\"Hip-Hop\",\"count\":29},{\"name\":\"rnb\",\"count\":15},{\"name\":\"us\",\"count\":8},{\"name\":\"musical\",\"count\":4},{\"name\":\"soul\",\"count\":1},{\"name\":\"rap\",\"count\":1},{\"name\":\"dance\",\"count\":1}]",
+      "mapped_genres_json": "[\"soundtrack\",\"rb\",\"hiphop\"]",
+      "suggested_playlist_code": "soundtrack",
+      "confidence": "medium",
+      "status": "applied",
+      "error_code": null,
+      "error_message": null,
+      "fetched_at": "2026-04-26T02:46:15.832Z",
+      "updated_at": "2026-04-26T03:05:39.903Z"
+    },
+    {
+      "artist_name": "Eric Hutchinson",
+      "source_artist_name": "Eric Hutchinson",
+      "raw_tags_json": "[{\"name\":\"singer-songwriter\",\"count\":100},{\"name\":\"acoustic\",\"count\":82},{\"name\":\"indie\",\"count\":44},{\"name\":\"pop\",\"count\":15},{\"name\":\"catchy\",\"count\":7},{\"name\":\"fun\",\"count\":6},{\"name\":\"folk\",\"count\":3},{\"name\":\"Eric Hutchinson\",\"count\":1},{\"name\":\"male vocalists\",\"count\":1},{\"name\":\"rock\",\"count\":1}]",
+      "mapped_genres_json": "[\"singer_songwriter\",\"alternative\",\"pop\"]",
+      "suggested_playlist_code": "singer_songwriter",
+      "confidence": "medium",
+      "status": "applied",
+      "error_code": null,
+      "error_message": null,
+      "fetched_at": "2026-04-26T02:47:32.280Z",
+      "updated_at": "2026-04-26T03:05:39.904Z"
+    },
+    {
+      "artist_name": "Everything",
+      "source_artist_name": "Everything",
+      "raw_tags_json": "[{\"name\":\"alternative\",\"count\":100},{\"name\":\"90s\",\"count\":49},{\"name\":\"metalcore\",\"count\":11},{\"name\":\"scrubs\",\"count\":11},{\"name\":\"better than radiohead\",\"count\":5},{\"name\":\"groovy\",\"count\":1},{\"name\":\"downtempo\",\"count\":1},{\"name\":\"Jam\",\"count\":1},{\"name\":\"Pop-Rock\",\"count\":1},{\"name\":\"pop\",\"count\":1}]",
+      "mapped_genres_json": "[\"alternative\",\"metal\",\"rock\"]",
+      "suggested_playlist_code": "alternative",
+      "confidence": "medium",
+      "status": "applied",
+      "error_code": null,
+      "error_message": null,
+      "fetched_at": "2026-04-26T02:47:32.722Z",
+      "updated_at": "2026-04-26T03:05:39.904Z"
+    },
+    {
+      "artist_name": "Fabolous",
+      "source_artist_name": "Fabolous",
+      "raw_tags_json": "[{\"name\":\"Hip-Hop\",\"count\":100},{\"name\":\"rap\",\"count\":81},{\"name\":\"Gangsta Rap\",\"count\":27},{\"name\":\"hip hop\",\"count\":27},{\"name\":\"new york\",\"count\":13},{\"name\":\"east coast rap\",\"count\":5},{\"name\":\"East Coast\",\"count\":4},{\"name\":\"Fabolous\",\"count\":1},{\"name\":\"Brooklyn\",\"count\":1},{\"name\":\"rnb\",\"count\":1}]",
+      "mapped_genres_json": "[\"hiphop\",\"rb\"]",
+      "suggested_playlist_code": "hiphop",
+      "confidence": "medium",
+      "status": "applied",
+      "error_code": null,
+      "error_message": null,
+      "fetched_at": "2026-04-26T02:47:33.309Z",
+      "updated_at": "2026-04-26T03:05:39.904Z"
+    },
+    {
+      "artist_name": "Fatman Scoop",
+      "source_artist_name": "Fatman Scoop",
+      "raw_tags_json": "[{\"name\":\"Hip-Hop\",\"count\":100},{\"name\":\"rap\",\"count\":59},{\"name\":\"new york\",\"count\":11},{\"name\":\"hip hop\",\"count\":3},{\"name\":\"rnb\",\"count\":1},{\"name\":\"american\",\"count\":1},{\"name\":\"party\",\"count\":1},{\"name\":\"spotify\",\"count\":1},{\"name\":\"dance\",\"count\":1},{\"name\":\"USA\",\"count\":1}]",
+      "mapped_genres_json": "[\"hiphop\",\"rb\",\"dance\"]",
+      "suggested_playlist_code": "hiphop",
+      "confidence": "medium",
+      "status": "applied",
+      "error_code": null,
+      "error_message": null,
+      "fetched_at": "2026-04-26T02:47:33.664Z",
+      "updated_at": "2026-04-26T03:05:39.904Z"
+    },
+    {
+      "artist_name": "Five",
+      "source_artist_name": "Five",
+      "raw_tags_json": "[{\"name\":\"pop\",\"count\":100},{\"name\":\"boybands\",\"count\":83},{\"name\":\"90s\",\"count\":35},{\"name\":\"british\",\"count\":27},{\"name\":\"dance\",\"count\":12},{\"name\":\"boyband\",\"count\":3},{\"name\":\"male vocalists\",\"count\":2},{\"name\":\"five\",\"count\":1},{\"name\":\"britpop\",\"count\":1},{\"name\":\"nostalgia\",\"count\":1}]",
+      "mapped_genres_json": "[\"pop\",\"dance\"]",
+      "suggested_playlist_code": "pop",
+      "confidence": "medium",
+      "status": "applied",
+      "error_code": null,
+      "error_message": null,
+      "fetched_at": "2026-04-26T02:47:34.086Z",
+      "updated_at": "2026-04-27T04:02:16.857Z"
+    },
+    {
+      "artist_name": "Flawed Mangoes",
+      "source_artist_name": "Flawed Mangoes",
+      "raw_tags_json": "[{\"name\":\"math rock\",\"count\":100},{\"name\":\"shoegaze\",\"count\":56},{\"name\":\"ambient\",\"count\":17},{\"name\":\"indie\",\"count\":17},{\"name\":\"indie rock\",\"count\":8},{\"name\":\"electronic\",\"count\":8},{\"name\":\"instrumental\",\"count\":2},{\"name\":\"USA\",\"count\":1},{\"name\":\"Progressive rock\",\"count\":1},{\"name\":\"post-rock\",\"count\":1}]",
+      "mapped_genres_json": "[\"rock\",\"alternative\",\"electronic\"]",
+      "suggested_playlist_code": "rock",
+      "confidence": "medium",
+      "status": "applied",
+      "error_code": null,
+      "error_message": null,
+      "fetched_at": "2026-04-26T02:47:34.435Z",
+      "updated_at": "2026-04-27T04:30:49.294Z"
+    },
+    {
+      "artist_name": "Goober Sounds",
+      "source_artist_name": "Goober Sounds",
+      "raw_tags_json": "[]",
+      "mapped_genres_json": "[]",
+      "suggested_playlist_code": null,
+      "confidence": "low",
+      "status": "ignored",
+      "error_code": null,
+      "error_message": null,
+      "fetched_at": "2026-04-26T02:46:14.761Z",
+      "updated_at": "2026-04-26T04:01:21.760Z"
+    },
+    {
+      "artist_name": "Jendrik",
+      "source_artist_name": "Jendrik",
+      "raw_tags_json": "[{\"name\":\"Eurovision\",\"count\":100},{\"name\":\"germany\",\"count\":69},{\"name\":\"german\",\"count\":29},{\"name\":\"pop\",\"count\":29},{\"name\":\"deutsch\",\"count\":8},{\"name\":\"Eurovision Song Contest\",\"count\":4},{\"name\":\"ESC\",\"count\":4},{\"name\":\"eurovision song contest 2021\",\"count\":1},{\"name\":\"ESC 2021\",\"count\":1},{\"name\":\"eurovision 2021\",\"count\":1}]",
+      "mapped_genres_json": "[\"pop\"]",
+      "suggested_playlist_code": "pop",
+      "confidence": "low",
+      "status": "applied",
+      "error_code": null,
+      "error_message": null,
+      "fetched_at": "2026-04-26T02:46:16.248Z",
+      "updated_at": "2026-04-29T01:48:09.078Z"
+    },
+    {
+      "artist_name": "Jenn Grant",
+      "source_artist_name": "Jenn Grant",
+      "raw_tags_json": "[{\"name\":\"Canadian\",\"count\":100},{\"name\":\"folk\",\"count\":94},{\"name\":\"singer-songwriter\",\"count\":49},{\"name\":\"female vocalists\",\"count\":39},{\"name\":\"indie\",\"count\":8},{\"name\":\"Nova Scotia\",\"count\":3},{\"name\":\"halifax\",\"count\":3},{\"name\":\"canada\",\"count\":1},{\"name\":\"folk pop\",\"count\":1},{\"name\":\"sxsw 2009\",\"count\":1}]",
+      "mapped_genres_json": "[\"folk\",\"singer_songwriter\",\"alternative\"]",
+      "suggested_playlist_code": "folk",
+      "confidence": "medium",
+      "status": "applied",
+      "error_code": null,
+      "error_message": null,
+      "fetched_at": "2026-04-26T02:46:16.592Z",
+      "updated_at": "2026-04-27T04:01:26.160Z"
+    },
+    {
+      "artist_name": "Jussie Smollett",
+      "source_artist_name": "Jussie Smollett",
+      "raw_tags_json": "[{\"name\":\"rnb\",\"count\":100},{\"name\":\"r&b\",\"count\":44},{\"name\":\"Empire\",\"count\":29},{\"name\":\"pop\",\"count\":7},{\"name\":\"singer-songwriter\",\"count\":4},{\"name\":\"hip hop\",\"count\":4},{\"name\":\"Hip-Hop\",\"count\":4},{\"name\":\"urban\",\"count\":1},{\"name\":\"rhythm and blues\",\"count\":1},{\"name\":\"american\",\"count\":1}]",
+      "mapped_genres_json": "[\"rb\",\"pop\",\"singer_songwriter\"]",
+      "suggested_playlist_code": "rb",
+      "confidence": "medium",
+      "status": "pending",
+      "error_code": null,
+      "error_message": null,
+      "fetched_at": "2026-04-26T02:46:16.938Z",
+      "updated_at": "2026-04-26T02:46:16.938Z"
+    },
+    {
+      "artist_name": "Mammoth",
+      "source_artist_name": "Mammoth",
+      "raw_tags_json": "[{\"name\":\"Post-Metal\",\"count\":100},{\"name\":\"post-rock\",\"count\":83},{\"name\":\"Sludge\",\"count\":37},{\"name\":\"hard rock\",\"count\":34},{\"name\":\"rock\",\"count\":9},{\"name\":\"heavy metal\",\"count\":7},{\"name\":\"Southern metal\",\"count\":7},{\"name\":\"AOR\",\"count\":1},{\"name\":\"metal\",\"count\":1},{\"name\":\"experimental\",\"count\":1}]",
+      "mapped_genres_json": "[\"metal\",\"rock\"]",
+      "suggested_playlist_code": "metal",
+      "confidence": "medium",
+      "status": "applied",
+      "error_code": null,
+      "error_message": null,
+      "fetched_at": "2026-04-26T02:46:15.129Z",
+      "updated_at": "2026-04-26T02:51:10.759Z"
+    },
+    {
+      "artist_name": "State of Mine",
+      "source_artist_name": "State Of Mine",
+      "raw_tags_json": "[{\"name\":\"skate punk\",\"count\":100},{\"name\":\"fast melodic punk\",\"count\":77},{\"name\":\"fast melodic hardcore\",\"count\":37},{\"name\":\"skatepunk\",\"count\":37},{\"name\":\"Skate-punk\",\"count\":5},{\"name\":\"punk rock\",\"count\":5},{\"name\":\"rock\",\"count\":2},{\"name\":\"alternative metal\",\"count\":1},{\"name\":\"melodic hardcore\",\"count\":1},{\"name\":\"punk\",\"count\":1}]",
+      "mapped_genres_json": "[\"punk\",\"rock\",\"alternative\"]",
+      "suggested_playlist_code": "punk",
+      "confidence": "medium",
+      "status": "applied",
+      "error_code": null,
+      "error_message": null,
+      "fetched_at": "2026-04-26T02:46:15.478Z",
+      "updated_at": "2026-04-26T03:42:29.304Z"
+    },
+    {
+      "artist_name": "True North",
+      "source_artist_name": "True North",
+      "raw_tags_json": "[{\"name\":\"screamo\",\"count\":100},{\"name\":\"post-hardcore\",\"count\":100},{\"name\":\"real screamo\",\"count\":12},{\"name\":\"emo\",\"count\":12},{\"name\":\"alternative rock\",\"count\":1},{\"name\":\"bluegrass\",\"count\":1},{\"name\":\"USA\",\"count\":1},{\"name\":\"melodic hardcore\",\"count\":1},{\"name\":\"pop punk\",\"count\":1},{\"name\":\"no idea\",\"count\":1}]",
+      "mapped_genres_json": "[\"alternative\",\"punk\"]",
+      "suggested_playlist_code": "alternative",
+      "confidence": "medium",
+      "status": "ignored",
+      "error_code": null,
+      "error_message": null,
+      "fetched_at": "2026-04-26T02:46:17.317Z",
+      "updated_at": "2026-04-27T04:05:22.662Z"
+    },
+    {
+      "artist_name": "Yazz",
+      "source_artist_name": "Yazz",
+      "raw_tags_json": "[{\"name\":\"pop\",\"count\":100},{\"name\":\"80s\",\"count\":79},{\"name\":\"female vocalists\",\"count\":49},{\"name\":\"dance\",\"count\":35},{\"name\":\"british\",\"count\":14},{\"name\":\"england\",\"count\":9},{\"name\":\"london\",\"count\":4},{\"name\":\"english\",\"count\":1},{\"name\":\"Home collection\",\"count\":1},{\"name\":\"UK\",\"count\":1}]",
+      "mapped_genres_json": "[\"pop\",\"dance\"]",
+      "suggested_playlist_code": "pop",
+      "confidence": "medium",
+      "status": "pending",
+      "error_code": null,
+      "error_message": null,
+      "fetched_at": "2026-04-26T02:46:17.750Z",
+      "updated_at": "2026-04-26T02:46:17.750Z"
+    }
+  ],
+  "track_overrides": [
+    {
+      "spotify_track_id": "0ep7UTGw3F9VkN9FV52En3",
+      "track_name": "...And Justice for All (Remastered)",
+      "artist_names": "[\"Metallica\"]",
+      "override_playlist_code": "metal",
+      "created_at": "2026-04-29T02:00:40.292Z",
+      "updated_at": "2026-04-29T02:00:40.292Z"
+    },
+    {
+      "spotify_track_id": "4yUUVfwvxtMecOQ2fI7a7j",
+      "track_name": "...To Be Loved",
+      "artist_names": "[\"Papa Roach\"]",
+      "override_playlist_code": "rock",
+      "created_at": "2026-04-29T02:00:40.293Z",
+      "updated_at": "2026-04-29T02:00:40.293Z"
+    },
+    {
+      "spotify_track_id": "7uKcScNXuO3MWw6LowBjW1",
+      "track_name": "1, 2 Step (feat. Missy Elliott)",
+      "artist_names": "[\"Ciara\",\"Missy Elliott\"]",
+      "override_playlist_code": "dance",
+      "created_at": "2026-04-29T02:00:40.293Z",
+      "updated_at": "2026-04-29T02:00:40.293Z"
+    }
+  ]
+}

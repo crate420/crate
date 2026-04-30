@@ -1,5 +1,7 @@
 node_modules/
 .env
-data/
+data/*
+!data/
+!data/training-export.json
 npm-debug.log*
 .DS_Store

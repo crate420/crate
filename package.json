@@ -8,7 +8,9 @@
     "start": "node src/server.js",
     "dev": "node src/server.js",
     "migrate": "node src/db/migrate.js",
-    "health": "node scripts/check-health.js"
+    "health": "node scripts/check-health.js",
+    "training:export": "node scripts/export-training-data.js",
+    "training:import": "node scripts/import-training-data.js"
   },
   "dependencies": {
     "better-sqlite3": "^11.9.1",

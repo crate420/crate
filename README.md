@@ -57,6 +57,59 @@ Do not run migrations in the Render build command. The app applies pending SQLit
 
 The included `render.yaml` captures the safe defaults for Node 20, startup, and persistent SQLite storage. Set Spotify credentials, `SESSION_SECRET`, and optional `LASTFM_API_KEY` in Render environment variables.
 
+## Training Data Export/Import
+
+Use this one-time workflow to move trained local Crate data into Render without copying users, tokens, tracks, `user_tracks`, playlist IDs, or sync history.
+
+The export includes only:
+
+- `artist_genres`
+- `lastfm_artist_tags`
+- `track_overrides` as `spotify_track_id` plus `override_playlist_code`
+
+It does not include:
+
+- `users`
+- Spotify tokens
+- `tracks`
+- `user_tracks`
+- `playlist_definitions`
+- `playlist_sync_runs`
+
+Export local training data:
+
+```bash
+npm run training:export
+```
+
+This writes:
+
+```txt
+data/training-export.json
+```
+
+`data/training-export.json` is intentionally allowed through `.gitignore`; SQLite database files remain ignored.
+
+Import on Render after production migrations have run and after production Liked Songs have been synced at least once:
+
+```bash
+npm run training:import
+```
+
+On Render, make sure:
+
+```txt
+DATABASE_PATH=/var/data/crate.sqlite
+```
+
+Safety notes:
+
+- The importer uses `INSERT OR IGNORE` for `artist_genres`.
+- Last.fm cache rows are upserted by `artist_name`, preserving exported `applied`, `ignored`, or `pending` status.
+- Track overrides are matched by `spotify_track_id`; missing production tracks are skipped.
+- The importer performs no deletes and does not touch production users, tokens, `user_tracks`, or Spotify playlist IDs.
+- Back up `/var/data/crate.sqlite` before importing.
+
 ## Health Check
 
 ```bash
