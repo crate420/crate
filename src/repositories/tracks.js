@@ -371,8 +371,23 @@ function setUserTrackPlaylistCode({ userId, trackId, playlistCode }) {
     .run({ userId, trackId, playlistCode, now });
 }
 
+function clearPlaylistCodesForUser(userId) {
+  const now = new Date().toISOString();
+
+  return openDatabase()
+    .prepare(`
+      UPDATE user_tracks
+      SET
+        playlist_code = NULL,
+        last_seen_at = @now
+      WHERE user_id = @userId
+    `)
+    .run({ userId, now });
+}
+
 module.exports = {
   assignPlaylistCodes,
+  clearPlaylistCodesForUser,
   countLikedTracksForUser,
   getAllUnmatchedTracksForUser,
   getEffectivePlaylistCountsForUser,

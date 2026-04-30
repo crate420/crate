@@ -33,6 +33,7 @@ const { getUnmatchedGenreSummary } = require("../crate/unmatchedGenres");
 const { getUnmatchedTracks } = require("../crate/unmatchedTracks");
 const artistGenreRepo = require("../repositories/artistGenres");
 const runs = require("../repositories/runs");
+const trackRepo = require("../repositories/tracks");
 const spotifyTracks = require("../spotify/tracks");
 const { requireCurrentUser } = require("../utils/authSession");
 
@@ -165,6 +166,28 @@ router.post(
         });
       }
 
+      return next(err);
+    }
+  },
+);
+
+router.post(
+  "/admin/resort-all",
+  requireCurrentUser,
+  requireAdminUser,
+  async (req, res, next) => {
+    try {
+      const reset = trackRepo.clearPlaylistCodesForUser(req.currentUser.id);
+      const summary = await sortTracks(req.currentUser.id);
+
+      return res.json({
+        status: "ok",
+        reset_tracks: reset.changes,
+        processed: summary.processed,
+        matched: summary.matched,
+        unmatched: summary.unmatched,
+      });
+    } catch (err) {
       return next(err);
     }
   },
