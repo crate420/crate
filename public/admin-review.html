@@ -139,9 +139,10 @@
         padding: 2px 7px;
       }
 
-      input {
+      select {
         border: 1px solid var(--border);
         border-radius: 6px;
+        background: #fff;
         font: inherit;
         min-height: 34px;
         padding: 6px 8px;
@@ -207,6 +208,24 @@
       const refreshButton = document.getElementById("refreshButton");
       const syncLikedButton = document.getElementById("syncLikedButton");
       const sortButton = document.getElementById("sortButton");
+      const allowedGenres = [
+        { value: "rock", label: "Rock" },
+        { value: "alternative", label: "Alternative" },
+        { value: "pop", label: "Pop" },
+        { value: "hiphop", label: "Hip-Hop" },
+        { value: "rb", label: "R&B" },
+        { value: "soul", label: "Soul" },
+        { value: "country", label: "Country" },
+        { value: "dance", label: "Dance" },
+        { value: "jazz", label: "Jazz" },
+        { value: "blues", label: "Blues" },
+        { value: "folk", label: "Folk" },
+        { value: "singer_songwriter", label: "Singer-Songwriter" },
+        { value: "newwave", label: "New Wave" },
+        { value: "soundtrack", label: "Soundtrack" },
+        { value: "seasonal", label: "Seasonal" },
+      ];
+      const allowedGenreValues = new Set(allowedGenres.map((genre) => genre.value));
 
       function setMessage(text) {
         messageEl.textContent = text || "";
@@ -245,6 +264,29 @@
         return wrapper;
       }
 
+      function createGenreSelect(artist) {
+        const select = document.createElement("select");
+        const emptyOption = document.createElement("option");
+        const suggestedValue = (artist.suggested_genres || []).find((genre) =>
+          allowedGenreValues.has(genre),
+        );
+
+        emptyOption.value = "";
+        emptyOption.textContent = "Select genre";
+        select.appendChild(emptyOption);
+
+        for (const genre of allowedGenres) {
+          const option = document.createElement("option");
+          option.value = genre.value;
+          option.textContent = genre.label;
+          select.appendChild(option);
+        }
+
+        select.value = suggestedValue || "";
+
+        return select;
+      }
+
       async function requestJson(url, options = {}) {
         const response = await fetch(url, {
           credentials: "include",
@@ -277,22 +319,17 @@
         const sampleCell = document.createElement("div");
         sampleCell.textContent = artist.sample_track?.title || "";
 
-        const genresInput = document.createElement("input");
-        genresInput.value = (artist.suggested_genres || []).join(", ");
-        genresInput.placeholder = "rock, alternative";
+        const genresSelect = createGenreSelect(artist);
 
         const approveButton = document.createElement("button");
         approveButton.className = "primary";
         approveButton.type = "button";
         approveButton.textContent = "Approve";
         approveButton.addEventListener("click", async () => {
-          const genres = genresInput.value
-            .split(",")
-            .map((genre) => genre.trim())
-            .filter(Boolean);
+          const selectedGenre = genresSelect.value;
 
-          if (genres.length === 0) {
-            setMessage(`Add at least one genre for ${artist.artist_name}.`);
+          if (!selectedGenre) {
+            setMessage(`Select a genre for ${artist.artist_name}.`);
             return;
           }
 
@@ -304,7 +341,7 @@
               method: "POST",
               body: JSON.stringify({
                 artist_name: artist.artist_name,
-                genres,
+                genres: [selectedGenre],
               }),
             });
             setMessage(`Approved ${artist.artist_name}.`);
@@ -349,7 +386,7 @@
           tagList(artist.suggested_genres),
           tagList(artist.suggested_tags),
           rowLabel("", artist.status),
-          genresInput,
+          genresSelect,
           actions,
         );
 
