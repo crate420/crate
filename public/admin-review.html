@@ -106,6 +106,11 @@
         padding: 12px;
       }
 
+      .row.success {
+        background: #e8f7ed;
+        border-color: #8acb9b;
+      }
+
       .head {
         background: transparent;
         border: 0;
@@ -208,6 +213,7 @@
       const refreshButton = document.getElementById("refreshButton");
       const syncLikedButton = document.getElementById("syncLikedButton");
       const sortButton = document.getElementById("sortButton");
+      let reviewCount = 0;
       const allowedGenres = [
         { value: "rock", label: "Rock" },
         { value: "alternative", label: "Alternative" },
@@ -229,6 +235,24 @@
 
       function setMessage(text) {
         messageEl.textContent = text || "";
+      }
+
+      function setReviewCount(count) {
+        reviewCount = Math.max(0, count);
+        summaryEl.textContent = `${reviewCount} artists need review`;
+
+        if (reviewCount === 0) {
+          setMessage("Queue is empty.");
+        }
+      }
+
+      function removeReviewedRow(row) {
+        row.classList.add("success");
+
+        window.setTimeout(() => {
+          row.remove();
+          setReviewCount(reviewCount - 1);
+        }, 220);
       }
 
       function tagList(values) {
@@ -344,8 +368,8 @@
                 genres: [selectedGenre],
               }),
             });
-            setMessage(`Approved ${artist.artist_name}.`);
-            await loadQueue();
+            setMessage(`Approved ${artist.artist_name} as ${selectedGenre}.`);
+            removeReviewedRow(row);
           } catch (err) {
             setMessage(err.message);
             approveButton.disabled = false;
@@ -368,7 +392,7 @@
               }),
             });
             setMessage(`Ignored ${artist.artist_name}.`);
-            await loadQueue();
+            removeReviewedRow(row);
           } catch (err) {
             setMessage(err.message);
             ignoreButton.disabled = false;
@@ -410,7 +434,7 @@
             queueEl.appendChild(createArtistRow(artist));
           }
 
-          summaryEl.textContent = `${result.count} artists need review`;
+          setReviewCount(result.count);
           setMessage(result.count === 0 ? "Queue is empty." : "");
         } catch (err) {
           setMessage(err.message);
