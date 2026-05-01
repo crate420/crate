@@ -212,7 +212,7 @@ router.post(
 
       return res.json({
         status: "ok",
-        reset_tracks: reset.changes,
+        reset_tracks: reset.reset_tracks,
         processed: summary.processed,
         matched: summary.matched,
         unmatched: summary.unmatched,

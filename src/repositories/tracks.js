@@ -373,16 +373,28 @@ function setUserTrackPlaylistCode({ userId, trackId, playlistCode }) {
 
 function clearPlaylistCodesForUser(userId) {
   const now = new Date().toISOString();
+  const db = openDatabase();
+  const countUserTracks = db.prepare(`
+    SELECT COUNT(*) AS count
+    FROM user_tracks
+    WHERE user_id = @userId
+  `);
+  const resetPlaylistCodes = db.prepare(`
+    UPDATE user_tracks
+    SET
+      playlist_code = NULL,
+      last_seen_at = @now
+    WHERE user_id = @userId
+  `);
+  const resetForResort = db.transaction(() => {
+    const total = countUserTracks.get({ userId }).count;
 
-  return openDatabase()
-    .prepare(`
-      UPDATE user_tracks
-      SET
-        playlist_code = NULL,
-        last_seen_at = @now
-      WHERE user_id = @userId
-    `)
-    .run({ userId, now });
+    resetPlaylistCodes.run({ userId, now });
+
+    return { reset_tracks: total };
+  });
+
+  return resetForResort();
 }
 
 module.exports = {
