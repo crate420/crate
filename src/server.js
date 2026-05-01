@@ -2,6 +2,8 @@ const { createApp } = require("./app");
 const config = require("./config");
 const { applyMigrations } = require("./db/migrate");
 
+console.log(`Crate SQLite database: ${config.databasePath}`);
+
 applyMigrations();
 
 const app = createApp();

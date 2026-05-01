@@ -10,7 +10,7 @@ services:
         value: production
       - key: NODE_VERSION
         value: 20
-      - key: DATABASE_PATH
+      - key: DATABASE_URL
         value: /var/data/crate.sqlite
     disk:
       name: crate-data

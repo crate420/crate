@@ -1,4 +1,5 @@
 const path = require("node:path");
+const { fileURLToPath } = require("node:url");
 const dotenv = require("dotenv");
 
 dotenv.config();
@@ -15,10 +16,32 @@ function readPort(value) {
   return port;
 }
 
+function readDatabasePath(value) {
+  if (!value) {
+    throw new Error("DATABASE_URL must be set to the SQLite database path.");
+  }
+
+  if (value.startsWith("file:")) {
+    return fileURLToPath(value);
+  }
+
+  if (value.startsWith("sqlite://")) {
+    const sqlitePath = value.slice("sqlite://".length);
+
+    return path.isAbsolute(sqlitePath)
+      ? sqlitePath
+      : path.resolve(rootDir, sqlitePath);
+  }
+
+  return path.isAbsolute(value)
+    ? value
+    : path.resolve(rootDir, value);
+}
+
 const config = {
   env: process.env.NODE_ENV || "development",
   port: readPort(process.env.PORT || "3000"),
-  databasePath: path.resolve(rootDir, process.env.DATABASE_PATH || "./data/crate.sqlite"),
+  databasePath: readDatabasePath(process.env.DATABASE_URL),
   sessionSecret: process.env.SESSION_SECRET || "",
   spotify: {
     clientId: process.env.SPOTIFY_CLIENT_ID || "",
@@ -54,6 +77,7 @@ function requireSpotifyConfig() {
 
 module.exports = {
   ...config,
+  readDatabasePath,
   requireSessionSecret,
   requireSpotifyConfig,
 };

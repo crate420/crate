@@ -20,7 +20,7 @@ Edit `.env` before starting the server.
 ```txt
 NODE_ENV=development
 PORT=3000
-DATABASE_PATH=./data/crate.sqlite
+DATABASE_URL=data/crate.sqlite
 SESSION_SECRET=replace-with-a-long-random-string
 
 SPOTIFY_CLIENT_ID=your-spotify-client-id
@@ -51,7 +51,7 @@ Recommended Render settings:
 - Start command: `npm start`
 - Node version: `20`
 - Persistent disk mount path: `/var/data`
-- `DATABASE_PATH=/var/data/crate.sqlite`
+- `DATABASE_URL=/var/data/crate.sqlite`
 - `SPOTIFY_REDIRECT_URI=https://crate-nhfe.onrender.com/auth/spotify/callback`
 
 Do not run migrations in the Render build command. The app applies pending SQLite migrations on startup, which is appropriate when using the mounted persistent disk. Without a persistent disk, SQLite data will be lost on deploy/restart.
@@ -152,7 +152,7 @@ npm run training:import
 On Render, make sure:
 
 ```txt
-DATABASE_PATH=/var/data/crate.sqlite
+DATABASE_URL=/var/data/crate.sqlite
 ADMIN_SPOTIFY_USER_ID=your-spotify-user-id
 ```
 
@@ -462,10 +462,10 @@ This writes the mapped Crate genres into `artist_genres` with `source = "lastfm"
 
 ## Database
 
-SQLite is used for the MVP. By default, the database file lives at:
+SQLite is used for the MVP. The database file is configured only through `DATABASE_URL`.
 
 ```txt
-./data/crate.sqlite
+DATABASE_URL=data/crate.sqlite
 ```
 
 Run migrations with:

@@ -1,12 +1,10 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const Database = require("better-sqlite3");
+const config = require("../src/config");
 
 const rootDir = path.resolve(__dirname, "..");
-const sourceDatabasePath = path.resolve(
-  rootDir,
-  process.env.CRATE_EXPORT_DB_PATH || "data/crate.sqlite",
-);
+const sourceDatabasePath = config.databasePath;
 const exportPath = path.resolve(
   rootDir,
   process.env.TRAINING_EXPORT_PATH || "data/training-export.json",
