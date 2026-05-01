@@ -14,12 +14,14 @@ function sign(value) {
 
 function serializeCookie(name, value, options = {}) {
   const parts = [`${name}=${encodeURIComponent(value)}`];
+  const sameSite = options.sameSite || "lax";
+  const secure = options.secure ?? config.env === "production";
 
   parts.push("Path=/");
   parts.push("HttpOnly");
-  parts.push("SameSite=Lax");
+  parts.push(`SameSite=${sameSite.charAt(0).toUpperCase()}${sameSite.slice(1)}`);
 
-  if (config.env === "production") {
+  if (secure) {
     parts.push("Secure");
   }
 
