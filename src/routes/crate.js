@@ -23,6 +23,7 @@ const {
   fetchLastfmArtistGenreSuggestions,
   getLastfmArtistGenreSuggestions,
 } = require("../crate/lastfmGenreSuggestions");
+const { getDatabaseDiagnostics } = require("../crate/dbDiagnostics");
 const { getMissingArtistGenres } = require("../crate/missingArtistGenres");
 const { syncPlaylists } = require("../crate/syncPlaylists");
 const { syncLikedSongs } = require("../crate/syncLikedSongs");
@@ -216,6 +217,22 @@ router.post(
         processed: summary.processed,
         matched: summary.matched,
         unmatched: summary.unmatched,
+      });
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+router.get(
+  "/admin/db-diagnostics",
+  requireCurrentUser,
+  requireAdminUser,
+  (req, res, next) => {
+    try {
+      return res.json({
+        status: "ok",
+        ...getDatabaseDiagnostics(req.currentUser.id),
       });
     } catch (err) {
       return next(err);

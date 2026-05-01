@@ -476,6 +476,14 @@ npm run migrate
 
 Migration files live in `src/db/migrations`. The migration runner records applied migrations in the `_migrations` table and skips files that have already run.
 
+Temporary admin database diagnostic route:
+
+```txt
+GET /crate/admin/db-diagnostics
+```
+
+This route requires the configured admin Spotify user and returns the active SQLite database path plus row counts for `users`, `tracks`, `user_tracks`, the current user's tracks, and `artist_genres`.
+
 ## Project Structure
 
 ```txt

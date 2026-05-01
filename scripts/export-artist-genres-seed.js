@@ -1,7 +1,7 @@
 const fs = require("node:fs");
 const path = require("node:path");
-const Database = require("better-sqlite3");
 const config = require("../src/config");
+const { openDatabase, closeDatabase } = require("../src/db");
 
 const rootDir = path.resolve(__dirname, "..");
 const sourceDatabasePath = config.databasePath;
@@ -23,7 +23,7 @@ function main() {
     throw new Error(`Local database not found: ${sourceDatabasePath}`);
   }
 
-  const db = new Database(sourceDatabasePath, { readonly: true });
+  const db = openDatabase();
 
   try {
     const rows = db.prepare(`
@@ -93,7 +93,7 @@ function main() {
       ...exportData.counts,
     }, null, 2));
   } finally {
-    db.close();
+    closeDatabase();
   }
 }
 
