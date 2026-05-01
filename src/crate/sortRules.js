@@ -196,7 +196,38 @@ function matchPlaylistCode({ genres }) {
   return null;
 }
 
+const SOUNDTRACK_ALBUM_INDICATORS = [
+  "original motion picture soundtrack",
+  "soundtrack",
+  "score",
+  "music from and inspired by",
+];
+
+function normalizeAlbumTitle(albumTitle) {
+  return String(albumTitle || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function matchAlbumPlaylistCode({ album }) {
+  const normalizedAlbumTitle = normalizeAlbumTitle(album?.name);
+
+  if (!normalizedAlbumTitle) {
+    return null;
+  }
+
+  const matchesSoundtrack = SOUNDTRACK_ALBUM_INDICATORS.some((indicator) =>
+    normalizedAlbumTitle.includes(normalizeAlbumTitle(indicator)),
+  );
+
+  return matchesSoundtrack ? "soundtrack" : null;
+}
+
 module.exports = {
   SORT_RULES,
+  matchAlbumPlaylistCode,
   matchPlaylistCode,
+  normalizeAlbumTitle,
 };

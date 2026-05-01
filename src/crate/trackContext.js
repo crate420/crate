@@ -40,6 +40,22 @@ function getGenresForTrack(
   fallbackGenresByArtistName = new Map(),
   fallbackArtistNames = [],
 ) {
+  const { spotifyGenres, fallbackGenres } = getGenreSignalsForTrack(
+    rawTrack,
+    artistsById,
+    fallbackGenresByArtistName,
+    fallbackArtistNames,
+  );
+
+  return [...new Set([...spotifyGenres, ...fallbackGenres])];
+}
+
+function getGenreSignalsForTrack(
+  rawTrack,
+  artistsById,
+  fallbackGenresByArtistName = new Map(),
+  fallbackArtistNames = [],
+) {
   const artistIds = getArtistIds(rawTrack);
   const artists = artistIds.map((artistId) => artistsById.get(artistId)).filter(Boolean);
   const artistNames = rawTrack?.artists?.length
@@ -48,8 +64,12 @@ function getGenresForTrack(
   const fallbackGenres = artistNames.flatMap(
     (artistName) => fallbackGenresByArtistName.get(normalizeArtistName(artistName)) || [],
   );
+  const spotifyGenres = artists.flatMap((artist) => artist.genres || []);
 
-  return [...new Set([...artists.flatMap((artist) => artist.genres || []), ...fallbackGenres])];
+  return {
+    spotifyGenres: [...new Set(spotifyGenres)],
+    fallbackGenres: [...new Set(fallbackGenres)],
+  };
 }
 
 function getTrackContext(row, artistsById, fallbackGenresByArtistName = new Map()) {
@@ -58,6 +78,12 @@ function getTrackContext(row, artistsById, fallbackGenresByArtistName = new Map(
   const artists = artistIds.map((artistId) => artistsById.get(artistId)).filter(Boolean);
   const artistNames = getArtistNames(row, rawTrack);
   const genres = getGenresForTrack(
+    rawTrack,
+    artistsById,
+    fallbackGenresByArtistName,
+    artistNames,
+  );
+  const { spotifyGenres, fallbackGenres } = getGenreSignalsForTrack(
     rawTrack,
     artistsById,
     fallbackGenresByArtistName,
@@ -80,6 +106,8 @@ function getTrackContext(row, artistsById, fallbackGenresByArtistName = new Map(
     artists,
     artistNames,
     genres,
+    spotifyGenres,
+    fallbackGenres,
   };
 }
 
@@ -87,6 +115,7 @@ module.exports = {
   getArtistIds,
   getArtistNames,
   getGenresForTrack,
+  getGenreSignalsForTrack,
   getReleaseDate,
   getTrackContext,
   parseRawTrack,

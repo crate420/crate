@@ -1,7 +1,7 @@
 const trackRepo = require("../repositories/tracks");
 const artistGenreRepo = require("../repositories/artistGenres");
 const spotifyArtists = require("../spotify/artists");
-const { matchPlaylistCode } = require("./sortRules");
+const { matchAlbumPlaylistCode, matchPlaylistCode } = require("./sortRules");
 const { getArtistIds, getArtistNames, getTrackContext, parseRawTrack } = require("./trackContext");
 
 async function sortTracks(userId) {
@@ -20,7 +20,21 @@ async function sortTracks(userId) {
 
   for (const row of unsortedTracks) {
     const context = getTrackContext(row, artistsById, fallbackGenresByArtistName);
-    const playlistCode = row.override_playlist_code || matchPlaylistCode(context);
+    let playlistCode = row.override_playlist_code || matchPlaylistCode(context);
+
+    if (
+      !playlistCode &&
+      context.spotifyGenres.length === 0 &&
+      context.fallbackGenres.length === 0
+    ) {
+      playlistCode = matchAlbumPlaylistCode(context);
+
+      if (playlistCode) {
+        console.log(
+          `Album title classified track ${row.track_id} as ${playlistCode}: ${context.album.name}`,
+        );
+      }
+    }
 
     if (playlistCode) {
       matched += 1;
