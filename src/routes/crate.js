@@ -25,6 +25,7 @@ const {
 } = require("../crate/lastfmGenreSuggestions");
 const { getDatabaseDiagnostics } = require("../crate/dbDiagnostics");
 const { getMissingArtistGenres } = require("../crate/missingArtistGenres");
+const { getCrateStatus } = require("../crate/status");
 const { syncPlaylists } = require("../crate/syncPlaylists");
 const { syncLikedSongs } = require("../crate/syncLikedSongs");
 const { sortTracks } = require("../crate/sortTracks");
@@ -94,6 +95,14 @@ router.post("/sync-liked-songs", requireCurrentUser, syncLikedHandler);
 if (process.env.NODE_ENV !== "production") {
   router.get("/sync-liked", requireCurrentUser, syncLikedHandler);
 }
+
+router.get("/status", (req, res, next) => {
+  try {
+    return res.json(getCrateStatus());
+  } catch (err) {
+    return next(err);
+  }
+});
 
 router.post("/sort", requireCurrentUser, async (req, res, next) => {
   const run = runs.startRun(req.currentUser.id);
