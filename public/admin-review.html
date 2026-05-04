@@ -55,6 +55,7 @@
       .toolbar {
         display: flex;
         align-items: center;
+        flex-wrap: wrap;
         gap: 12px;
       }
 
@@ -82,6 +83,18 @@
       button:disabled {
         cursor: not-allowed;
         opacity: 0.55;
+      }
+
+      a.button {
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        background: #fff;
+        color: var(--text);
+        display: inline-flex;
+        align-items: center;
+        min-height: 34px;
+        padding: 6px 10px;
+        text-decoration: none;
       }
 
       .message {
@@ -184,6 +197,7 @@
           <div class="summary" id="summary">Loading queue...</div>
         </div>
         <div class="toolbar">
+          <a class="button" href="/admin.html">Admin Home</a>
           <button id="refreshButton" type="button">Refresh</button>
           <button id="syncLikedButton" type="button">Sync liked songs</button>
           <button id="sortButton" type="button">Run sort</button>

@@ -1,0 +1,365 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Crate Admin</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --border: #d7dde5;
+        --muted: #657080;
+        --text: #17202a;
+        --bg: #f6f8fb;
+        --panel: #ffffff;
+        --action: #1769aa;
+        --danger: #a23a3a;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        font-size: 14px;
+      }
+
+      main {
+        max-width: 1120px;
+        margin: 0 auto;
+        padding: 24px;
+      }
+
+      header,
+      .section-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+      }
+
+      header {
+        margin-bottom: 16px;
+      }
+
+      h1,
+      h2 {
+        margin: 0;
+        line-height: 1.2;
+      }
+
+      h1 {
+        font-size: 24px;
+      }
+
+      h2 {
+        font-size: 18px;
+      }
+
+      .layout {
+        display: grid;
+        gap: 14px;
+      }
+
+      .section {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 16px;
+      }
+
+      .section-header {
+        margin-bottom: 12px;
+      }
+
+      .nav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      button,
+      .button {
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        background: #fff;
+        color: var(--text);
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        min-height: 34px;
+        padding: 6px 10px;
+        font: inherit;
+        text-decoration: none;
+      }
+
+      button.primary,
+      .button.primary {
+        background: var(--action);
+        border-color: var(--action);
+        color: #fff;
+      }
+
+      button:disabled {
+        cursor: not-allowed;
+        opacity: 0.55;
+      }
+
+      .message {
+        min-height: 22px;
+        color: var(--muted);
+        margin-top: 4px;
+      }
+
+      .message.error {
+        color: var(--danger);
+      }
+
+      .counts {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 10px;
+        margin-bottom: 12px;
+      }
+
+      .count {
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 10px;
+      }
+
+      .label {
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 700;
+        text-transform: uppercase;
+      }
+
+      .value {
+        font-size: 20px;
+        font-weight: 700;
+        margin-top: 4px;
+      }
+
+      .runs {
+        display: grid;
+        gap: 6px;
+        margin-bottom: 12px;
+      }
+
+      .run {
+        color: var(--muted);
+      }
+
+      pre {
+        background: #101827;
+        border-radius: 6px;
+        color: #e7edf6;
+        margin: 0;
+        max-height: 420px;
+        overflow: auto;
+        padding: 12px;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+
+      @media (max-width: 720px) {
+        header,
+        .section-header {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <div>
+          <h1>Crate Admin</h1>
+          <div class="message" id="message"></div>
+        </div>
+        <nav class="nav">
+          <a class="button" href="/admin-review.html">Admin Review</a>
+        </nav>
+      </header>
+
+      <div class="layout">
+        <section class="section">
+          <div class="section-header">
+            <h2>Crate Status</h2>
+            <button class="primary" id="refreshStatusButton" type="button">Refresh status</button>
+          </div>
+          <div class="counts" id="counts"></div>
+          <div class="runs" id="runs"></div>
+          <pre id="statusJson">{}</pre>
+        </section>
+
+        <section class="section">
+          <div class="section-header">
+            <h2>Sorting Actions</h2>
+            <button class="primary" id="resortAllButton" type="button">Run resort-all</button>
+          </div>
+          <pre id="resortJson">{}</pre>
+        </section>
+
+        <section class="section">
+          <div class="section-header">
+            <h2>Playlist Actions</h2>
+            <button class="primary" id="playlistSyncButton" type="button">Run playlist sync</button>
+          </div>
+          <pre id="playlistSyncJson">{}</pre>
+        </section>
+      </div>
+    </main>
+
+    <script>
+      const messageEl = document.getElementById("message");
+      const countsEl = document.getElementById("counts");
+      const runsEl = document.getElementById("runs");
+      const statusJsonEl = document.getElementById("statusJson");
+      const resortJsonEl = document.getElementById("resortJson");
+      const playlistSyncJsonEl = document.getElementById("playlistSyncJson");
+      const refreshStatusButton = document.getElementById("refreshStatusButton");
+      const resortAllButton = document.getElementById("resortAllButton");
+      const playlistSyncButton = document.getElementById("playlistSyncButton");
+
+      function setMessage(text, isError = false) {
+        messageEl.textContent = text || "";
+        messageEl.classList.toggle("error", Boolean(isError));
+      }
+
+      function formatJson(value) {
+        return JSON.stringify(value, null, 2);
+      }
+
+      async function requestJson(url, options = {}) {
+        const response = await fetch(url, {
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+            ...(options.headers || {}),
+          },
+          ...options,
+        });
+        const body = await response.json().catch(() => ({}));
+
+        if (!response.ok) {
+          throw new Error(body.message || body.error || `Request failed: ${response.status}`);
+        }
+
+        return body;
+      }
+
+      function renderCount(label, value) {
+        const wrapper = document.createElement("div");
+        const labelEl = document.createElement("div");
+        const valueEl = document.createElement("div");
+
+        wrapper.className = "count";
+        labelEl.className = "label";
+        valueEl.className = "value";
+        labelEl.textContent = label;
+        valueEl.textContent = value ?? "null";
+        wrapper.append(labelEl, valueEl);
+
+        return wrapper;
+      }
+
+      function renderRun(label, value) {
+        const wrapper = document.createElement("div");
+        wrapper.className = "run";
+        wrapper.textContent = `${label}: ${value}`;
+        return wrapper;
+      }
+
+      function runSummary(run) {
+        if (!run) {
+          return "None";
+        }
+
+        const id = run.run_id || run.id;
+        const status = run.status ? ` ${run.status}` : "";
+        const completed = run.completed_at || run.finished_at || run.started_at || "";
+
+        return `#${id || "?"}${status}${completed ? ` at ${completed}` : ""}`;
+      }
+
+      function renderStatus(status) {
+        countsEl.replaceChildren(
+          renderCount("Total tracks", status.total_tracks_count),
+          renderCount("Matched", status.matched_tracks_count),
+          renderCount("Unmatched", status.unmatched_tracks_count),
+          renderCount("Artist genres", status.total_artist_genres_count),
+        );
+
+        runsEl.replaceChildren(
+          renderRun("Last sync run", runSummary(status.last_sync_run)),
+          renderRun("Last sort run", runSummary(status.last_sort_run)),
+          renderRun("Last playlist sync", runSummary(status.last_playlist_sync_run)),
+        );
+
+        statusJsonEl.textContent = formatJson(status);
+      }
+
+      async function refreshStatus() {
+        refreshStatusButton.disabled = true;
+        setMessage("Refreshing status...");
+
+        try {
+          const status = await requestJson("/crate/status");
+          renderStatus(status);
+          setMessage("Status refreshed.");
+        } catch (err) {
+          setMessage(err.message, true);
+          statusJsonEl.textContent = formatJson({ error: err.message });
+        } finally {
+          refreshStatusButton.disabled = false;
+        }
+      }
+
+      async function runResortAll() {
+        resortAllButton.disabled = true;
+        setMessage("Running resort-all...");
+
+        try {
+          const result = await requestJson("/crate/admin/resort-all", { method: "POST" });
+          resortJsonEl.textContent = formatJson(result);
+          setMessage("Resort-all complete.");
+          await refreshStatus();
+        } catch (err) {
+          setMessage(err.message, true);
+          resortJsonEl.textContent = formatJson({ error: err.message });
+        } finally {
+          resortAllButton.disabled = false;
+        }
+      }
+
+      async function runPlaylistSync() {
+        playlistSyncButton.disabled = true;
+        setMessage("Running playlist sync...");
+
+        try {
+          const result = await requestJson("/crate/playlists/sync", { method: "POST" });
+          playlistSyncJsonEl.textContent = formatJson(result);
+          setMessage("Playlist sync complete.");
+          await refreshStatus();
+        } catch (err) {
+          setMessage(err.message, true);
+          playlistSyncJsonEl.textContent = formatJson({ error: err.message });
+        } finally {
+          playlistSyncButton.disabled = false;
+        }
+      }
+
+      refreshStatusButton.addEventListener("click", refreshStatus);
+      resortAllButton.addEventListener("click", runResortAll);
+      playlistSyncButton.addEventListener("click", runPlaylistSync);
+      refreshStatus();
+    </script>
+  </body>
+</html>
