@@ -24,6 +24,33 @@ async function createPlaylist(userId, spotifyUserId, { name, description }) {
   });
 }
 
+async function getCurrentUserPlaylistsByName(userId, spotifyUserId) {
+  const playlistsByName = new Map();
+  let nextUrl = "/me/playlists?limit=50";
+
+  while (nextUrl) {
+    const page = await requestSpotify(userId, nextUrl);
+
+    for (const playlist of page.items || []) {
+      if (!playlist?.id || !playlist.name) {
+        continue;
+      }
+
+      if (spotifyUserId && playlist.owner?.id && playlist.owner.id !== spotifyUserId) {
+        continue;
+      }
+
+      if (!playlistsByName.has(playlist.name)) {
+        playlistsByName.set(playlist.name, playlist);
+      }
+    }
+
+    nextUrl = page.next;
+  }
+
+  return playlistsByName;
+}
+
 async function getPlaylistTrackUris(userId, playlistId) {
   const trackUris = new Set();
   let nextUrl = `/playlists/${encodeURIComponent(playlistId)}/tracks?fields=items(track(uri)),next&limit=100`;
@@ -74,6 +101,7 @@ async function removeTracksFromPlaylist(userId, playlistId, uris) {
 module.exports = {
   addTracksToPlaylist,
   createPlaylist,
+  getCurrentUserPlaylistsByName,
   getPlaylistTrackUris,
   removeTracksFromPlaylist,
 };

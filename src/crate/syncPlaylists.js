@@ -38,6 +38,8 @@ async function syncPlaylists(userId) {
     run_id: run.run_id,
     playlists_checked: 0,
     playlists_created: 0,
+    playlists_found_existing: 0,
+    playlists_reused_from_db: 0,
     tracks_added: 0,
     tracks_removed: 0,
     duplicates_skipped: 0,
@@ -46,6 +48,10 @@ async function syncPlaylists(userId) {
 
   try {
     const definitionsByCode = playlistRepo.getPlaylistDefinitionsByCode();
+    const spotifyPlaylistsByName = await spotifyPlaylists.getCurrentUserPlaylistsByName(
+      userId,
+      user.spotify_user_id,
+    );
     const tracksByPlaylistCode = groupTracksByPlaylistCode(
       trackRepo.getSortedTracksForPlaylistSync(userId),
     );
@@ -78,6 +84,23 @@ async function syncPlaylists(userId) {
           continue;
         }
 
+        if (spotifyPlaylistId) {
+          summary.playlists_reused_from_db += 1;
+        }
+
+        if (!spotifyPlaylistId) {
+          const existingPlaylist = spotifyPlaylistsByName.get(definition.display_name);
+
+          if (existingPlaylist?.id) {
+            spotifyPlaylistId = existingPlaylist.id;
+            playlistRepo.updateSpotifyPlaylistId(playlistCode, spotifyPlaylistId);
+            summary.playlists_found_existing += 1;
+            console.log(
+              `Reused existing Spotify playlist for ${playlistCode}: ${definition.display_name}`,
+            );
+          }
+        }
+
         if (!spotifyPlaylistId) {
           const playlist = await spotifyPlaylists.createPlaylist(userId, user.spotify_user_id, {
             name: definition.display_name,
@@ -86,6 +109,7 @@ async function syncPlaylists(userId) {
 
           spotifyPlaylistId = playlist.id;
           playlistRepo.updateSpotifyPlaylistId(playlistCode, spotifyPlaylistId);
+          spotifyPlaylistsByName.set(definition.display_name, playlist);
           summary.playlists_created += 1;
         }
 
