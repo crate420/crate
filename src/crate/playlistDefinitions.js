@@ -10,6 +10,7 @@ const PLAYLIST_DEFINITIONS = [
   { playlistCode: "metal", displayName: "Crate: Metal" },
   { playlistCode: "newwave", displayName: "Crate: New Wave" },
   { playlistCode: "pop", displayName: "Crate: Pop" },
+  { playlistCode: "punk", displayName: "Crate: Punk" },
   { playlistCode: "rb", displayName: "Crate: R&B" },
   { playlistCode: "rock", displayName: "Crate: Rock" },
   { playlistCode: "seasonal", displayName: "Crate: Seasonal" },
