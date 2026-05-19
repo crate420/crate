@@ -61,23 +61,60 @@ function requireSessionSecret() {
   }
 }
 
-function requireSpotifyConfig() {
+function spotifyConfigStatus() {
   const missing = [];
 
   if (!config.spotify.clientId) missing.push("SPOTIFY_CLIENT_ID");
   if (!config.spotify.clientSecret) missing.push("SPOTIFY_CLIENT_SECRET");
   if (!config.spotify.redirectUri) missing.push("SPOTIFY_REDIRECT_URI");
+  if (!config.sessionSecret || config.sessionSecret.length < 32) missing.push("SESSION_SECRET");
 
-  if (missing.length > 0) {
-    throw new Error(`Missing Spotify config: ${missing.join(", ")}`);
+  return {
+    ok: missing.length === 0,
+    missing,
+    redirectUri: config.spotify.redirectUri || null,
+    hasClientId: Boolean(config.spotify.clientId),
+    hasClientSecret: Boolean(config.spotify.clientSecret),
+    hasSessionSecret: Boolean(config.sessionSecret),
+  };
+}
+
+function requireSpotifyConfig() {
+  const status = spotifyConfigStatus();
+
+  if (!status.ok) {
+    const error = new Error(`Missing Spotify auth config: ${status.missing.join(", ")}`);
+    error.code = "spotify_config_missing";
+    error.statusCode = 503;
+    error.missingEnv = status.missing;
+    throw error;
+  }
+}
+
+function logStartupConfigStatus() {
+  const status = spotifyConfigStatus();
+
+  if (!status.ok) {
+    console.error("[Crate Config] Spotify auth is not ready", {
+      missing_env: status.missing,
+      spotify_redirect_uri: status.redirectUri,
+    });
+    return;
   }
 
-  requireSessionSecret();
+  console.log("[Crate Config] Spotify auth config loaded", {
+    spotify_redirect_uri: status.redirectUri,
+    has_spotify_client_id: status.hasClientId,
+    has_spotify_client_secret: status.hasClientSecret,
+    has_session_secret: status.hasSessionSecret,
+  });
 }
 
 module.exports = {
   ...config,
+  logStartupConfigStatus,
   readDatabasePath,
   requireSessionSecret,
   requireSpotifyConfig,
+  spotifyConfigStatus,
 };

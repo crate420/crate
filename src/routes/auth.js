@@ -17,11 +17,26 @@ router.get("/spotify", (req, res, next) => {
     }
 
     const state = crypto.randomBytes(32).toString("base64url");
+    const authorizeUrl = spotifyAuth.buildAuthorizeUrl(state);
 
     setSignedCookie(res, OAUTH_STATE_COOKIE, state, { maxAgeSeconds: 10 * 60 });
-    res.redirect(spotifyAuth.buildAuthorizeUrl(state));
+    return res.redirect(authorizeUrl);
   } catch (err) {
-    next(err);
+    console.error("[Crate Auth] Spotify login failed before redirect", {
+      code: err.code || "unknown_error",
+      message: err.message,
+      missing_env: err.missingEnv || undefined,
+    });
+
+    if (err.code === "spotify_config_missing") {
+      return res.status(503).json({
+        error: "spotify_config_missing",
+        message: "Spotify login is not configured. Ask the Crate beta admin to check Render environment variables.",
+        missing_env: err.missingEnv || [],
+      });
+    }
+
+    return next(err);
   }
 });
 
