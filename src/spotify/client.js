@@ -32,6 +32,11 @@ async function requestWithRetry(url, options, attempt = 1) {
     return requestWithRetry(url, options, attempt + 1);
   }
 
+  if (response.status >= 500 && attempt <= 3) {
+    await sleep(attempt * 1000);
+    return requestWithRetry(url, options, attempt + 1);
+  }
+
   if (response.status === 204) {
     return null;
   }
@@ -39,9 +44,14 @@ async function requestWithRetry(url, options, attempt = 1) {
   const body = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    throw new Error(
+    const error = new Error(
       `Spotify API request failed (${response.status}): ${body.error?.message || "unknown error"}`,
     );
+    error.statusCode = 502;
+    error.code = "spotify_api_error";
+    error.spotifyStatus = response.status;
+    error.spotifyError = body.error || null;
+    throw error;
   }
 
   return body;

@@ -24,6 +24,21 @@ async function createPlaylist(userId, spotifyUserId, { name, description }) {
   });
 }
 
+
+async function updatePlaylistDetails(userId, playlistId, { name, description }) {
+  const body = {};
+  if (name) body.name = name;
+  if (description) body.description = description;
+
+  return requestSpotify(userId, `/playlists/${encodeURIComponent(playlistId)}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
+}
+
 async function getCurrentUserPlaylistsByName(userId, spotifyUserId) {
   const playlistsByName = new Map();
   let nextUrl = "/me/playlists?limit=50";
@@ -104,4 +119,5 @@ module.exports = {
   getCurrentUserPlaylistsByName,
   getPlaylistTrackUris,
   removeTracksFromPlaylist,
+  updatePlaylistDetails,
 };

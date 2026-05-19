@@ -20,6 +20,54 @@ const CURATED_ARTIST_SUGGESTIONS = {
     suggestedPlaylistCode: "pop",
     confidence: "high",
   },
+  "beck": {
+    artistName: "Beck",
+    suggestedGenres: ["alternative rock", "indie rock"],
+    suggestedPlaylistCode: "alternative",
+    confidence: "high",
+  },
+  "florence + the machine": {
+    artistName: "Florence + The Machine",
+    suggestedGenres: ["alternative rock", "indie pop", "art pop"],
+    suggestedPlaylistCode: "alternative",
+    confidence: "high",
+  },
+  "grouplove": {
+    artistName: "GROUPLOVE",
+    suggestedGenres: ["alternative rock", "indie rock"],
+    suggestedPlaylistCode: "alternative",
+    confidence: "high",
+  },
+  "c & c music factory": {
+    artistName: "C & C Music Factory",
+    suggestedGenres: ["dance music", "house", "hip house"],
+    suggestedPlaylistCode: "dance",
+    confidence: "high",
+  },
+  "baltimora": {
+    artistName: "Baltimora",
+    suggestedGenres: ["dance music", "italo disco", "new wave"],
+    suggestedPlaylistCode: "dance",
+    confidence: "high",
+  },
+  "wham!": {
+    artistName: "Wham!",
+    suggestedGenres: ["pop", "new wave", "dance pop"],
+    suggestedPlaylistCode: "pop",
+    confidence: "high",
+  },
+  "kelly clarkson": {
+    artistName: "Kelly Clarkson",
+    suggestedGenres: ["pop", "pop rock"],
+    suggestedPlaylistCode: "pop",
+    confidence: "high",
+  },
+  "mariah carey": {
+    artistName: "Mariah Carey",
+    suggestedGenres: ["pop", "r&b"],
+    suggestedPlaylistCode: "pop",
+    confidence: "high",
+  },
   "bruno mars": {
     artistName: "Bruno Mars",
     suggestedGenres: ["pop", "soul", "r&b", "funk"],
@@ -72,6 +120,12 @@ const CURATED_ARTIST_SUGGESTIONS = {
     artistName: "The Police",
     suggestedGenres: ["rock", "new wave", "reggae"],
     suggestedPlaylistCode: "newwave",
+    confidence: "high",
+  },
+  "the jets": {
+    artistName: "The Jets",
+    suggestedGenres: ["new jack swing", "pop"],
+    suggestedPlaylistCode: "rb",
     confidence: "high",
   },
   "coheed and cambria": {

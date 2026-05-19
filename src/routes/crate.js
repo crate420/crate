@@ -1,6 +1,7 @@
 const express = require("express");
 const path = require("node:path");
 const config = require("../config");
+const { openDatabase } = require("../db");
 const {
   getAdminPlaylistOverview,
   getAdminPlaylistTracks,
@@ -26,6 +27,7 @@ const {
 const { getDatabaseDiagnostics } = require("../crate/dbDiagnostics");
 const { getMissingArtistGenres } = require("../crate/missingArtistGenres");
 const { getCrateStatus } = require("../crate/status");
+const { getTopArtists } = require("../crate/topArtists");
 const { syncPlaylists } = require("../crate/syncPlaylists");
 const { syncLikedSongs } = require("../crate/syncLikedSongs");
 const { sortTracks } = require("../crate/sortTracks");
@@ -42,6 +44,23 @@ const { requireCurrentUser } = require("../utils/authSession");
 
 const router = express.Router();
 
+const lastSortFlowSyncTimingByUserId = new Map();
+
+function seconds(valueMs) {
+  return Number.isFinite(Number(valueMs)) ? (Number(valueMs) / 1000).toFixed(1) + "s" : "n/a";
+}
+
+function logCrateTiming({ likedSongsFetchMs, trackScanMs, playlistSortMs, totalSortFlowMs, tracksProcessed }) {
+  console.log([
+    "[Crate Timing]",
+    "Liked Songs Fetch: " + seconds(likedSongsFetchMs),
+    "Track Scan: " + seconds(trackScanMs),
+    "Playlist Sort: " + seconds(playlistSortMs),
+    "Total Sort Flow: " + seconds(totalSortFlowMs),
+    "Tracks Processed: " + (Number.isFinite(Number(tracksProcessed)) ? tracksProcessed : "n/a"),
+  ].join("\n"));
+}
+
 function requireAdminUser(req, res, next) {
   if (
     !config.adminSpotifyUserId ||
@@ -56,11 +75,58 @@ function requireAdminUser(req, res, next) {
   return next();
 }
 
+function hasSuccessfulSortForUser(userId) {
+  const db = openDatabase();
+
+  const sortedTracks = db.prepare(`
+    SELECT COUNT(*) AS count
+    FROM user_tracks
+    WHERE user_id = ?
+      AND playlist_code IS NOT NULL
+  `).get(userId).count;
+
+  if (sortedTracks === 0) {
+    return false;
+  }
+
+  const recentRuns = db.prepare(`
+    SELECT status, summary_json
+    FROM crate_runs
+    WHERE user_id = ?
+    ORDER BY id DESC
+    LIMIT 100
+  `).all(userId);
+
+  return recentRuns.some((run) => {
+    if (run.status !== "success") {
+      return false;
+    }
+
+    try {
+      return JSON.parse(run.summary_json || "{}").step === "sortTracks";
+    } catch (err) {
+      return false;
+    }
+  });
+}
+
+
 async function syncLikedHandler(req, res, next) {
+  const flowStartedAt = process.hrtime.bigint();
   const run = runs.startRun(req.currentUser.id);
 
   try {
     const summary = await syncLikedSongs(req.currentUser.id);
+    lastSortFlowSyncTimingByUserId.set(req.currentUser.id, {
+      startedAt: flowStartedAt,
+      timing: summary.timing,
+      createdAt: Date.now(),
+    });
+    logCrateTiming({
+      likedSongsFetchMs: summary.timing?.likedSongsFetchMs,
+      trackScanMs: summary.timing?.trackScanMs,
+      tracksProcessed: summary.timing?.tracksFetched || summary.seen,
+    });
     const finishedRun = runs.finishRun(run.id, "success", {
       step: "syncLikedSongs",
       ...summary,
@@ -77,6 +143,7 @@ async function syncLikedHandler(req, res, next) {
       user_tracks_updated: summary.userTracksUpdated,
       total_stored_for_user: summary.totalStoredForUser,
       errors: [],
+      timing: summary.timing,
       summary,
     });
   } catch (err) {
@@ -104,11 +171,33 @@ router.get("/status", (req, res, next) => {
   }
 });
 
+router.get("/top-artists", (req, res, next) => {
+  try {
+    return res.json(getTopArtists({ limit: req.query.limit }));
+  } catch (err) {
+    return next(err);
+  }
+});
+
 router.post("/sort", requireCurrentUser, async (req, res, next) => {
   const run = runs.startRun(req.currentUser.id);
 
   try {
     const summary = await sortTracks(req.currentUser.id);
+    const syncTiming = lastSortFlowSyncTimingByUserId.get(req.currentUser.id);
+    const syncTimingIsFresh = syncTiming && Date.now() - syncTiming.createdAt < 10 * 60 * 1000;
+    const totalSortFlowMs = syncTimingIsFresh
+      ? Number(process.hrtime.bigint() - syncTiming.startedAt) / 1_000_000
+      : summary.timing?.totalSortMs;
+
+    logCrateTiming({
+      likedSongsFetchMs: syncTimingIsFresh ? syncTiming.timing?.likedSongsFetchMs : undefined,
+      trackScanMs: syncTimingIsFresh ? syncTiming.timing?.trackScanMs : undefined,
+      playlistSortMs: summary.timing?.playlistSortMs,
+      totalSortFlowMs,
+      tracksProcessed: summary.processed,
+    });
+
     const finishedRun = runs.finishRun(run.id, "success", {
       step: "sortTracks",
       ...summary,
@@ -120,6 +209,12 @@ router.post("/sort", requireCurrentUser, async (req, res, next) => {
       processed: summary.processed,
       matched: summary.matched,
       unmatched: summary.unmatched,
+      timing: {
+        ...summary.timing,
+        likedSongsFetchMs: syncTimingIsFresh ? syncTiming.timing?.likedSongsFetchMs : undefined,
+        trackScanMs: syncTimingIsFresh ? syncTiming.timing?.trackScanMs : undefined,
+        totalSortFlowMs,
+      },
     });
   } catch (err) {
     runs.finishRun(run.id, "failed", {
@@ -133,12 +228,30 @@ router.post("/sort", requireCurrentUser, async (req, res, next) => {
 
 router.post("/playlists/sync", requireCurrentUser, async (req, res, next) => {
   try {
-    return res.json(await syncPlaylists(req.currentUser.id));
+    if (!hasSuccessfulSortForUser(req.currentUser.id)) {
+      return res.status(409).json({
+        error: "sort_required",
+        message: "Run Sort before sending playlists to Spotify.",
+      });
+    }
+
+    const selectedPlaylists = Array.isArray(req.body?.playlists) ? req.body.playlists : undefined;
+    console.log("[Crate Send] route received playlist sync request", {
+      user_id: req.currentUser.id,
+      spotify_user_id: req.currentUser.spotify_user_id,
+      selected_playlist_count: selectedPlaylists ? selectedPlaylists.length : null,
+      selected_playlists: selectedPlaylists || "all_static_playlists",
+    });
+
+    return res.json(await syncPlaylists(req.currentUser.id, {
+      playlists: selectedPlaylists,
+    }));
   } catch (err) {
     if (err.statusCode) {
       return res.status(err.statusCode).json({
         error: err.code || "playlist_sync_error",
         message: err.message,
+        summary: err.summary || null,
       });
     }
 

@@ -51,7 +51,7 @@ function findGenresByArtistNames(artistNames) {
       SELECT artist_name, genre
       FROM artist_genres
       WHERE lower(trim(artist_name)) IN (${placeholders})
-      ORDER BY artist_name COLLATE NOCASE ASC, genre COLLATE NOCASE ASC
+      ORDER BY artist_name COLLATE NOCASE ASC, id ASC
     `)
     .all(...uniqueArtistNames);
 

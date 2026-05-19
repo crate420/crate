@@ -6,3 +6,8 @@ data/*
 !data/training-export.json
 npm-debug.log*
 .DS_Store
+logs/
+*.log
+tmp/
+temp/
+*.tmp

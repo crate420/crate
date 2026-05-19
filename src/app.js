@@ -1,6 +1,7 @@
 const express = require("express");
 const path = require("node:path");
 const authRouter = require("./routes/auth");
+const betaRouter = require("./routes/beta");
 const crateRouter = require("./routes/crate");
 const healthRouter = require("./routes/health");
 const config = require("./config");
@@ -18,6 +19,7 @@ function createApp() {
   app.use(express.static(path.join(config.rootDir, "public")));
 
   app.use("/auth", authRouter);
+  app.use("/beta", betaRouter);
   app.use("/crate", crateRouter);
   app.use("/health", healthRouter);
 

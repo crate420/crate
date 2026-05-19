@@ -1,0 +1,25 @@
+CREATE TABLE IF NOT EXISTS beta_access_codes (
+  code TEXT PRIMARY KEY,
+  claimed_at TEXT,
+  claimed_by_user_id INTEGER,
+  beta_token TEXT UNIQUE,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+INSERT OR IGNORE INTO beta_access_codes (code) VALUES
+  ('CRATE-BETA-001'),
+  ('CRATE-BETA-002'),
+  ('CRATE-BETA-003'),
+  ('CRATE-BETA-004'),
+  ('CRATE-BETA-005'),
+  ('CRATE-BETA-006'),
+  ('CRATE-BETA-007'),
+  ('CRATE-BETA-008'),
+  ('CRATE-BETA-009'),
+  ('CRATE-BETA-010'),
+  ('CRATE-BETA-011'),
+  ('CRATE-BETA-012'),
+  ('CRATE-BETA-013'),
+  ('CRATE-BETA-014'),
+  ('CRATE-BETA-015'),
+  ('CRATE-BETA-016');

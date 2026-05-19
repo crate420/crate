@@ -108,6 +108,7 @@ function getTrackContext(row, artistsById, fallbackGenresByArtistName = new Map(
     genres,
     spotifyGenres,
     fallbackGenres,
+    fallbackGenresByArtistName,
   };
 }
 

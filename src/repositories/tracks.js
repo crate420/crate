@@ -241,7 +241,8 @@ function getSortedTracksForPlaylistSync(userId) {
         tracks.uri,
         tracks.name,
         tracks.artist_names,
-        tracks.album_name
+        tracks.album_name,
+        tracks.raw_json
       FROM user_tracks
       INNER JOIN tracks ON tracks.id = user_tracks.track_id
       LEFT JOIN track_overrides ON track_overrides.track_id = tracks.id
