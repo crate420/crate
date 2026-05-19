@@ -61,6 +61,32 @@ function logCrateTiming({ likedSongsFetchMs, trackScanMs, playlistSortMs, totalS
   ].join("\n"));
 }
 
+function logCrateFlowError(step, currentUser, err) {
+  console.error("[Crate Flow] " + step + " failed", {
+    user_id: currentUser?.id || null,
+    spotify_user_id: currentUser?.spotify_user_id || null,
+    code: err.code || "unknown_error",
+    status_code: err.statusCode || 500,
+    spotify_status: err.spotifyStatus || null,
+    message: err.message,
+  });
+}
+
+function sendKnownCrateFlowError(res, step, err) {
+  if (!err.statusCode) {
+    return false;
+  }
+
+  res.status(err.statusCode).json({
+    error: err.code || "crate_flow_error",
+    message: err.message,
+    step,
+    spotify_status: err.spotifyStatus || null,
+  });
+
+  return true;
+}
+
 function requireAdminUser(req, res, next) {
   if (
     !config.adminSpotifyUserId ||
@@ -116,6 +142,10 @@ async function syncLikedHandler(req, res, next) {
   const run = runs.startRun(req.currentUser.id);
 
   try {
+    console.log("[Crate Flow] sync-liked-songs request started", {
+      user_id: req.currentUser.id,
+      spotify_user_id: req.currentUser.spotify_user_id,
+    });
     const summary = await syncLikedSongs(req.currentUser.id);
     lastSortFlowSyncTimingByUserId.set(req.currentUser.id, {
       startedAt: flowStartedAt,
@@ -130,6 +160,14 @@ async function syncLikedHandler(req, res, next) {
     const finishedRun = runs.finishRun(run.id, "success", {
       step: "syncLikedSongs",
       ...summary,
+    });
+
+    console.log("[Crate Flow] sync-liked-songs request complete", {
+      user_id: req.currentUser.id,
+      tracks_synced: summary.seen,
+      inserted: summary.inserted,
+      updated: summary.updated,
+      skipped: summary.skipped,
     });
 
     return res.json({
@@ -151,6 +189,11 @@ async function syncLikedHandler(req, res, next) {
       step: "syncLikedSongs",
       error: err.message,
     });
+    logCrateFlowError("syncLikedSongs", req.currentUser, err);
+
+    if (sendKnownCrateFlowError(res, "syncLikedSongs", err)) {
+      return undefined;
+    }
 
     return next(err);
   }
@@ -183,6 +226,10 @@ router.post("/sort", requireCurrentUser, async (req, res, next) => {
   const run = runs.startRun(req.currentUser.id);
 
   try {
+    console.log("[Crate Flow] sort request started", {
+      user_id: req.currentUser.id,
+      spotify_user_id: req.currentUser.spotify_user_id,
+    });
     const summary = await sortTracks(req.currentUser.id);
     const syncTiming = lastSortFlowSyncTimingByUserId.get(req.currentUser.id);
     const syncTimingIsFresh = syncTiming && Date.now() - syncTiming.createdAt < 10 * 60 * 1000;
@@ -203,6 +250,13 @@ router.post("/sort", requireCurrentUser, async (req, res, next) => {
       ...summary,
     });
 
+    console.log("[Crate Flow] sort request complete", {
+      user_id: req.currentUser.id,
+      processed: summary.processed,
+      matched: summary.matched,
+      unmatched: summary.unmatched,
+    });
+
     return res.json({
       status: "ok",
       run_id: finishedRun.id,
@@ -221,6 +275,11 @@ router.post("/sort", requireCurrentUser, async (req, res, next) => {
       step: "sortTracks",
       error: err.message,
     });
+    logCrateFlowError("sortTracks", req.currentUser, err);
+
+    if (sendKnownCrateFlowError(res, "sortTracks", err)) {
+      return undefined;
+    }
 
     return next(err);
   }

@@ -7,6 +7,30 @@ config.logStartupConfigStatus();
 
 applyMigrations();
 
+function logProcessEvent(event, details = {}) {
+  console.error(`[Crate Process] ${event}`, {
+    pid: process.pid,
+    uptime_seconds: Math.round(process.uptime()),
+    memory: process.memoryUsage(),
+    ...details,
+  });
+}
+
+process.on("uncaughtException", (err) => {
+  logProcessEvent("uncaughtException", {
+    message: err.message,
+    stack: err.stack,
+  });
+  process.exit(1);
+});
+
+process.on("unhandledRejection", (reason) => {
+  logProcessEvent("unhandledRejection", {
+    message: reason?.message || String(reason),
+    stack: reason?.stack || null,
+  });
+});
+
 const app = createApp();
 
 const server = app.listen(config.port, () => {
@@ -14,7 +38,7 @@ const server = app.listen(config.port, () => {
 });
 
 function shutdown(signal) {
-  console.log(`${signal} received; shutting down`);
+  logProcessEvent(signal + " received; shutting down");
 
   server.close((err) => {
     if (err) {

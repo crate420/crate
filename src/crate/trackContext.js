@@ -72,8 +72,8 @@ function getGenreSignalsForTrack(
   };
 }
 
-function getTrackContext(row, artistsById, fallbackGenresByArtistName = new Map()) {
-  const rawTrack = parseRawTrack(row.raw_json);
+function getTrackContext(row, artistsById, fallbackGenresByArtistName = new Map(), rawTrackOverride = undefined) {
+  const rawTrack = rawTrackOverride === undefined ? parseRawTrack(row.raw_json) : rawTrackOverride;
   const artistIds = getArtistIds(rawTrack);
   const artists = artistIds.map((artistId) => artistsById.get(artistId)).filter(Boolean);
   const artistNames = getArtistNames(row, rawTrack);

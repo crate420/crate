@@ -1,12 +1,25 @@
 const { requestSpotify } = require("./client");
 
-async function getAllLikedTracks(userId) {
+async function getAllLikedTracks(userId, options = {}) {
   const tracks = [];
   let nextUrl = "/me/tracks?limit=50&offset=0";
+  let pageNumber = 0;
 
   while (nextUrl) {
+    pageNumber += 1;
     const page = await requestSpotify(userId, nextUrl);
-    tracks.push(...(page.items || []));
+    const items = page.items || [];
+    tracks.push(...items);
+
+    if (typeof options.onPage === "function") {
+      options.onPage({
+        pageNumber,
+        pageCount: items.length,
+        totalFetched: tracks.length,
+        hasNextPage: Boolean(page.next),
+      });
+    }
+
     nextUrl = page.next;
   }
 
