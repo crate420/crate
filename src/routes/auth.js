@@ -78,15 +78,7 @@ router.get("/spotify/callback", async (req, res, next) => {
       maxAgeSeconds: 30 * 24 * 60 * 60,
     });
 
-    return res.json({
-      status: "ok",
-      message: "Spotify account connected.",
-      user: {
-        id: user.id,
-        spotify_user_id: user.spotify_user_id,
-        display_name: user.display_name,
-      },
-    });
+    return res.redirect("/app.html");
   } catch (err) {
     next(err);
   }
