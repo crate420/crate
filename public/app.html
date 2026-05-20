@@ -58,7 +58,7 @@
       <section class="output-panel" id="outputPanel" aria-live="polite"><pre id="outputJson"></pre></section>
     </main><footer>©2026 Crate · Privacy · Terms · Support<br>Not affiliated with Spotify.</footer>
     <script>
-      const state = { status: null, topArtists: [], auth: null, action: { active: null, results: {} }, selections: { genre: new Set(), artist: new Set(), era: new Set() }, ui: { dashboardUnlocked: false, genreVisible: 10, artistVisible: 10, genreEras: {}, genreSelections: {} }, progress: { timers: [], rafId: null, phaseToken: 0, percent: 0, songCount: 0, artistCount: 0, genreCount: 0, matchedCount: 0, unmatchedCount: 0, phase: null, activeStep: null, messageIndex: 0, onboarding: false, phasePromise: null } };
+      const state = { status: null, topArtists: [], auth: null, beta: null, action: { active: null, results: {} }, selections: { genre: new Set(), artist: new Set(), era: new Set() }, ui: { dashboardUnlocked: false, genreVisible: 10, artistVisible: 10, genreEras: {}, genreSelections: {} }, progress: { timers: [], rafId: null, phaseToken: 0, percent: 0, songCount: 0, artistCount: 0, genreCount: 0, matchedCount: 0, unmatchedCount: 0, phase: null, activeStep: null, messageIndex: 0, onboarding: false, phasePromise: null } };
       let currentOnboardingState = 'idle'; 
       const statusTitle = document.getElementById('statusTitle');
       const heroCopy = document.getElementById('heroCopy');
@@ -131,11 +131,13 @@
       function formatNumber(value) { return Number.isFinite(Number(value)) ? Number(value).toLocaleString() : '–'; }
       function categoryRows() { return Array.isArray(state.status?.playlist_category_counts) ? state.status.playlist_category_counts : []; }
       function isConnected() { return Boolean(state.auth?.user); }
-      function sortCompleted() { return state.status?.last_sort_run?.status === 'success' && Number(state.status?.sorted_tracks_count || 0) > 0; }
+      function sortCompleted() { return Number(state.status?.sorted_tracks_count || state.status?.matched_tracks_count || 0) > 0; }
       function sendCompleted() { return Boolean(state.status?.last_playlist_sync_run?.completed_at); }
       function selectedUiMode() {
         if (!isConnected()) return 'disconnected';
-        if (state.progress.onboarding || !state.ui.dashboardUnlocked) return 'processing';
+        if (state.progress.onboarding) return 'processing';
+        if (sortCompleted()) return 'complete';
+        if (!state.ui.dashboardUnlocked) return 'processing';
         return 'complete';
       }
       function setUiMode(mode = selectedUiMode()) {
@@ -285,9 +287,9 @@
         const matched = Number(state.status?.matched_tracks_count || state.status?.sorted_tracks_count || 0);
         const unmatched = Number(state.status?.unmatched_tracks_count || 0);
         return {
-          songs: totalTracks || 6000,
-          artists: Number(state.topArtists?.length || state.status?.total_artist_genres_count || 300),
-          genres: Math.max(0, categoryRows().length || 24),
+          songs: totalTracks,
+          artists: Number(state.topArtists?.length || state.status?.total_artist_genres_count || 0),
+          genres: Math.max(0, categoryRows().length),
           matched: matched || Math.max(0, totalTracks - unmatched),
           unmatched,
         };
@@ -529,6 +531,11 @@
       async function requestOptionalAuth() {
         try { return await requestJson('/auth/me'); }
         catch (err) { return null; }
+      }
+
+      async function requestOptionalBetaStatus() {
+        try { return await requestJson('/beta/status'); }
+        catch (err) { return { has_access: false, error: err.message }; }
       }
 
       function getSelectionSet(panelKey) {
@@ -1038,6 +1045,9 @@
       function renderUI() {
         if (!state.status) return;
         document.querySelector('.stats')?.classList.add('loaded');
+        if (isConnected() && sortCompleted() && !state.progress.onboarding) {
+          state.ui.dashboardUnlocked = true;
+        }
         updateProgress();
         renderProcessStatus();
         const mode = selectedUiMode();
@@ -1077,18 +1087,25 @@
           setFlowStatus('Refreshing Crate status…', 'working');
         }
         try {
-          const [authData, statusData, topArtistsData] = await Promise.all([
+          const [betaData, authData, statusData, topArtistsData] = await Promise.all([
+            requestOptionalBetaStatus(),
             requestOptionalAuth(),
             requestJson('/crate/status'),
             requestJson('/crate/top-artists?limit=50'),
           ]);
-          console.log('[Crate UI] current auth state', authData?.user ? 'connected' : 'disconnected');
-          console.log('auth', authData);
-          console.log('status', statusData);
-          console.log('top artists', topArtistsData);
+          state.beta = betaData;
           state.auth = authData;
           state.status = statusData;
           state.topArtists = topArtistsData;
+
+          if (!betaData?.has_access) {
+            window.location.href = '/?beta_required=1';
+            return;
+          }
+
+          if (authData?.user && Number(statusData?.sorted_tracks_count || statusData?.matched_tracks_count || 0) > 0 && !state.progress.onboarding) {
+            state.ui.dashboardUnlocked = true;
+          }
           renderUI();
           setOutput({ auth: authData, status: statusData, top_artists: topArtistsData });
           if (!options.silent) {
@@ -1351,8 +1368,6 @@
         button.addEventListener('click', () => addSelectedPlaylists(button.dataset.addPanel));
       });
       document.addEventListener('DOMContentLoaded', () => {
-        console.log('[Crate UI] app init');
-        logUiState('before loadData');
         loadData({ silent: true });
       });
     </script>
