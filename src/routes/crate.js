@@ -7,6 +7,10 @@ const {
   getAdminPlaylistTracks,
 } = require("../crate/adminPlaylists");
 const {
+  getAdminUnmatchedReview,
+  getAdminUnmatchedReviewCsv,
+} = require("../crate/adminUnmatchedReview");
+const {
   applyAdminReviewQueueArtist,
   getAdminReviewQueue,
   ignoreAdminReviewQueueArtist,
@@ -341,6 +345,32 @@ router.get("/spotify/liked-songs", requireCurrentUser, async (req, res, next) =>
 
 router.get("/admin/playlists", (req, res) => {
   return res.sendFile(path.join(__dirname, "../../public/admin-playlists.html"));
+});
+
+router.get("/admin/unmatched-review", requireCurrentUser, requireAdminUser, (req, res) => {
+  return res.sendFile(path.join(__dirname, "../../public/admin-unmatched.html"));
+});
+
+router.get("/admin/unmatched-review.json", requireCurrentUser, requireAdminUser, async (req, res, next) => {
+  try {
+    return res.json(await getAdminUnmatchedReview(req.currentUser.id, {
+      limit: req.query.limit,
+      offset: req.query.offset,
+    }));
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.get("/admin/unmatched-review.csv", requireCurrentUser, requireAdminUser, async (req, res, next) => {
+  try {
+    const csv = await getAdminUnmatchedReviewCsv(req.currentUser.id);
+    res.setHeader("Content-Type", "text/csv; charset=utf-8");
+    res.setHeader("Content-Disposition", "attachment; filename=crate-unmatched-tracks.csv");
+    return res.send(csv);
+  } catch (err) {
+    return next(err);
+  }
 });
 
 router.post(

@@ -3,63 +3,77 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Crate Admin Unmatched</title>
+    <title>Crate Admin Unsorted Review</title>
     <style>
-      :root { --bg:#f6f8fb; --panel:#fff; --text:#17202a; --muted:#657080; --border:#d7dde5; --action:#1769aa; }
+      :root { --bg:#f6f8fb; --panel:#fff; --text:#17202a; --muted:#657080; --border:#d7dde5; --action:#1769aa; --good:#16803c; --bad:#b42318; }
       * { box-sizing:border-box; }
       body { margin:0; background:var(--bg); color:var(--text); font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; font-size:14px; }
-      main { max-width:1180px; margin:0 auto; padding:24px; }
-      header { display:flex; justify-content:space-between; align-items:center; gap:16px; margin-bottom:16px; }
+      main { max-width:1440px; margin:0 auto; padding:24px; }
+      header { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; margin-bottom:16px; }
       h1 { margin:0; font-size:24px; }
       h2 { margin:0 0 10px; font-size:18px; }
       .toolbar { display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-bottom:14px; }
-      button, a.button { border:1px solid var(--border); border-radius:6px; background:#fff; color:var(--text); cursor:pointer; display:inline-flex; align-items:center; min-height:34px; padding:6px 10px; text-decoration:none; font:inherit; }
+      button, a.button, select { border:1px solid var(--border); border-radius:6px; background:#fff; color:var(--text); min-height:34px; padding:6px 10px; text-decoration:none; font:inherit; }
+      button, a.button { cursor:pointer; display:inline-flex; align-items:center; }
       button.primary { background:var(--action); border-color:var(--action); color:#fff; }
-      .message { min-height:22px; color:var(--muted); margin-bottom:12px; }
-      .grid { display:grid; grid-template-columns:360px 1fr; gap:14px; align-items:start; }
-      .panel { background:var(--panel); border:1px solid var(--border); border-radius:8px; padding:14px; }
+      button:disabled, select:disabled { cursor:wait; opacity:.6; }
+      .message { min-height:22px; color:var(--muted); margin-bottom:12px; font-weight:600; }
+      .message.success { color:var(--good); }
+      .message.error { color:var(--bad); }
       .summary { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:12px; }
       .stat { border:1px solid var(--border); border-radius:8px; background:#fff; padding:10px; text-align:center; }
       .stat strong { display:block; font-size:24px; }
       .stat span { color:var(--muted); font-size:12px; font-weight:700; text-transform:uppercase; }
-      .genre-list, .track-list { display:grid; gap:8px; }
-      .genre, .track { border:1px solid var(--border); border-radius:8px; background:#fff; padding:10px; }
-      .genre { display:flex; justify-content:space-between; gap:12px; }
-      .track strong { display:block; font-size:15px; }
+      .panel { background:var(--panel); border:1px solid var(--border); border-radius:8px; padding:14px; overflow:auto; }
+      table { width:100%; border-collapse:collapse; min-width:1180px; }
+      th, td { border-bottom:1px solid var(--border); padding:9px 8px; text-align:left; vertical-align:top; }
+      th { color:#334155; font-size:12px; text-transform:uppercase; letter-spacing:.04em; background:#f8fafc; position:sticky; top:0; z-index:1; }
+      .track-title { font-weight:700; }
       .muted { color:var(--muted); }
-      .tags { display:flex; flex-wrap:wrap; gap:4px; margin-top:6px; }
+      .tags { display:flex; flex-wrap:wrap; gap:4px; max-width:320px; }
       .tag { border-radius:999px; background:#eef2f7; color:#334155; padding:2px 7px; font-size:12px; }
-      @media (max-width: 820px) { .grid,.summary { grid-template-columns:1fr; } header { align-items:flex-start; flex-direction:column; } }
+      .status { max-width:180px; color:#475569; }
+      .assign-cell { min-width:240px; }
+      .assign-controls { display:flex; gap:6px; align-items:center; }
+      .assign-controls select { flex:1; }
+      @media (max-width: 820px) { .summary { grid-template-columns:1fr; } header { flex-direction:column; } main { padding:16px; } }
     </style>
   </head>
   <body>
     <main>
       <header>
         <div>
-          <h1>Crate Unmatched Review</h1>
-          <div class="muted">Tracks and genres still missing a playlist assignment.</div>
+          <h1>Crate Unsorted Review</h1>
+          <div class="muted">Admin-only list of Needs Review tracks with manual playlist assignment.</div>
         </div>
         <nav class="toolbar">
           <a class="button" href="/admin.html">Admin Home</a>
           <a class="button" href="/admin-review.html">Artist Review Queue</a>
+          <a class="button" href="/crate/admin/unmatched-review.csv">Download CSV</a>
           <button class="primary" id="refreshButton" type="button">Refresh</button>
         </nav>
       </header>
       <div class="message" id="message">Loading...</div>
-      <section class="summary" aria-label="Unmatched summary">
-        <div class="stat"><strong id="totalUnmatched">-</strong><span>Total unmatched</span></div>
-        <div class="stat"><strong id="withGenres">-</strong><span>With genres</span></div>
+      <section class="summary" aria-label="Unsorted summary">
+        <div class="stat"><strong id="totalUnmatched">-</strong><span>Total Needs Review</span></div>
+        <div class="stat"><strong id="withGenres">-</strong><span>With Spotify genres</span></div>
         <div class="stat"><strong id="withoutGenres">-</strong><span>No genres</span></div>
       </section>
-      <section class="grid">
-        <article class="panel">
-          <h2>Top Unmatched Genres</h2>
-          <div class="genre-list" id="genreList"></div>
-        </article>
-        <article class="panel">
-          <h2>Sample Unmatched Tracks</h2>
-          <div class="track-list" id="trackList"></div>
-        </article>
+      <section class="panel" aria-label="Unsorted tracks">
+        <table>
+          <thead>
+            <tr>
+              <th>Track</th>
+              <th>Artist</th>
+              <th>Album</th>
+              <th>Year</th>
+              <th>Spotify genres</th>
+              <th>Status</th>
+              <th>Manual assignment</th>
+            </tr>
+          </thead>
+          <tbody id="trackRows"><tr><td colspan="7" class="muted">Loading...</td></tr></tbody>
+        </table>
       </section>
     </main>
     <script>
@@ -67,62 +81,115 @@
       const totalUnmatched = document.getElementById('totalUnmatched');
       const withGenres = document.getElementById('withGenres');
       const withoutGenres = document.getElementById('withoutGenres');
-      const genreList = document.getElementById('genreList');
-      const trackList = document.getElementById('trackList');
+      const trackRows = document.getElementById('trackRows');
       const refreshButton = document.getElementById('refreshButton');
+      let playlistDefinitions = [];
 
-      function formatNumber(value) {
-        return Number(value || 0).toLocaleString();
+      function escapeHtml(value) {
+        return String(value ?? '').replace(/[&<>"]/g, (char) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[char]));
       }
 
-      async function requestJson(url) {
-        const response = await fetch(url, { credentials: 'include' });
+      function formatNumber(value) { return Number(value || 0).toLocaleString(); }
+
+      function setMessage(text, type = '') {
+        message.textContent = text;
+        message.className = 'message' + (type ? ' ' + type : '');
+      }
+
+      async function requestJson(url, options = {}) {
+        const response = await fetch(url, {
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
+          ...options,
+        });
         const body = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(body.message || body.error || 'Request failed: ' + response.status);
         return body;
       }
 
-      function renderGenres(genres = []) {
-        genreList.innerHTML = genres.length ? genres.slice(0, 50).map((item) => `
-          <div class="genre"><strong>${item.genre || item.name || 'Unknown'}</strong><span>${formatNumber(item.count)}</span></div>
-        `).join('') : '<p class="muted">No unmatched genres found.</p>';
+      function playlistOptions() {
+        return '<option value="">Choose...</option>' + playlistDefinitions.map((definition) => (
+          `<option value="${escapeHtml(definition.playlistCode)}">${escapeHtml(definition.displayName.replace(/^Crate:\s*/i, ''))}</option>`
+        )).join('');
       }
 
-      function renderTracks(tracks = []) {
-        trackList.innerHTML = tracks.length ? tracks.slice(0, 100).map((track) => {
-          const artists = track.artist_names || track.artists || '';
-          const genres = Array.isArray(track.spotify_genres) ? track.spotify_genres : (track.genres || []);
+      function renderRows(tracks = []) {
+        if (!tracks.length) {
+          trackRows.innerHTML = '<tr><td colspan="7" class="muted">No unsorted tracks found.</td></tr>';
+          return;
+        }
+
+        trackRows.innerHTML = tracks.map((track) => {
+          const genres = Array.isArray(track.spotify_genres) ? track.spotify_genres : [];
           return `
-            <div class="track">
-              <strong>${track.track_title || track.name || 'Untitled track'}</strong>
-              <div class="muted">${artists} ${track.album_name ? '&middot; ' + track.album_name : ''}</div>
-              <div class="tags">${genres.map((genre) => `<span class="tag">${genre}</span>`).join('') || '<span class="tag">No genres</span>'}</div>
-            </div>
+            <tr data-track-id="${track.track_id}">
+              <td><div class="track-title">${escapeHtml(track.title)}</div><div class="muted">ID ${track.track_id}</div></td>
+              <td>${escapeHtml((track.artist_names || []).join(', '))}</td>
+              <td>${escapeHtml(track.album_name || '')}</td>
+              <td>${escapeHtml(track.release_year || '')}</td>
+              <td><div class="tags">${genres.length ? genres.map((genre) => `<span class="tag">${escapeHtml(genre)}</span>`).join('') : '<span class="tag">No genres</span>'}</div></td>
+              <td class="status">${escapeHtml(track.status || '')}</td>
+              <td class="assign-cell"><div class="assign-controls"><select data-playlist>${playlistOptions()}</select><button data-save type="button">Save</button></div></td>
+            </tr>
           `;
-        }).join('') : '<p class="muted">No unmatched tracks found.</p>';
+        }).join('');
+      }
+
+      async function saveAssignment(row) {
+        const trackId = row.dataset.trackId;
+        const select = row.querySelector('[data-playlist]');
+        const button = row.querySelector('[data-save]');
+        const playlistCode = select.value;
+        if (!playlistCode) {
+          setMessage('Choose a playlist before saving.', 'error');
+          return;
+        }
+
+        button.disabled = true;
+        select.disabled = true;
+        setMessage('Saving manual assignment...');
+        try {
+          await requestJson('/crate/track/override', {
+            method: 'POST',
+            body: JSON.stringify({ track_id: Number(trackId), playlist_code: playlistCode }),
+          });
+          row.remove();
+          totalUnmatched.textContent = formatNumber(Math.max(Number(totalUnmatched.textContent.replace(/,/g, '')) - 1, 0));
+          setMessage('Manual assignment saved. This track will be included in future syncs.', 'success');
+        } catch (err) {
+          setMessage('Failed to save assignment: ' + err.message, 'error');
+          button.disabled = false;
+          select.disabled = false;
+        }
       }
 
       async function loadReview() {
         refreshButton.disabled = true;
-        message.textContent = 'Loading unmatched diagnostics...';
+        setMessage('Loading unsorted tracks...');
         try {
-          const [diagnostics, unmatched] = await Promise.all([
+          const [diagnostics, review] = await Promise.all([
             requestJson('/crate/unmatched-diagnostics'),
-            requestJson('/crate/unmatched?limit=100'),
+            requestJson('/crate/admin/unmatched-review.json?limit=5000'),
           ]);
+          playlistDefinitions = review.playlist_definitions || [];
           totalUnmatched.textContent = formatNumber(diagnostics.total_unmatched_tracks);
           withGenres.textContent = formatNumber(diagnostics.unmatched_tracks_with_genres);
           withoutGenres.textContent = formatNumber(diagnostics.unmatched_tracks_with_no_genres);
-          renderGenres(diagnostics.top_unmatched_genres || []);
-          renderTracks(Array.isArray(unmatched) ? unmatched : unmatched.tracks || []);
-          message.textContent = 'Review data loaded.';
+          renderRows(review.tracks || []);
+          setMessage(`Loaded ${formatNumber(review.count)} Needs Review tracks.`, 'success');
         } catch (err) {
-          message.textContent = 'Failed to load review data: ' + err.message;
+          setMessage('Failed to load review data: ' + err.message, 'error');
         } finally {
           refreshButton.disabled = false;
         }
       }
 
+      trackRows.addEventListener('click', (event) => {
+        const button = event.target.closest('[data-save]');
+        if (!button) return;
+        const row = button.closest('tr');
+        if (row) saveAssignment(row);
+      });
       refreshButton.addEventListener('click', loadReview);
       loadReview();
     </script>

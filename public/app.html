@@ -1080,7 +1080,7 @@
           const [authData, statusData, topArtistsData] = await Promise.all([
             requestOptionalAuth(),
             requestJson('/crate/status'),
-            requestJson('/crate/top-artists'),
+            requestJson('/crate/top-artists?limit=50'),
           ]);
           console.log('[Crate UI] current auth state', authData?.user ? 'connected' : 'disconnected');
           console.log('auth', authData);
@@ -1239,7 +1239,7 @@
           return {
             ok: errors.length === 0,
             warning: errors.length > 0,
-            text: `Playlist sync complete. ${actionText}${errorText}`,
+            text: `Playlist sync complete. ${actionText}${errorText} Previously sent Crate playlists are not deleted automatically.`,
           };
         }
 
@@ -1247,7 +1247,7 @@
           return {
             ok: true,
             warning: true,
-            text: 'Spotify playlists were found or created, but no new tracks were added. They may already be up to date.',
+            text: 'Spotify playlists were found or created, but no new tracks were added. They may already be up to date. Previously sent Crate playlists are not deleted automatically.',
           };
         }
 
@@ -1286,7 +1286,7 @@
         setFlowBusy('send', 'Sending playlists to Spotify...');
         [sendFlowButton, spotifySendButton, syncButton].filter(Boolean).forEach((button) => button.disabled = true);
         setButtonLoading(trigger, true);
-        setError('Sending playlists to Spotify...');
+        setError('Sending selected playlists to Spotify. Previously sent Crate playlists will not be deleted automatically.');
         try {
           const result = await requestJson('/crate/playlists/sync', {
             method: 'POST',

@@ -9,7 +9,7 @@ function findByToken(token) {
 
   return openDatabase()
     .prepare(`
-      SELECT code, claimed_at, claimed_by_user_id
+      SELECT code, claimed_at, claimed_by_user_id, claimed_name, claimed_email
       FROM beta_access_codes
       WHERE beta_token = ?
         AND claimed_at IS NOT NULL
@@ -17,7 +17,12 @@ function findByToken(token) {
     .get(token);
 }
 
-function claimCode(code, betaToken, userId = null) {
+function normalizeContact(value) {
+  const text = String(value || "").trim();
+  return text || null;
+}
+
+function claimCode(code, betaToken, userId = null, contact = {}) {
   const normalizedCode = normalizeCode(code);
   const db = openDatabase();
 
@@ -40,13 +45,17 @@ function claimCode(code, betaToken, userId = null) {
       UPDATE beta_access_codes
       SET claimed_at = CURRENT_TIMESTAMP,
           claimed_by_user_id = @userId,
-          beta_token = @betaToken
+          beta_token = @betaToken,
+          claimed_name = @claimedName,
+          claimed_email = @claimedEmail
       WHERE code = @code
         AND claimed_at IS NULL
     `).run({
       code: normalizedCode,
       userId,
       betaToken,
+      claimedName: normalizeContact(contact.name),
+      claimedEmail: normalizeContact(contact.email),
     });
 
     return { status: "claimed_now", code: normalizedCode };

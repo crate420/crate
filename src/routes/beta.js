@@ -38,7 +38,10 @@ router.post("/claim", (req, res) => {
 
   const betaToken = crypto.randomBytes(32).toString("base64url");
   const currentUser = getCurrentUser(req, res);
-  const result = betaAccessCodes.claimCode(code, betaToken, currentUser?.id || null);
+  const result = betaAccessCodes.claimCode(code, betaToken, currentUser?.id || null, {
+    name: req.body?.name,
+    email: req.body?.email,
+  });
 
   if (result.status === "invalid") {
     return res.status(400).json({
