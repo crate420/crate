@@ -202,6 +202,18 @@
 
         <section class="section">
           <div class="section-header">
+            <h2>Training Data</h2>
+            <div class="nav">
+              <button class="primary" id="importArtistGenresButton" type="button">Import artist genres</button>
+              <button id="importAndResortButton" type="button">Import + resort all</button>
+            </div>
+          </div>
+          <div class="message">Imports the deployed artist genre seed, then optionally re-sorts only the current user's tracks.</div>
+          <pre id="artistGenreImportJson">{}</pre>
+        </section>
+
+        <section class="section">
+          <div class="section-header">
             <h2>Sorting Actions</h2>
             <button class="primary" id="resortAllButton" type="button">Run resort-all</button>
           </div>
@@ -223,9 +235,12 @@
       const countsEl = document.getElementById("counts");
       const runsEl = document.getElementById("runs");
       const statusJsonEl = document.getElementById("statusJson");
+      const artistGenreImportJsonEl = document.getElementById("artistGenreImportJson");
       const resortJsonEl = document.getElementById("resortJson");
       const playlistSyncJsonEl = document.getElementById("playlistSyncJson");
       const refreshStatusButton = document.getElementById("refreshStatusButton");
+      const importArtistGenresButton = document.getElementById("importArtistGenresButton");
+      const importAndResortButton = document.getElementById("importAndResortButton");
       const resortAllButton = document.getElementById("resortAllButton");
       const playlistSyncButton = document.getElementById("playlistSyncButton");
 
@@ -323,6 +338,27 @@
         }
       }
 
+      async function importArtistGenres() {
+        importArtistGenresButton.disabled = true;
+        importAndResortButton.disabled = true;
+        setMessage("Importing artist genre seed...");
+
+        try {
+          const result = await requestJson("/crate/admin/import-artist-genres", { method: "POST" });
+          artistGenreImportJsonEl.textContent = formatJson(result);
+          setMessage("Artist genre import complete.");
+          await refreshStatus();
+          return result;
+        } catch (err) {
+          setMessage(err.message, true);
+          artistGenreImportJsonEl.textContent = formatJson({ error: err.message });
+          throw err;
+        } finally {
+          importArtistGenresButton.disabled = false;
+          importAndResortButton.disabled = false;
+        }
+      }
+
       async function runResortAll() {
         resortAllButton.disabled = true;
         setMessage("Running resort-all...");
@@ -332,10 +368,39 @@
           resortJsonEl.textContent = formatJson(result);
           setMessage("Resort-all complete.");
           await refreshStatus();
+          return result;
         } catch (err) {
           setMessage(err.message, true);
           resortJsonEl.textContent = formatJson({ error: err.message });
+          throw err;
         } finally {
+          resortAllButton.disabled = false;
+        }
+      }
+
+      async function importArtistGenresAndResort() {
+        importArtistGenresButton.disabled = true;
+        importAndResortButton.disabled = true;
+        resortAllButton.disabled = true;
+        setMessage("Importing artist genres, then running resort-all...");
+
+        try {
+          const importResult = await requestJson("/crate/admin/import-artist-genres", { method: "POST" });
+          artistGenreImportJsonEl.textContent = formatJson(importResult);
+          const resortResult = await requestJson("/crate/admin/resort-all", { method: "POST" });
+          resortJsonEl.textContent = formatJson(resortResult);
+          setMessage("Artist genre import and resort-all complete.");
+          await refreshStatus();
+        } catch (err) {
+          setMessage(err.message, true);
+          const currentImport = artistGenreImportJsonEl.textContent || "{}";
+          artistGenreImportJsonEl.textContent = currentImport === "{}"
+            ? formatJson({ error: err.message })
+            : currentImport;
+          resortJsonEl.textContent = formatJson({ error: err.message });
+        } finally {
+          importArtistGenresButton.disabled = false;
+          importAndResortButton.disabled = false;
           resortAllButton.disabled = false;
         }
       }
@@ -358,7 +423,13 @@
       }
 
       refreshStatusButton.addEventListener("click", refreshStatus);
-      resortAllButton.addEventListener("click", runResortAll);
+      importArtistGenresButton.addEventListener("click", () => {
+        importArtistGenres().catch(() => {});
+      });
+      importAndResortButton.addEventListener("click", importArtistGenresAndResort);
+      resortAllButton.addEventListener("click", () => {
+        runResortAll().catch(() => {});
+      });
       playlistSyncButton.addEventListener("click", runPlaylistSync);
       refreshStatus();
     </script>
