@@ -138,16 +138,31 @@ function trackMatchesEra(track, era) {
   return true;
 }
 
+function parseArtistNames(value) {
+  try {
+    const parsed = JSON.parse(value || "[]");
+    if (Array.isArray(parsed)) {
+      return parsed.filter(Boolean);
+    }
+  } catch (err) {
+    // Fall back to delimiter parsing for older rows or imported data.
+  }
+
+  return String(value || "")
+    .split(/,|;|\|/)
+    .map((artist) => artist.trim())
+    .filter(Boolean);
+}
+
 function trackMatchesArtist(track, artistName) {
   const target = String(artistName || "").trim().toLowerCase();
   if (!target) {
     return false;
   }
 
-  return String(track.artist_names || "")
-    .split(/,|;|\|/)
-    .map((artist) => artist.trim().toLowerCase())
-    .includes(target);
+  return parseArtistNames(track.artist_names).some((artist) => (
+    String(artist || "").trim().toLowerCase() === target
+  ));
 }
 
 function selectedDefinitionFor(selection, allTracks) {

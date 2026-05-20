@@ -124,8 +124,39 @@ function getLastPlaylistSyncRun(db) {
   }
 }
 
-function getPlaylistCategoryCounts(db) {
-  if (!tableExists(db, "user_tracks")) {
+const ERA_KEYS = ["vintage", "classic", "retro", "modern"];
+
+function emptyEraCounts() {
+  return {
+    vintage: 0,
+    classic: 0,
+    retro: 0,
+    modern: 0,
+  };
+}
+
+function releaseYearFromRawJson(rawJson) {
+  try {
+    const raw = JSON.parse(rawJson || "{}");
+    const releaseDate = raw.album?.release_date || raw.release_date || "";
+    const year = Number.parseInt(String(releaseDate).slice(0, 4), 10);
+
+    return Number.isInteger(year) ? year : null;
+  } catch (err) {
+    return null;
+  }
+}
+
+function eraForYear(year) {
+  if (!year) return null;
+  if (year <= 1969) return "vintage";
+  if (year <= 1989) return "classic";
+  if (year <= 2009) return "retro";
+  return "modern";
+}
+
+function getSortedTrackRowsForStatus(db) {
+  if (!tableExists(db, "user_tracks") || !tableExists(db, "tracks")) {
     return null;
   }
 
@@ -141,20 +172,71 @@ function getPlaylistCategoryCounts(db) {
     return db.prepare(`
       SELECT
         ${effectivePlaylistCode} AS playlist_code,
-        COUNT(*) AS count
+        tracks.raw_json
       FROM user_tracks
+      INNER JOIN tracks ON tracks.id = user_tracks.track_id
       ${joinTrackOverrides}
       WHERE ${effectivePlaylistCode} IS NOT NULL
-      GROUP BY ${effectivePlaylistCode}
-      ORDER BY count DESC, playlist_code COLLATE NOCASE ASC
     `).all();
   } catch (err) {
     return null;
   }
 }
 
+function getPlaylistCategoryCounts(sortedTrackRows) {
+  if (!Array.isArray(sortedTrackRows)) {
+    return null;
+  }
+
+  const countsByPlaylistCode = new Map();
+
+  for (const row of sortedTrackRows) {
+    const playlistCode = row.playlist_code;
+    if (!playlistCode) continue;
+
+    if (!countsByPlaylistCode.has(playlistCode)) {
+      countsByPlaylistCode.set(playlistCode, {
+        playlist_code: playlistCode,
+        count: 0,
+        era_counts: emptyEraCounts(),
+      });
+    }
+
+    const entry = countsByPlaylistCode.get(playlistCode);
+    entry.count += 1;
+
+    const era = eraForYear(releaseYearFromRawJson(row.raw_json));
+    if (era) {
+      entry.era_counts[era] += 1;
+    }
+  }
+
+  return [...countsByPlaylistCode.values()].sort((a, b) => {
+    if (b.count !== a.count) return b.count - a.count;
+    return a.playlist_code.localeCompare(b.playlist_code);
+  });
+}
+
+function getEraCounts(sortedTrackRows) {
+  if (!Array.isArray(sortedTrackRows)) {
+    return null;
+  }
+
+  const counts = emptyEraCounts();
+
+  for (const row of sortedTrackRows) {
+    const era = eraForYear(releaseYearFromRawJson(row.raw_json));
+    if (era) {
+      counts[era] += 1;
+    }
+  }
+
+  return ERA_KEYS.map((era) => ({ era, count: counts[era] }));
+}
+
 function getCrateStatus() {
   const db = openDatabase();
+  const sortedTrackRows = getSortedTrackRowsForStatus(db);
 
   return {
     status: "ok",
@@ -166,7 +248,8 @@ function getCrateStatus() {
     sorted_tracks_count: readCount(db, "user_tracks", "WHERE playlist_code IS NOT NULL"),
     unmatched_tracks_count: readCount(db, "user_tracks", "WHERE playlist_code IS NULL"),
     matched_tracks_count: readCount(db, "user_tracks", "WHERE playlist_code IS NOT NULL"),
-    playlist_category_counts: getPlaylistCategoryCounts(db),
+    playlist_category_counts: getPlaylistCategoryCounts(sortedTrackRows),
+    era_counts: getEraCounts(sortedTrackRows),
     last_sync_run: getLastCrateRunByStep(db, "syncLikedSongs"),
     last_sort_run: getLastCrateRunByStep(db, "sortTracks"),
     last_playlist_sync_run: getLastPlaylistSyncRun(db),

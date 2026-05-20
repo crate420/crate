@@ -119,15 +119,11 @@
         { key: 'billy-joel', name: 'Billy Joel', count: 32 },
         { key: 'prince', name: 'Prince', count: 31 },
       ];
-      const eraBuilderRows = [
-        [
-          { key: 'modern', name: 'Modern (2010–Present)', count: null },
-          { key: 'classic', name: 'Classic (1970–1989)', count: null },
-        ],
-        [
-          { key: 'retro', name: 'Retro (1990–2009)', count: null },
-          { key: 'vintage', name: 'Vintage (pre-1970)', count: null },
-        ],
+      const ERA_ROWS = [
+        { key: 'modern', name: 'Modern (2010–Present)', count: null },
+        { key: 'retro', name: 'Retro (1990–2009)', count: null },
+        { key: 'classic', name: 'Classic (1970–1989)', count: null },
+        { key: 'vintage', name: 'Vintage (pre-1970)', count: null },
       ];
       let latestDebugData = null;
       let debugVisible = false;
@@ -783,12 +779,17 @@
         return [rows.filter((_, index) => index % 2 === 0), rows.filter((_, index) => index % 2 === 1)];
       }
 
+      function eraRows() {
+        const countsByEra = new Map((Array.isArray(state.status?.era_counts) ? state.status.era_counts : []).map((row) => [String(row.era), Number(row.count || 0)]));
+        return ERA_ROWS.map((row) => ({ ...row, count: countsByEra.has(row.key) ? countsByEra.get(row.key) : row.count }));
+      }
+
       function renderBuilderSections() {
         const artistRows = topArtistRows();
         const visibleArtistCount = Math.min(Number(state.ui.artistVisible || 10), artistRows.length);
         renderBuilderColumns(topArtistColumns, alternatingColumns(artistRows.slice(0, visibleArtistCount)), 'artist', 'Artist');
         updateShowMoreButton(showMoreArtistsButton, visibleArtistCount, artistRows.length);
-        renderBuilderColumns(eraPlaylistColumns, eraBuilderRows, 'era', 'Era');
+        renderBuilderColumns(eraPlaylistColumns, alternatingColumns(eraRows()), 'era', 'Era');
       }
 
       function resetPanelSelection(panelKey) {
@@ -858,7 +859,7 @@
         const genreRows = sortedGenreRows();
         const artistRows = topArtistRows();
         const artistsByName = new Map(artistRows.map((row) => [row.name, row]));
-        const erasByKey = new Map(ERA_ROWS.map((row) => [row.key, row]));
+        const erasByKey = new Map(eraRows().map((row) => [row.key, row]));
 
         return payload.map((selection) => {
           if (selection.type === 'genre') {
@@ -1009,7 +1010,10 @@
         onboardingSortButton.disabled = isBusy() || !connected || selectedUiMode() === 'complete' || state.progress.onboarding;
         reviewButton.disabled = isBusy() || !connected || !sorted;
         sendFlowButton.disabled = isBusy() || !connected || !sorted;
-        if (spotifySendButton) spotifySendButton.disabled = isBusy() || !connected || !sorted;
+        if (spotifySendButton) {
+          spotifySendButton.disabled = isBusy();
+          spotifySendButton.setAttribute('aria-disabled', (!connected || !sorted || isBusy()) ? 'true' : 'false');
+        }
         if (syncButton) syncButton.disabled = isBusy() || !connected || !sorted;
         sendFlowButton.classList.toggle('is-hidden', !connected || !sorted);
         syncButton?.classList.toggle('is-hidden', !connected || !sorted);
@@ -1254,6 +1258,12 @@
       }
 
       async function runSendFlow(event) {
+        console.log('[Crate Send] click handler firing', {
+          trigger_id: event?.currentTarget?.id || null,
+          connected: isConnected(),
+          sort_completed: sortCompleted(),
+          active_action: state.action.active || null,
+        });
         if (!isConnected()) {
           setError('Connect Spotify before sending playlists.');
           return;
