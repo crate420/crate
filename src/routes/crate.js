@@ -41,6 +41,7 @@ const { getUnmatchedDiagnostics } = require("../crate/unmatchedDiagnostics");
 const { getUnmatchedGenreSummary } = require("../crate/unmatchedGenres");
 const { getUnmatchedTracks } = require("../crate/unmatchedTracks");
 const artistGenreRepo = require("../repositories/artistGenres");
+const betaAccessCodes = require("../repositories/betaAccessCodes");
 const runs = require("../repositories/runs");
 const trackRepo = require("../repositories/tracks");
 const spotifyTracks = require("../spotify/tracks");
@@ -444,6 +445,24 @@ router.get(
       return res.json({
         status: "ok",
         ...getDatabaseDiagnostics(req.currentUser.id),
+      });
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+router.get(
+  "/admin/beta-claims",
+  requireCurrentUser,
+  requireAdminUser,
+  (req, res, next) => {
+    try {
+      const claims = betaAccessCodes.listClaims();
+      return res.json({
+        status: "ok",
+        count: claims.length,
+        claims,
       });
     } catch (err) {
       return next(err);

@@ -62,8 +62,25 @@ function claimCode(code, betaToken, userId = null, contact = {}) {
   })();
 }
 
+function listClaims() {
+  return openDatabase()
+    .prepare(`
+      SELECT
+        code,
+        claimed_at,
+        claimed_by_user_id,
+        claimed_name,
+        claimed_email
+      FROM beta_access_codes
+      WHERE claimed_at IS NOT NULL
+      ORDER BY claimed_at DESC, code ASC
+    `)
+    .all();
+}
+
 module.exports = {
   claimCode,
   findByToken,
+  listClaims,
   normalizeCode,
 };

@@ -200,6 +200,16 @@
           <pre id="statusJson">{}</pre>
         </section>
 
+
+        <section class="section">
+          <div class="section-header">
+            <h2>Beta Claims</h2>
+            <button class="primary" id="refreshBetaClaimsButton" type="button">Refresh beta claims</button>
+          </div>
+          <div class="message">Shows claimed beta codes with the submitted name/email for invite tracking.</div>
+          <pre id="betaClaimsJson">{}</pre>
+        </section>
+
         <section class="section">
           <div class="section-header">
             <h2>Training Data</h2>
@@ -235,10 +245,12 @@
       const countsEl = document.getElementById("counts");
       const runsEl = document.getElementById("runs");
       const statusJsonEl = document.getElementById("statusJson");
+      const betaClaimsJsonEl = document.getElementById("betaClaimsJson");
       const artistGenreImportJsonEl = document.getElementById("artistGenreImportJson");
       const resortJsonEl = document.getElementById("resortJson");
       const playlistSyncJsonEl = document.getElementById("playlistSyncJson");
       const refreshStatusButton = document.getElementById("refreshStatusButton");
+      const refreshBetaClaimsButton = document.getElementById("refreshBetaClaimsButton");
       const importArtistGenresButton = document.getElementById("importArtistGenresButton");
       const importAndResortButton = document.getElementById("importAndResortButton");
       const resortAllButton = document.getElementById("resortAllButton");
@@ -338,6 +350,22 @@
         }
       }
 
+      async function refreshBetaClaims() {
+        refreshBetaClaimsButton.disabled = true;
+        setMessage("Refreshing beta claims...");
+
+        try {
+          const result = await requestJson("/crate/admin/beta-claims");
+          betaClaimsJsonEl.textContent = formatJson(result);
+          setMessage("Beta claims refreshed.");
+        } catch (err) {
+          setMessage(err.message, true);
+          betaClaimsJsonEl.textContent = formatJson({ error: err.message });
+        } finally {
+          refreshBetaClaimsButton.disabled = false;
+        }
+      }
+
       async function importArtistGenres() {
         importArtistGenresButton.disabled = true;
         importAndResortButton.disabled = true;
@@ -423,6 +451,7 @@
       }
 
       refreshStatusButton.addEventListener("click", refreshStatus);
+      refreshBetaClaimsButton.addEventListener("click", refreshBetaClaims);
       importArtistGenresButton.addEventListener("click", () => {
         importArtistGenres().catch(() => {});
       });
@@ -432,6 +461,7 @@
       });
       playlistSyncButton.addEventListener("click", runPlaylistSync);
       refreshStatus();
+      refreshBetaClaims();
     </script>
   </body>
 </html>
