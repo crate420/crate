@@ -5,6 +5,21 @@ const betaRouter = require("./routes/beta");
 const crateRouter = require("./routes/crate");
 const healthRouter = require("./routes/health");
 const config = require("./config");
+const { getCurrentUser } = require("./utils/authSession");
+
+function requireAdminPage(req, res, next) {
+  const user = getCurrentUser(req, res);
+
+  if (!user) {
+    return res.redirect("/?beta_required=1");
+  }
+
+  if (!config.adminSpotifyUserId || user.spotify_user_id !== config.adminSpotifyUserId) {
+    return res.status(403).send("This page is restricted to the configured Crate admin.");
+  }
+
+  return next();
+}
 
 function createApp() {
   const app = express();
@@ -16,6 +31,11 @@ function createApp() {
   }
 
   app.use(express.json({ limit: "1mb" }));
+
+  app.get("/admin-unmatched.html", requireAdminPage, (req, res) => {
+    res.sendFile(path.join(config.rootDir, "public/admin-unmatched.html"));
+  });
+
   app.use(express.static(path.join(config.rootDir, "public")));
 
   app.use("/auth", authRouter);
