@@ -13,9 +13,22 @@ router.get("/status", (req, res) => {
   res.json({
     status: "ok",
     has_access: Boolean(access),
-    code: access?.code || null,
+    tester: access ? {
+      name: access.claimed_name || null,
+      email: access.claimed_email || null,
+      registered_at: access.claimed_at || null,
+    } : null,
   });
 });
+
+function normalizeRequiredText(value) {
+  const text = String(value || "").trim();
+  return text || null;
+}
+
+function isLikelyEmail(value) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || "").trim());
+}
 
 router.post("/claim", (req, res) => {
   const existingAccess = getBetaAccess(req);
@@ -23,39 +36,39 @@ router.post("/claim", (req, res) => {
     return res.json({
       status: "ok",
       has_access: true,
-      code: existingAccess.code,
-      message: "Beta access already active.",
+      tester: {
+        name: existingAccess.claimed_name || null,
+        email: existingAccess.claimed_email || null,
+        registered_at: existingAccess.claimed_at || null,
+      },
+      message: "Tester registration already active.",
     });
   }
 
-  const code = betaAccessCodes.normalizeCode(req.body?.code);
-  if (!code) {
+  const name = normalizeRequiredText(req.body?.name);
+  const email = normalizeRequiredText(req.body?.email);
+
+  if (!name || !email) {
     return res.status(400).json({
-      error: "missing_beta_code",
-      message: "Enter a beta access code.",
+      error: "missing_tester_contact",
+      message: "Enter your name and email to continue.",
+    });
+  }
+
+  if (!isLikelyEmail(email)) {
+    return res.status(400).json({
+      error: "invalid_tester_email",
+      message: "Enter a valid email address to continue.",
     });
   }
 
   const betaToken = crypto.randomBytes(32).toString("base64url");
+  const registrationCode = `TESTER-${Date.now().toString(36).toUpperCase()}-${crypto.randomBytes(4).toString("hex").toUpperCase()}`;
   const currentUser = getCurrentUser(req, res);
-  const result = betaAccessCodes.claimCode(code, betaToken, currentUser?.id || null, {
-    name: req.body?.name,
-    email: req.body?.email,
+  betaAccessCodes.createTesterRegistration(registrationCode, betaToken, currentUser?.id || null, {
+    name,
+    email,
   });
-
-  if (result.status === "invalid") {
-    return res.status(400).json({
-      error: "invalid_beta_code",
-      message: "That beta access code is not recognized.",
-    });
-  }
-
-  if (result.status === "claimed") {
-    return res.status(409).json({
-      error: "beta_code_claimed",
-      message: "That beta access code has already been claimed.",
-    });
-  }
 
   setSignedCookie(res, BETA_COOKIE, betaToken, {
     maxAgeSeconds: BETA_COOKIE_MAX_AGE_SECONDS,
@@ -64,8 +77,8 @@ router.post("/claim", (req, res) => {
   return res.json({
     status: "ok",
     has_access: true,
-    code: result.code,
-    message: "Beta access unlocked.",
+    tester: { name, email },
+    message: "Tester registration saved.",
   });
 });
 

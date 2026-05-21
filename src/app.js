@@ -11,7 +11,7 @@ function requireAdminPage(req, res, next) {
   const user = getCurrentUser(req, res);
 
   if (!user) {
-    return res.redirect("/?beta_required=1");
+    return res.redirect("/?registration_required=1");
   }
 
   if (!config.adminSpotifyUserId || user.spotify_user_id !== config.adminSpotifyUserId) {

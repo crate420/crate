@@ -203,10 +203,10 @@
 
         <section class="section">
           <div class="section-header">
-            <h2>Beta Claims</h2>
-            <button class="primary" id="refreshBetaClaimsButton" type="button">Refresh beta claims</button>
+            <h2>Tester Registrations</h2>
+            <button class="primary" id="refreshBetaClaimsButton" type="button">Refresh tester registrations</button>
           </div>
-          <div class="message">Shows claimed beta codes with the submitted name/email for invite tracking.</div>
+          <div class="message">Shows tester registrations with submitted name/email and Spotify connection details when available.</div>
           <pre id="betaClaimsJson">{}</pre>
         </section>
 
@@ -352,12 +352,12 @@
 
       async function refreshBetaClaims() {
         refreshBetaClaimsButton.disabled = true;
-        setMessage("Refreshing beta claims...");
+        setMessage("Refreshing tester registrations...");
 
         try {
           const result = await requestJson("/crate/admin/beta-claims");
           betaClaimsJsonEl.textContent = formatJson(result);
-          setMessage("Beta claims refreshed.");
+          setMessage("Tester registrations refreshed.");
         } catch (err) {
           setMessage(err.message, true);
           betaClaimsJsonEl.textContent = formatJson({ error: err.message });

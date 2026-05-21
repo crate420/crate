@@ -4,7 +4,8 @@ const spotifyAuth = require("../spotify/auth");
 const users = require("../repositories/users");
 const { CURRENT_USER_COOKIE, getCurrentUser } = require("../utils/authSession");
 const { clearCookie, readSignedCookie, setSignedCookie } = require("../utils/cookies");
-const { hasBetaAccess } = require("../utils/betaAccess");
+const betaAccessCodes = require("../repositories/betaAccessCodes");
+const { BETA_COOKIE, hasBetaAccess } = require("../utils/betaAccess");
 
 const router = express.Router();
 
@@ -13,7 +14,7 @@ const OAUTH_STATE_COOKIE = "crate_spotify_oauth_state";
 router.get("/spotify", (req, res, next) => {
   try {
     if (!hasBetaAccess(req)) {
-      return res.redirect("/?beta_required=1");
+      return res.redirect("/?registration_required=1");
     }
 
     const state = crypto.randomBytes(32).toString("base64url");
@@ -77,6 +78,8 @@ router.get("/spotify/callback", async (req, res, next) => {
     setSignedCookie(res, CURRENT_USER_COOKIE, String(user.id), {
       maxAgeSeconds: 30 * 24 * 60 * 60,
     });
+
+    betaAccessCodes.attachUserToToken(readSignedCookie(req, BETA_COOKIE), user.id);
 
     return res.redirect("/app.html");
   } catch (err) {

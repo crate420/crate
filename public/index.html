@@ -168,29 +168,26 @@
       <h1>Welcome to the beta</h1>
       <p>Thanks for helping test Crate. This beta connects to your Spotify account, sorts your Liked Songs into playlist lanes, and lets you choose what to send to Spotify.</p>
       <ul>
-        <li>Start by claiming your beta access code.</li>
+        <li>Start by entering your name and email so we can track tester feedback.</li>
         <li>Connect Spotify, then run Sort from the Crate dashboard.</li>
         <li>Review the playlist previews before sending anything to Spotify.</li>
         <li>Expect a few rough edges. That is what this pass is for.</li>
       </ul>
-      <section class="gate" aria-label="Beta access">
+      <section class="gate" aria-label="Tester registration">
         <label for="betaName">Name</label>
         <input id="betaName" autocomplete="name" placeholder="Your name" style="text-transform:none">
         <label for="betaEmail">Email</label>
         <input id="betaEmail" autocomplete="email" placeholder="you@example.com" inputmode="email" style="text-transform:none">
-        <label for="betaCode">Beta access code</label>
-        <input id="betaCode" autocomplete="one-time-code" placeholder="CRATE-BETA-001">
         <div class="actions">
-          <button id="claimButton" type="button">Claim beta access</button>
+          <button id="claimButton" type="button">Register and continue</button>
           <a class="button secondary" id="continueButton" href="/auth/spotify" hidden>Continue to Spotify</a>
         </div>
-        <div class="message" id="message" role="status">Checking beta access...</div>
+        <div class="message" id="message" role="status">Checking registration...</div>
       </section>
     </main>
     <script>
       const betaName = document.getElementById('betaName');
       const betaEmail = document.getElementById('betaEmail');
-      const betaCode = document.getElementById('betaCode');
       const claimButton = document.getElementById('claimButton');
       const continueButton = document.getElementById('continueButton');
       const message = document.getElementById('message');
@@ -224,45 +221,42 @@
 
       async function checkStatus() {
         const params = new URLSearchParams(window.location.search);
-        if (params.get('beta_required')) {
-          setMessage('Enter your beta code before connecting Spotify.', 'error');
+        if (params.get('registration_required')) {
+          setMessage('Enter your name and email before connecting Spotify.', 'error');
         }
         try {
           const status = await requestJson('/beta/status');
           if (status.has_access) {
             betaName.disabled = true;
             betaEmail.disabled = true;
-            betaCode.disabled = true;
             claimButton.hidden = true;
             continueButton.hidden = false;
-            setMessage('Beta access active. You can continue.', 'success');
+            setMessage('Tester registration active. You can continue.', 'success');
             await updateContinueTarget();
-          } else if (!params.get('beta_required')) {
-            setMessage('Enter your beta code to unlock Crate.');
+          } else if (!params.get('registration_required')) {
+            setMessage('Enter your name and email to continue.');
           }
         } catch (err) {
-          setMessage('Could not check beta access: ' + err.message, 'error');
+          setMessage('Could not check registration: ' + err.message, 'error');
         }
       }
 
       async function claimAccess() {
         claimButton.disabled = true;
-        setMessage('Claiming beta access...');
+        setMessage('Saving tester registration...');
         try {
           await requestJson('/beta/claim', {
             method: 'POST',
             body: JSON.stringify({
               name: betaName.value,
               email: betaEmail.value,
-              code: betaCode.value,
             }),
           });
           betaName.disabled = true;
           betaEmail.disabled = true;
-          betaCode.disabled = true;
           claimButton.hidden = true;
           continueButton.hidden = false;
-          setMessage('Beta access unlocked. Welcome in.', 'success');
+          setMessage('Registration saved. Welcome in.', 'success');
           await updateContinueTarget();
         } catch (err) {
           setMessage(err.message, 'error');
@@ -272,7 +266,7 @@
       }
 
       claimButton.addEventListener('click', claimAccess);
-      betaCode.addEventListener('keydown', (event) => {
+      betaEmail.addEventListener('keydown', (event) => {
         if (event.key === 'Enter') claimAccess();
       });
       checkStatus();

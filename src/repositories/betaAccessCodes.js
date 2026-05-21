@@ -9,7 +9,7 @@ function findByToken(token) {
 
   return openDatabase()
     .prepare(`
-      SELECT code, claimed_at, claimed_by_user_id, claimed_name, claimed_email
+      SELECT code, claimed_at, claimed_by_user_id, claimed_name, claimed_email, beta_token
       FROM beta_access_codes
       WHERE beta_token = ?
         AND claimed_at IS NOT NULL
@@ -22,64 +22,76 @@ function normalizeContact(value) {
   return text || null;
 }
 
-function claimCode(code, betaToken, userId = null, contact = {}) {
+function createTesterRegistration(code, betaToken, userId = null, contact = {}) {
   const normalizedCode = normalizeCode(code);
   const db = openDatabase();
 
-  return db.transaction(() => {
-    const row = db
-      .prepare("SELECT code, claimed_at, beta_token FROM beta_access_codes WHERE code = ?")
-      .get(normalizedCode);
+  db.prepare(`
+    INSERT INTO beta_access_codes (
+      code,
+      claimed_at,
+      claimed_by_user_id,
+      beta_token,
+      claimed_name,
+      claimed_email
+    )
+    VALUES (
+      @code,
+      CURRENT_TIMESTAMP,
+      @userId,
+      @betaToken,
+      @claimedName,
+      @claimedEmail
+    )
+  `).run({
+    code: normalizedCode,
+    userId,
+    betaToken,
+    claimedName: normalizeContact(contact.name),
+    claimedEmail: normalizeContact(contact.email),
+  });
 
-    if (!row) {
-      return { status: "invalid" };
-    }
+  return { status: "registered", code: normalizedCode };
+}
 
-    if (row.claimed_at) {
-      return row.beta_token === betaToken
-        ? { status: "already_claimed_by_current_user", code: row.code }
-        : { status: "claimed" };
-    }
+function attachUserToToken(betaToken, userId) {
+  if (!betaToken || !userId) return { updated: 0 };
 
-    db.prepare(`
+  const result = openDatabase()
+    .prepare(`
       UPDATE beta_access_codes
-      SET claimed_at = CURRENT_TIMESTAMP,
-          claimed_by_user_id = @userId,
-          beta_token = @betaToken,
-          claimed_name = @claimedName,
-          claimed_email = @claimedEmail
-      WHERE code = @code
-        AND claimed_at IS NULL
-    `).run({
-      code: normalizedCode,
-      userId,
-      betaToken,
-      claimedName: normalizeContact(contact.name),
-      claimedEmail: normalizeContact(contact.email),
-    });
+      SET claimed_by_user_id = COALESCE(claimed_by_user_id, @userId)
+      WHERE beta_token = @betaToken
+        AND claimed_at IS NOT NULL
+    `)
+    .run({ betaToken, userId });
 
-    return { status: "claimed_now", code: normalizedCode };
-  })();
+  return { updated: result.changes };
 }
 
 function listClaims() {
   return openDatabase()
     .prepare(`
       SELECT
-        code,
-        claimed_at,
-        claimed_by_user_id,
-        claimed_name,
-        claimed_email
+        beta_access_codes.code,
+        beta_access_codes.claimed_at,
+        beta_access_codes.claimed_by_user_id,
+        beta_access_codes.claimed_name,
+        beta_access_codes.claimed_email,
+        users.spotify_user_id,
+        users.display_name AS spotify_display_name,
+        users.email AS spotify_email
       FROM beta_access_codes
-      WHERE claimed_at IS NOT NULL
-      ORDER BY claimed_at DESC, code ASC
+      LEFT JOIN users ON users.id = beta_access_codes.claimed_by_user_id
+      WHERE beta_access_codes.claimed_at IS NOT NULL
+      ORDER BY beta_access_codes.claimed_at DESC, beta_access_codes.code ASC
     `)
     .all();
 }
 
 module.exports = {
-  claimCode,
+  attachUserToToken,
+  createTesterRegistration,
   findByToken,
   listClaims,
   normalizeCode,
