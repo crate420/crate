@@ -107,6 +107,8 @@
         { value: 'retro', label: 'Retro (1990–2009)' },
         { value: 'modern', label: 'Modern (2010–Present)' },
       ];
+      const eraOptionValues = new Set(eraOptions.map((option) => option.value));
+
       const topArtistFallbackRows = [
         { key: 'foo-fighters', name: 'Foo Fighters', count: 54 },
         { key: 'shinedown', name: 'Shinedown', count: 50 },
@@ -569,6 +571,11 @@
         updateSelectedCount(panelKey);
       }
 
+      function normalizeEra(era) {
+        const value = String(era || 'all').trim().toLowerCase();
+        return eraOptionValues.has(value) ? value : 'all';
+      }
+
       function renderRows(container, rows, panelKey) {
         const selections = getSelectionSet(panelKey);
         const safeRows = Array.isArray(rows) ? rows : [];
@@ -885,7 +892,7 @@
               type: 'genre',
               name: row ? row.name : selection.playlist_code,
               era,
-              estimated_count: row ? eraAdjustedCount(row.count, era) : null,
+              estimated_count: row ? genreFallbackEraCount(row, era) : null,
             };
           }
 
