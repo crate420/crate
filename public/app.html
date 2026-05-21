@@ -862,6 +862,15 @@
         ];
       }
 
+      function payloadByteSize(value) {
+        try {
+          return new Blob([JSON.stringify(value || null)]).size;
+        } catch (err) {
+          const text = JSON.stringify(value || null);
+          return text ? text.length : 0;
+        }
+      }
+
       function selectedPlaylistDebugRows(payload = selectedPlaylistPayload()) {
         const genreRows = sortedGenreRows();
         const artistRows = topArtistRows();
@@ -1276,40 +1285,82 @@
 
       async function runSendFlow(event) {
         event?.preventDefault?.();
-        setError('Preparing selected playlists for Spotify...');
-        console.log('[Crate Send] click handler firing', {
-          trigger_id: event?.currentTarget?.id || null,
-          connected: isConnected(),
-          sort_completed: sortCompleted(),
-          active_action: state.action.active || null,
-        });
-        if (!isConnected()) {
-          setError('Connect Spotify before sending playlists.');
-          return;
-        }
-        if (!sortCompleted()) {
-          setError('Run Sort before sending playlists to Spotify.');
-          return;
-        }
-        const selectedPlaylists = selectedPlaylistPayload();
-        const selectedDebugRows = selectedPlaylistDebugRows(selectedPlaylists);
-        console.log('[Crate Send] selected playlist payload', selectedPlaylists);
-        console.table(selectedDebugRows);
-        console.log('[Crate Send] selected playlist names and counts', selectedDebugRows);
-        if (selectedPlaylists.length === 0) {
-          setError('Select at least one playlist before sending to Spotify.');
-          setFlowStatus('Select at least one playlist before sending to Spotify.', 'error');
-          return;
-        }
         const trigger = event?.currentTarget || sendFlowButton;
-        setFlowBusy('send', 'Sending playlists to Spotify...');
-        [sendFlowButton, spotifySendButton, syncButton].filter(Boolean).forEach((button) => button.disabled = true);
-        setButtonLoading(trigger, true);
-        setError('Sending selected playlists to Spotify. Previously sent Crate playlists will not be deleted automatically.');
+        let busyStarted = false;
+        let loadingStarted = false;
+
         try {
+          setError('Preparing selected playlists for Spotify...');
+          console.log('[Crate Send] click received', {
+            trigger_id: trigger?.id || null,
+            connected: isConnected(),
+            sort_completed: sortCompleted(),
+            active_action: state.action.active || null,
+          });
+
+          if (!isConnected()) {
+            setError('Connect Spotify before sending playlists.');
+            return;
+          }
+
+          if (!sortCompleted()) {
+            setError('Run Sort before sending playlists to Spotify.');
+            return;
+          }
+
+          console.log('[Crate Send] selected playlist DOM/state found', {
+            genre_selected: getSelectionSet('genre').size,
+            artist_selected: getSelectionSet('artist').size,
+            era_selected: getSelectionSet('era').size,
+            visible_genres: state.ui.genreVisible || 0,
+            visible_artists: state.ui.artistVisible || 0,
+          });
+
+          console.log('[Crate Send] payload build started');
+          const selectedPlaylists = selectedPlaylistPayload();
+          const selectedDebugRows = selectedPlaylistDebugRows(selectedPlaylists);
+          const requestBody = { playlists: selectedPlaylists };
+          const requestBodyText = JSON.stringify(requestBody);
+          const requestPayloadBytes = payloadByteSize(requestBody);
+
+          console.log('[Crate Send] payload build completed', {
+            selected_playlist_count: selectedPlaylists.length,
+            payload_bytes: requestPayloadBytes,
+          });
+          console.log('[Crate Send] selected playlist payload', selectedPlaylists);
+          console.table(selectedDebugRows);
+          console.log('[Crate Send] selected playlist names and counts', selectedDebugRows);
+
+          if (selectedPlaylists.length === 0) {
+            setError('Select at least one playlist before sending to Spotify.');
+            setFlowStatus('Select at least one playlist before sending to Spotify.', 'error');
+            return;
+          }
+
+          setFlowBusy('send', 'Sending playlists to Spotify...');
+          busyStarted = true;
+          [sendFlowButton, spotifySendButton, syncButton].filter(Boolean).forEach((button) => button.disabled = true);
+          setButtonLoading(trigger, true);
+          loadingStarted = true;
+          setError('Sending selected playlists to Spotify. Previously sent Crate playlists will not be deleted automatically.');
+
+          const fetchStartedAt = performance.now();
+          console.log('[Crate Send] fetch started', {
+            url: '/crate/playlists/sync',
+            payload_bytes: requestPayloadBytes,
+            selected_playlist_count: selectedPlaylists.length,
+          });
           const result = await requestJson('/crate/playlists/sync', {
             method: 'POST',
-            body: JSON.stringify({ playlists: selectedPlaylists }),
+            body: requestBodyText,
+          });
+          console.log('[Crate Send] fetch completed', {
+            duration_ms: Math.round(performance.now() - fetchStartedAt),
+            status: result?.status || null,
+            playlists_checked: result?.playlists_checked || 0,
+            tracks_added: result?.tracks_added || 0,
+            tracks_removed: result?.tracks_removed || 0,
+            errors: Array.isArray(result?.errors) ? result.errors.length : 0,
           });
           console.log('[Crate Send] sync response', result);
           setOutput(result);
@@ -1325,12 +1376,16 @@
           setError(message.text, message.warning ? 'warning' : 'success');
           clearFlowBusy('send', message.warning ? 'success' : 'success', message.text);
         } catch (err) {
-          console.error('[Crate Send] sync request failed', err);
+          console.error('[Crate Send] fetch failed or send handler crashed', err);
           setError('Send failed: ' + err.message);
           setOutput({ error: err.message });
-          clearFlowBusy('send', 'failed', 'Send failed: ' + err.message);
+          if (busyStarted) {
+            clearFlowBusy('send', 'failed', 'Send failed: ' + err.message);
+          } else {
+            setFlowStatus('Send failed before the request reached Crate: ' + err.message, 'error');
+          }
         } finally {
-          setButtonLoading(trigger, false);
+          if (loadingStarted) setButtonLoading(trigger, false);
           renderProcessStatus();
         }
       }

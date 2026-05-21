@@ -303,6 +303,8 @@ router.post("/playlists/sync", requireCurrentUser, async (req, res, next) => {
     console.log("[Crate Send] route received playlist sync request", {
       user_id: req.currentUser.id,
       spotify_user_id: req.currentUser.spotify_user_id,
+      content_length: req.get("content-length") || null,
+      payload_bytes: Buffer.byteLength(JSON.stringify(req.body || {})),
       selected_playlist_count: selectedPlaylists ? selectedPlaylists.length : null,
       selected_playlists: selectedPlaylists || "all_static_playlists",
     });
