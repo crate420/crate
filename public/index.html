@@ -208,15 +208,24 @@
         return body;
       }
 
-      async function updateContinueTarget() {
-        try {
-          await requestJson('/auth/me');
-          continueButton.href = '/app.html';
-          continueButton.textContent = 'Continue to dashboard';
-        } catch (err) {
-          continueButton.href = '/auth/spotify';
-          continueButton.textContent = 'Continue to Spotify login';
-        }
+      function nextStepLabel(status) {
+        if (status?.nextStep === 'dashboard') return 'Opening your dashboard…';
+        if (status?.nextStep === 'spotify') return 'Opening Spotify connection…';
+        return 'Enter your name and email to continue.';
+      }
+
+      function resumeNextStep(status) {
+        if (!status?.registered && !status?.has_access) return false;
+        const target = status.redirectTo || (status.spotifyConnected ? '/app.html' : '/auth/spotify');
+        betaName.disabled = true;
+        betaEmail.disabled = true;
+        claimButton.hidden = true;
+        continueButton.hidden = false;
+        continueButton.href = target;
+        continueButton.textContent = status.spotifyConnected ? 'Continue to dashboard' : 'Connect Spotify';
+        setMessage(nextStepLabel(status), 'success');
+        window.location.replace(target);
+        return true;
       }
 
       async function checkStatus() {
@@ -226,14 +235,8 @@
         }
         try {
           const status = await requestJson('/beta/status');
-          if (status.has_access) {
-            betaName.disabled = true;
-            betaEmail.disabled = true;
-            claimButton.hidden = true;
-            continueButton.hidden = false;
-            setMessage('Tester registration active. You can continue.', 'success');
-            await updateContinueTarget();
-          } else if (!params.get('registration_required')) {
+          if (resumeNextStep(status)) return;
+          if (!params.get('registration_required')) {
             setMessage('Enter your name and email to continue.');
           }
         } catch (err) {
@@ -245,19 +248,19 @@
         claimButton.disabled = true;
         setMessage('Saving tester registration...');
         try {
-          await requestJson('/beta/claim', {
+          const result = await requestJson('/beta/claim', {
             method: 'POST',
             body: JSON.stringify({
               name: betaName.value,
               email: betaEmail.value,
             }),
           });
-          betaName.disabled = true;
-          betaEmail.disabled = true;
-          claimButton.hidden = true;
-          continueButton.hidden = false;
-          setMessage('Registration saved. Welcome in.', 'success');
-          await updateContinueTarget();
+          if (!resumeNextStep(result)) {
+            setMessage('Registration saved. Connect Spotify to continue.', 'success');
+            continueButton.hidden = false;
+            continueButton.href = '/auth/spotify';
+            continueButton.textContent = 'Connect Spotify';
+          }
         } catch (err) {
           setMessage(err.message, 'error');
         } finally {

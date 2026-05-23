@@ -13,7 +13,7 @@ const OAUTH_STATE_COOKIE = "crate_spotify_oauth_state";
 
 router.get("/spotify", (req, res, next) => {
   try {
-    if (!hasBetaAccess(req)) {
+    if (!hasBetaAccess(req) && !getCurrentUser(req, res)) {
       return res.redirect("/?registration_required=1");
     }
 

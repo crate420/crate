@@ -7,18 +7,31 @@ const { BETA_COOKIE, BETA_COOKIE_MAX_AGE_SECONDS, getBetaAccess } = require("../
 
 const router = express.Router();
 
-router.get("/status", (req, res) => {
+function betaStatusPayload(req, res) {
   const access = getBetaAccess(req);
+  const currentUser = getCurrentUser(req, res);
+  const registered = Boolean(access || currentUser);
+  const spotifyConnected = Boolean(currentUser);
+  const nextStep = !registered ? "register" : spotifyConnected ? "dashboard" : "spotify";
 
-  res.json({
+  return {
     status: "ok",
-    has_access: Boolean(access),
+    has_access: registered,
+    registered,
+    spotifyConnected,
+    userId: currentUser?.id || null,
+    nextStep,
+    redirectTo: nextStep === "dashboard" ? "/app.html" : nextStep === "spotify" ? "/auth/spotify" : null,
     tester: access ? {
       name: access.claimed_name || null,
       email: access.claimed_email || null,
       registered_at: access.claimed_at || null,
     } : null,
-  });
+  };
+}
+
+router.get("/status", (req, res) => {
+  res.json(betaStatusPayload(req, res));
 });
 
 function normalizeRequiredText(value) {
@@ -77,6 +90,11 @@ router.post("/claim", (req, res) => {
   return res.json({
     status: "ok",
     has_access: true,
+    registered: true,
+    spotifyConnected: Boolean(currentUser),
+    userId: currentUser?.id || null,
+    nextStep: currentUser ? "dashboard" : "spotify",
+    redirectTo: currentUser ? "/app.html" : "/auth/spotify",
     tester: { name, email },
     message: "Tester registration saved.",
   });
