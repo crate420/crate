@@ -339,7 +339,7 @@
         setMessage("Refreshing status...");
 
         try {
-          const status = await requestJson("/crate/status");
+          const status = await requestJson("/crate/admin/status");
           renderStatus(status);
           setMessage("Status refreshed.");
         } catch (err) {

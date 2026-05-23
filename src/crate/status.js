@@ -12,7 +12,7 @@ function tableExists(db, tableName) {
   return Boolean(row);
 }
 
-function readCount(db, tableName, whereClause = "") {
+function readCount(db, tableName, whereClause = "", params = {}) {
   if (!tableExists(db, tableName)) {
     return null;
   }
@@ -22,7 +22,24 @@ function readCount(db, tableName, whereClause = "") {
       SELECT COUNT(*) AS count
       FROM ${tableName}
       ${whereClause}
-    `).get().count;
+    `).get(params).count;
+  } catch (err) {
+    return null;
+  }
+}
+
+function readUserTrackCount(db, userId, whereClause = "") {
+  if (!tableExists(db, "user_tracks")) {
+    return null;
+  }
+
+  try {
+    return db.prepare(`
+      SELECT COUNT(*) AS count
+      FROM user_tracks
+      WHERE user_id = @userId
+      ${whereClause}
+    `).get({ userId }).count;
   } catch (err) {
     return null;
   }
@@ -55,12 +72,13 @@ function serializeCrateRun(row) {
   };
 }
 
-function getLastCrateRunByStep(db, stepName) {
+function getLastCrateRunByStep(db, stepName, userId = null) {
   if (!tableExists(db, "crate_runs")) {
     return null;
   }
 
   try {
+    const userFilter = userId ? "WHERE user_id = @userId" : "";
     const rows = db.prepare(`
       SELECT
         id,
@@ -70,9 +88,10 @@ function getLastCrateRunByStep(db, stepName) {
         finished_at,
         summary_json
       FROM crate_runs
+      ${userFilter}
       ORDER BY id DESC
       LIMIT 200
-    `).all();
+    `).all(userId ? { userId } : {});
 
     const row = rows.find((candidate) => parseSummaryJson(candidate.summary_json)?.step === stepName);
 
@@ -82,12 +101,13 @@ function getLastCrateRunByStep(db, stepName) {
   }
 }
 
-function getLastPlaylistSyncRun(db) {
+function getLastPlaylistSyncRun(db, userId = null) {
   if (!tableExists(db, "playlist_sync_runs")) {
     return null;
   }
 
   try {
+    const userFilter = userId ? "WHERE user_id = @userId" : "";
     const row = db.prepare(`
       SELECT
         run_id,
@@ -100,9 +120,10 @@ function getLastPlaylistSyncRun(db) {
         duplicates_skipped,
         errors
       FROM playlist_sync_runs
+      ${userFilter}
       ORDER BY run_id DESC
       LIMIT 1
-    `).get();
+    `).get(userId ? { userId } : {});
 
     if (!row) {
       return null;
@@ -155,7 +176,7 @@ function eraForYear(year) {
   return "modern";
 }
 
-function getSortedTrackRowsForStatus(db) {
+function getSortedTrackRowsForStatus(db, userId = null) {
   if (!tableExists(db, "user_tracks") || !tableExists(db, "tracks")) {
     return null;
   }
@@ -177,7 +198,8 @@ function getSortedTrackRowsForStatus(db) {
       INNER JOIN tracks ON tracks.id = user_tracks.track_id
       ${joinTrackOverrides}
       WHERE ${effectivePlaylistCode} IS NOT NULL
-    `).all();
+        ${userId ? "AND user_tracks.user_id = @userId" : ""}
+    `).all(userId ? { userId } : {});
   } catch (err) {
     return null;
   }
@@ -234,12 +256,128 @@ function getEraCounts(sortedTrackRows) {
   return ERA_KEYS.map((era) => ({ era, count: counts[era] }));
 }
 
-function getCrateStatus() {
-  const db = openDatabase();
-  const sortedTrackRows = getSortedTrackRowsForStatus(db);
+function parseArtistNames(value) {
+  try {
+    const parsed = JSON.parse(value || "[]");
+
+    return Array.isArray(parsed) ? parsed.filter(Boolean) : [];
+  } catch (err) {
+    return [];
+  }
+}
+
+function getUserArtistCount(db, userId) {
+  if (!tableExists(db, "user_tracks") || !tableExists(db, "tracks")) {
+    return null;
+  }
+
+  try {
+    const rows = db.prepare(`
+      SELECT tracks.artist_names
+      FROM user_tracks
+      INNER JOIN tracks ON tracks.id = user_tracks.track_id
+      WHERE user_tracks.user_id = ?
+    `).all(userId);
+    const artists = new Set();
+
+    for (const row of rows) {
+      for (const artistName of parseArtistNames(row.artist_names)) {
+        const normalized = String(artistName).trim().toLowerCase();
+        if (normalized) artists.add(normalized);
+      }
+    }
+
+    return artists.size;
+  } catch (err) {
+    return null;
+  }
+}
+
+function getEmptyUserStatus(userId = null) {
+  const playlistCategoryCounts = [];
+  const eraCounts = ERA_KEYS.map((era) => ({ era, count: 0 }));
 
   return {
     status: "ok",
+    scope: "user",
+    user_id: userId,
+    database_path: config.databasePath,
+    environment: config.env || null,
+    userTracksTotal: 0,
+    userTracksSorted: 0,
+    userTracksUnmatched: 0,
+    userArtistsTotal: 0,
+    userGenresTotal: 0,
+    userPlaylistCategoriesTotal: 0,
+    total_tracks_count: 0,
+    total_user_tracks_count: 0,
+    total_artist_genres_count: 0,
+    sorted_tracks_count: 0,
+    unmatched_tracks_count: 0,
+    matched_tracks_count: 0,
+    playlist_category_counts: playlistCategoryCounts,
+    era_counts: eraCounts,
+    last_sync_run: null,
+    last_sort_run: null,
+    last_playlist_sync_run: null,
+    timestamp: new Date().toISOString(),
+  };
+}
+
+function getUserCrateStatus(userId) {
+  const db = openDatabase();
+  const sortedTrackRows = getSortedTrackRowsForStatus(db, userId) || [];
+  const playlistCategoryCounts = getPlaylistCategoryCounts(sortedTrackRows) || [];
+  const userTracksTotal = readUserTrackCount(db, userId) || 0;
+  const userTracksSorted = sortedTrackRows.length;
+  const userTracksUnmatched = Math.max(0, userTracksTotal - userTracksSorted);
+  const userArtistsTotal = getUserArtistCount(db, userId) || 0;
+  const userPlaylistCategoriesTotal = playlistCategoryCounts.length;
+
+  console.log("[Crate Status] user dashboard counts", {
+    user_id: userId,
+    user_tracks_total: userTracksTotal,
+    user_tracks_sorted: userTracksSorted,
+    user_tracks_unmatched: userTracksUnmatched,
+    user_artists_total: userArtistsTotal,
+    user_playlist_categories_total: userPlaylistCategoriesTotal,
+  });
+
+  return {
+    status: "ok",
+    scope: "user",
+    user_id: userId,
+    database_path: config.databasePath,
+    environment: config.env || null,
+    userTracksTotal,
+    userTracksSorted,
+    userTracksUnmatched,
+    userArtistsTotal,
+    userGenresTotal: userPlaylistCategoriesTotal,
+    userPlaylistCategoriesTotal,
+    total_tracks_count: userTracksTotal,
+    total_user_tracks_count: userTracksTotal,
+    total_artist_genres_count: userArtistsTotal,
+    sorted_tracks_count: userTracksSorted,
+    unmatched_tracks_count: userTracksUnmatched,
+    matched_tracks_count: userTracksSorted,
+    playlist_category_counts: playlistCategoryCounts,
+    era_counts: getEraCounts(sortedTrackRows),
+    last_sync_run: getLastCrateRunByStep(db, "syncLikedSongs", userId),
+    last_sort_run: getLastCrateRunByStep(db, "sortTracks", userId),
+    last_playlist_sync_run: getLastPlaylistSyncRun(db, userId),
+    timestamp: new Date().toISOString(),
+  };
+}
+
+
+function getGlobalCrateStatus() {
+  const db = openDatabase();
+  const sortedTrackRows = getSortedTrackRowsForStatus(db) || [];
+
+  return {
+    status: "ok",
+    scope: "global",
     database_path: config.databasePath,
     environment: config.env || null,
     total_tracks_count: readCount(db, "tracks"),
@@ -257,6 +395,15 @@ function getCrateStatus() {
   };
 }
 
+function getCrateStatus(options = {}) {
+  if (!options.userId) {
+    return getEmptyUserStatus();
+  }
+
+  return getUserCrateStatus(options.userId);
+}
+
 module.exports = {
   getCrateStatus,
+  getGlobalCrateStatus,
 };

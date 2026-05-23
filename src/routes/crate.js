@@ -30,7 +30,7 @@ const {
 } = require("../crate/lastfmGenreSuggestions");
 const { getDatabaseDiagnostics } = require("../crate/dbDiagnostics");
 const { getMissingArtistGenres } = require("../crate/missingArtistGenres");
-const { getCrateStatus } = require("../crate/status");
+const { getCrateStatus, getGlobalCrateStatus } = require("../crate/status");
 const { getTopArtists } = require("../crate/topArtists");
 const { syncPlaylists } = require("../crate/syncPlaylists");
 const { syncLikedSongs } = require("../crate/syncLikedSongs");
@@ -45,7 +45,7 @@ const betaAccessCodes = require("../repositories/betaAccessCodes");
 const runs = require("../repositories/runs");
 const trackRepo = require("../repositories/tracks");
 const spotifyTracks = require("../spotify/tracks");
-const { requireCurrentUser } = require("../utils/authSession");
+const { getCurrentUser, requireCurrentUser } = require("../utils/authSession");
 
 const router = express.Router();
 
@@ -213,7 +213,16 @@ if (process.env.NODE_ENV !== "production") {
 
 router.get("/status", (req, res, next) => {
   try {
-    return res.json(getCrateStatus());
+    const currentUser = getCurrentUser(req, res);
+    return res.json(getCrateStatus({ userId: currentUser?.id || null }));
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.get("/admin/status", requireCurrentUser, requireAdminUser, (req, res, next) => {
+  try {
+    return res.json(getGlobalCrateStatus());
   } catch (err) {
     return next(err);
   }
@@ -221,7 +230,12 @@ router.get("/status", (req, res, next) => {
 
 router.get("/top-artists", (req, res, next) => {
   try {
-    return res.json(getTopArtists({ limit: req.query.limit }));
+    const currentUser = getCurrentUser(req, res);
+    if (!currentUser) {
+      return res.json([]);
+    }
+
+    return res.json(getTopArtists({ limit: req.query.limit, userId: currentUser.id }));
   } catch (err) {
     return next(err);
   }

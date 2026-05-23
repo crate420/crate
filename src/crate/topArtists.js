@@ -12,12 +12,20 @@ function parseArtistNames(value) {
 
 function getTopArtists(options = {}) {
   const limit = Math.min(Math.max(Number.parseInt(options.limit || "10", 10) || 10, 1), 50);
-  const rows = openDatabase()
-    .prepare(`
+  const parsedUserId = Number(options.userId);
+  const userId = options.userId != null && Number.isInteger(parsedUserId) ? parsedUserId : null;
+  const db = openDatabase();
+  const rows = userId
+    ? db.prepare(`
+      SELECT tracks.artist_names
+      FROM user_tracks
+      INNER JOIN tracks ON tracks.id = user_tracks.track_id
+      WHERE user_tracks.user_id = ?
+    `).all(userId)
+    : db.prepare(`
       SELECT artist_names
       FROM tracks
-    `)
-    .all();
+    `).all();
   const countsByArtistName = new Map();
 
   for (const row of rows) {

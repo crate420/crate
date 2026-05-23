@@ -285,12 +285,12 @@
       }
 
       function progressTargets() {
-        const totalTracks = Number(state.status?.total_user_tracks_count || state.status?.total_tracks_count || 0);
-        const matched = Number(state.status?.matched_tracks_count || state.status?.sorted_tracks_count || 0);
-        const unmatched = Number(state.status?.unmatched_tracks_count || 0);
+        const totalTracks = Number(state.status?.userTracksTotal || state.status?.total_user_tracks_count || state.status?.total_tracks_count || 0);
+        const matched = Number(state.status?.userTracksSorted || state.status?.matched_tracks_count || state.status?.sorted_tracks_count || 0);
+        const unmatched = Number(state.status?.userTracksUnmatched || state.status?.unmatched_tracks_count || 0);
         return {
           songs: totalTracks,
-          artists: Number(state.topArtists?.length || state.status?.total_artist_genres_count || 0),
+          artists: Number(state.status?.userArtistsTotal || state.topArtists?.length || state.status?.total_artist_genres_count || 0),
           genres: Math.max(0, categoryRows().length),
           matched: matched || Math.max(0, totalTracks - unmatched),
           unmatched,
@@ -1020,7 +1020,7 @@
         const lastSend = state.status?.last_playlist_sync_run?.completed_at || null;
 
         connectStatus.textContent = connected ? 'Connected as ' + (state.auth.user.display_name || state.auth.user.spotify_user_id || 'Spotify user') + '.' : 'Not connected yet.';
-        sortStatus.textContent = sorted ? 'Sort completed. ' + formatNumber(state.status.matched_tracks_count) + ' matched, ' + formatNumber(state.status.unmatched_tracks_count) + ' need review.' : 'Ready to import liked songs and run the sorter.';
+        sortStatus.textContent = sorted ? 'Sort completed. ' + formatNumber(state.status.userTracksSorted || state.status.matched_tracks_count) + ' matched, ' + formatNumber(state.status.userTracksUnmatched || state.status.unmatched_tracks_count) + ' need review.' : 'Ready to import liked songs and run the sorter.';
         reviewStatus.textContent = sorted ? 'Preview is ready: ' + categories + ' playlist lanes, last sorted ' + (lastSort || 'recently') + '.' : 'Run Sort first to generate playlist preview counts.';
         sendStatus.textContent = sorted ? (lastSend ? 'Last sent at ' + lastSend + '. You can send updates again.' : 'Ready. This is the only step that writes playlists to Spotify.') : 'Locked until Sort completes successfully.';
 
@@ -1049,9 +1049,9 @@
           if (previewUnmatched) previewUnmatched.textContent = '–';
           if (previewPlaylists) previewPlaylists.textContent = '–';
         } else {
-          if (previewScanned) previewScanned.textContent = formatNumber(state.status?.total_user_tracks_count || state.status?.total_tracks_count);
-          if (previewMatched) previewMatched.textContent = formatNumber(state.status?.matched_tracks_count);
-          if (previewUnmatched) previewUnmatched.textContent = formatNumber(state.status?.unmatched_tracks_count);
+          if (previewScanned) previewScanned.textContent = formatNumber(state.status?.userTracksTotal || state.status?.total_user_tracks_count || state.status?.total_tracks_count);
+          if (previewMatched) previewMatched.textContent = formatNumber(state.status?.userTracksSorted || state.status?.matched_tracks_count);
+          if (previewUnmatched) previewUnmatched.textContent = formatNumber(state.status?.userTracksUnmatched || state.status?.unmatched_tracks_count);
           if (previewPlaylists) previewPlaylists.textContent = formatNumber(categories);
         }
         if (reviewWarning) reviewWarning.textContent = sorted ? 'Review mode: these are preview counts only. Nothing is sent to Spotify until you click Send.' : 'Run Sort to generate playlist preview counts. Nothing will be sent to Spotify during Review.';
@@ -1076,11 +1076,11 @@
           return;
         }
 
-        const totalTracks = Number(state.status.total_tracks_count || state.status.total_user_tracks_count || 0);
-        const matchedTracks = Number(state.status.matched_tracks_count || state.status.sorted_tracks_count || 0);
-        const unmatchedTracks = Number(state.status.unmatched_tracks_count || 0);
+        const totalTracks = Number(state.status.userTracksTotal || state.status.total_user_tracks_count || state.status.total_tracks_count || 0);
+        const matchedTracks = Number(state.status.userTracksSorted || state.status.matched_tracks_count || state.status.sorted_tracks_count || 0);
+        const unmatchedTracks = Number(state.status.userTracksUnmatched || state.status.unmatched_tracks_count || 0);
         songsValue.textContent = formatNumber(totalTracks);
-        artistsValue.textContent = formatNumber(state.status.total_artist_genres_count);
+        artistsValue.textContent = formatNumber(state.status.userArtistsTotal || state.status.total_artist_genres_count || 0);
         genresValue.textContent = formatNumber(categoryRows().length);
         sortedValue.textContent = formatNumber(matchedTracks);
         needsReviewValue.textContent = formatNumber(unmatchedTracks);
@@ -1119,7 +1119,7 @@
             return;
           }
 
-          if (authData?.user && Number(statusData?.sorted_tracks_count || statusData?.matched_tracks_count || 0) > 0 && !state.progress.onboarding) {
+          if (authData?.user && Number(statusData?.userTracksSorted || statusData?.sorted_tracks_count || statusData?.matched_tracks_count || 0) > 0 && !state.progress.onboarding) {
             state.ui.dashboardUnlocked = true;
           }
           renderUI();
