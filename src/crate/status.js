@@ -72,6 +72,28 @@ function serializeCrateRun(row) {
   };
 }
 
+function emptyDiscoverySummary() {
+  return {
+    topArtists: [],
+    topGenres: [],
+    topScenes: [],
+    topCollections: [],
+    topSpecialInterest: [],
+  };
+}
+
+function normalizeDiscoverySummary(value) {
+  const source = value && typeof value === "object" ? value : {};
+
+  return {
+    topArtists: Array.isArray(source.topArtists) ? source.topArtists : [],
+    topGenres: Array.isArray(source.topGenres) ? source.topGenres : [],
+    topScenes: Array.isArray(source.topScenes) ? source.topScenes : [],
+    topCollections: Array.isArray(source.topCollections) ? source.topCollections : [],
+    topSpecialInterest: Array.isArray(source.topSpecialInterest) ? source.topSpecialInterest : [],
+  };
+}
+
 function getLastCrateRunByStep(db, stepName, userId = null) {
   if (!tableExists(db, "crate_runs")) {
     return null;
@@ -93,7 +115,9 @@ function getLastCrateRunByStep(db, stepName, userId = null) {
       LIMIT 200
     `).all(userId ? { userId } : {});
 
-    const row = rows.find((candidate) => parseSummaryJson(candidate.summary_json)?.step === stepName);
+    const row = rows.find((candidate) =>
+      candidate.status === "success" && parseSummaryJson(candidate.summary_json)?.step === stepName,
+    );
 
     return serializeCrateRun(row);
   } catch (err) {
@@ -317,6 +341,7 @@ function getEmptyUserStatus(userId = null) {
     matched_tracks_count: 0,
     playlist_category_counts: playlistCategoryCounts,
     era_counts: eraCounts,
+    discovery: emptyDiscoverySummary(),
     last_sync_run: null,
     last_sort_run: null,
     last_playlist_sync_run: null,
@@ -333,6 +358,8 @@ function getUserCrateStatus(userId) {
   const userTracksUnmatched = Math.max(0, userTracksTotal - userTracksSorted);
   const userArtistsTotal = getUserArtistCount(db, userId) || 0;
   const userPlaylistCategoriesTotal = playlistCategoryCounts.length;
+  const lastSortRun = getLastCrateRunByStep(db, "sortTracks", userId);
+  const discovery = normalizeDiscoverySummary(lastSortRun?.summary?.discovery);
 
   console.log("[Crate Status] user dashboard counts", {
     user_id: userId,
@@ -363,8 +390,9 @@ function getUserCrateStatus(userId) {
     matched_tracks_count: userTracksSorted,
     playlist_category_counts: playlistCategoryCounts,
     era_counts: getEraCounts(sortedTrackRows),
+    discovery,
     last_sync_run: getLastCrateRunByStep(db, "syncLikedSongs", userId),
-    last_sort_run: getLastCrateRunByStep(db, "sortTracks", userId),
+    last_sort_run: lastSortRun,
     last_playlist_sync_run: getLastPlaylistSyncRun(db, userId),
     timestamp: new Date().toISOString(),
   };
@@ -374,6 +402,7 @@ function getUserCrateStatus(userId) {
 function getGlobalCrateStatus() {
   const db = openDatabase();
   const sortedTrackRows = getSortedTrackRowsForStatus(db) || [];
+  const lastSortRun = getLastCrateRunByStep(db, "sortTracks");
 
   return {
     status: "ok",
@@ -388,8 +417,9 @@ function getGlobalCrateStatus() {
     matched_tracks_count: readCount(db, "user_tracks", "WHERE playlist_code IS NOT NULL"),
     playlist_category_counts: getPlaylistCategoryCounts(sortedTrackRows),
     era_counts: getEraCounts(sortedTrackRows),
+    discovery: normalizeDiscoverySummary(lastSortRun?.summary?.discovery),
     last_sync_run: getLastCrateRunByStep(db, "syncLikedSongs"),
-    last_sort_run: getLastCrateRunByStep(db, "sortTracks"),
+    last_sort_run: lastSortRun,
     last_playlist_sync_run: getLastPlaylistSyncRun(db),
     timestamp: new Date().toISOString(),
   };

@@ -282,6 +282,13 @@ router.post("/sort", requireCurrentUser, async (req, res, next) => {
       processed: summary.processed,
       matched: summary.matched,
       unmatched: summary.unmatched,
+      discovery: summary.discovery || {
+        topArtists: [],
+        topGenres: [],
+        topScenes: [],
+        topCollections: [],
+        topSpecialInterest: [],
+      },
       timing: {
         ...summary.timing,
         likedSongsFetchMs: syncTimingIsFresh ? syncTiming.timing?.likedSongsFetchMs : undefined,

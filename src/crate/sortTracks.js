@@ -2,6 +2,7 @@ const trackRepo = require("../repositories/tracks");
 const artistGenreRepo = require("../repositories/artistGenres");
 const spotifyArtists = require("../spotify/artists");
 const { matchAlbumPlaylistCode, maybeLogScoreDebug, scorePlaylistCode } = require("./sortRules");
+const { getTrackTaxonomy } = require("./taxonomyMap");
 const { getArtistIds, getArtistNames, getTrackContext, parseRawTrack } = require("./trackContext");
 
 function elapsedMs(startedAt) {
@@ -19,6 +20,65 @@ function memorySnapshot() {
     rss_mb: Math.round(memory.rss / 1024 / 1024),
     heap_used_mb: Math.round(memory.heapUsed / 1024 / 1024),
     heap_total_mb: Math.round(memory.heapTotal / 1024 / 1024),
+  };
+}
+
+function emptyDiscoveryCounters() {
+  return {
+    artists: new Map(),
+    genres: new Map(),
+    scenes: new Map(),
+    collections: new Map(),
+    specialInterest: new Map(),
+  };
+}
+
+function incrementCounter(counter, name) {
+  const label = String(name || "").trim();
+  if (!label) return;
+
+  const key = label.toLowerCase();
+  const existing = counter.get(key) || { name: label, count: 0 };
+  existing.count += 1;
+  counter.set(key, existing);
+}
+
+function incrementLabels(counter, labels = []) {
+  for (const label of new Set(labels || [])) {
+    incrementCounter(counter, label);
+  }
+}
+
+function addTrackDiscovery(counters, context) {
+  const artistNames = [...new Set((context.artistNames || []).map((name) => String(name || "").trim()).filter(Boolean))];
+  for (const artistName of artistNames) {
+    incrementCounter(counters.artists, artistName);
+  }
+
+  const taxonomy = getTrackTaxonomy(context);
+  incrementLabels(counters.genres, taxonomy.coreGenres);
+  incrementLabels(counters.scenes, taxonomy.scenes);
+  incrementLabels(counters.collections, taxonomy.collections);
+  incrementLabels(counters.specialInterest, taxonomy.specialInterest);
+}
+
+function rankedDiscoveryRows(counter, limit = 5) {
+  return [...counter.values()]
+    .sort((a, b) => {
+      if (b.count !== a.count) return b.count - a.count;
+      return a.name.localeCompare(b.name);
+    })
+    .slice(0, limit)
+    .map(({ name, count }) => ({ name, count }));
+}
+
+function buildDiscoverySummary(counters) {
+  return {
+    topArtists: rankedDiscoveryRows(counters.artists),
+    topGenres: rankedDiscoveryRows(counters.genres),
+    topScenes: rankedDiscoveryRows(counters.scenes),
+    topCollections: rankedDiscoveryRows(counters.collections),
+    topSpecialInterest: rankedDiscoveryRows(counters.specialInterest),
   };
 }
 
@@ -70,6 +130,7 @@ async function sortTracks(userId) {
     memory: memorySnapshot(),
   });
   const assignments = [];
+  const discoveryCounters = emptyDiscoveryCounters();
   let matched = 0;
   let unmatched = 0;
 
@@ -81,6 +142,7 @@ async function sortTracks(userId) {
     const rawTrack = rawTracks[processed];
     processed += 1;
     const context = getTrackContext(row, artistsById, fallbackGenresByArtistName, rawTrack);
+    addTrackDiscovery(discoveryCounters, context);
     const decision = scorePlaylistCode(context);
     maybeLogScoreDebug(context, decision);
     let playlistCode = row.override_playlist_code || decision.playlistCode;
@@ -156,11 +218,22 @@ async function sortTracks(userId) {
   });
   const playlistSortMs = elapsedMs(matchingStartedAt);
   const totalSortMs = elapsedMs(sortStartedAt);
+  const discovery = buildDiscoverySummary(discoveryCounters);
+
+  console.log("[Crate Sort] discovery summary prepared", {
+    user_id: userId,
+    top_artists: discovery.topArtists.length,
+    top_genres: discovery.topGenres.length,
+    top_scenes: discovery.topScenes.length,
+    top_collections: discovery.topCollections.length,
+    top_special_interest: discovery.topSpecialInterest.length,
+  });
 
   return {
     processed: unsortedTracks.length,
     matched,
     unmatched,
+    discovery,
     timing: {
       artistFetchMs,
       fallbackMs,
