@@ -175,6 +175,8 @@ function selectedDefinitionFor(selection, allTracks) {
     return {
       playlistCode: `genre:${playlistCode}:${era}`,
       displayName,
+      source: "selected",
+      selection: { type: "genre", playlist_code: playlistCode, era },
       tracks: allTracks.filter((track) => track.playlist_code === playlistCode && trackMatchesEra(track, era)),
     };
   }
@@ -184,6 +186,8 @@ function selectedDefinitionFor(selection, allTracks) {
     return {
       playlistCode: `artist:${slugify(artistName)}`,
       displayName: displayNameForArtistSelection(artistName),
+      source: "selected",
+      selection: { type: "artist", artist_name: artistName },
       tracks: allTracks.filter((track) => trackMatchesArtist(track, artistName)),
     };
   }
@@ -193,6 +197,8 @@ function selectedDefinitionFor(selection, allTracks) {
     return {
       playlistCode: `era:${era}`,
       displayName: displayNameForEraSelection(era),
+      source: "selected",
+      selection: { type: "era", era },
       tracks: allTracks.filter((track) => trackMatchesEra(track, era)),
     };
   }
@@ -221,6 +227,8 @@ function buildAllStaticDefinitions(allTracks) {
   return PLAYLIST_DEFINITIONS.map((definition) => ({
     playlistCode: definition.playlistCode,
     displayName: definition.displayName,
+    source: "static",
+    selection: { type: "static", playlist_code: definition.playlistCode },
     tracks: tracksByPlaylistCode.get(definition.playlistCode) || [],
   }));
 }
@@ -290,13 +298,7 @@ async function syncPlaylists(userId, options = {}) {
     track_count: (definition.tracks || []).length,
   })));
 
-  playlistRepo.upsertPlaylistDefinitions([
-    ...PLAYLIST_DEFINITIONS,
-    ...syncDefinitions.map((definition) => ({
-      playlistCode: definition.playlistCode,
-      displayName: definition.displayName,
-    })),
-  ]);
+  playlistRepo.upsertPlaylistDefinitions(PLAYLIST_DEFINITIONS);
 
   const run = playlistRepo.startPlaylistSyncRun(userId);
   const summary = {
@@ -317,29 +319,58 @@ async function syncPlaylists(userId, options = {}) {
   };
 
   try {
-    const definitionsByCode = playlistRepo.getPlaylistDefinitionsByCode();
     const spotifyPlaylistsByName = await spotifyPlaylists.getCurrentUserPlaylistsByName(
       userId,
       user.spotify_user_id,
     );
 
     for (const syncDefinition of syncDefinitions) {
-      const definition = definitionsByCode.get(syncDefinition.playlistCode) || syncDefinition;
       const tracks = syncDefinition.tracks || [];
       const playlistCode = syncDefinition.playlistCode;
-      const displayName = syncDefinition.displayName || definition.display_name || definition.displayName;
+      const displayName = syncDefinition.displayName;
+      const instanceSource = syncDefinition.source || (selectedPlaylists ? "selected" : "static");
+      const selectionJson = syncDefinition.selection || null;
 
       summary.playlists_checked += 1;
 
       try {
-        let spotifyPlaylistId = definition.spotify_playlist_id;
         const localUris = uniqueUrisForTracks(tracks);
+        let spotifyPlaylistId = null;
+        let resolutionSource = "none";
+        let userPlaylistInstance = playlistRepo.findUserPlaylistInstance(userId, playlistCode);
+
+        logSend("selected playlist definition", {
+          user_id: userId,
+          spotify_user_id: user.spotify_user_id,
+          playlist_code: playlistCode,
+          display_name: displayName,
+          track_count: localUris.length,
+          source: instanceSource,
+          selection: selectionJson,
+        });
+
+        if (userPlaylistInstance?.spotify_playlist_id) {
+          spotifyPlaylistId = userPlaylistInstance.spotify_playlist_id;
+          resolutionSource = "user_playlist_instance";
+        }
+
+        logSend("user playlist instance resolved", {
+          user_id: userId,
+          spotify_user_id: user.spotify_user_id,
+          playlist_code: playlistCode,
+          display_name: displayName,
+          user_playlist_instance_id: userPlaylistInstance?.id || null,
+          spotify_playlist_id: spotifyPlaylistId,
+          resolution_source: resolutionSource,
+        });
 
         const shouldSkipEmptyPlaylist = localUris.length === 0 && (selectedPlaylists || !spotifyPlaylistId);
 
         if (shouldSkipEmptyPlaylist) {
           summary.skipped_playlists += 1;
           logSend("skipped playlist", {
+            user_id: userId,
+            spotify_user_id: user.spotify_user_id,
             playlist_code: playlistCode,
             display_name: displayName,
             reason: "no_matching_tracks",
@@ -360,37 +391,74 @@ async function syncPlaylists(userId, options = {}) {
         if (existingPlaylist?.id && existingPlaylist.id !== spotifyPlaylistId) {
           await ensureSpotifyPlaylistName(userId, existingPlaylist, displayName);
           spotifyPlaylistId = existingPlaylist.id;
-          playlistRepo.updateSpotifyPlaylistId(playlistCode, spotifyPlaylistId);
-          summary.playlists_found_existing += 1;
-          logSend("reused existing Spotify playlist by name", {
-            playlist_code: playlistCode,
-            display_name: displayName,
-            spotify_playlist_id: spotifyPlaylistId,
+          resolutionSource = "spotify_name_match";
+          userPlaylistInstance = playlistRepo.upsertUserPlaylistInstance({
+            userId,
+            spotifyUserId: user.spotify_user_id,
+            playlistCode,
+            displayName,
+            spotifyPlaylistId,
+            spotifyOwnerId: existingPlaylist.owner?.id || user.spotify_user_id,
+            source: instanceSource,
+            selectionJson,
+            lastTrackCount: localUris.length,
           });
-        } else if (existingPlaylist?.id && spotifyPlaylistId) {
-          await ensureSpotifyPlaylistName(userId, existingPlaylist, displayName);
-          summary.playlists_reused_from_db += 1;
-          logSend("reused Spotify playlist from local DB", {
+          summary.playlists_found_existing += 1;
+          logSend("reused current-user Spotify playlist by name", {
+            user_id: userId,
+            spotify_user_id: user.spotify_user_id,
             playlist_code: playlistCode,
             display_name: displayName,
+            user_playlist_instance_id: userPlaylistInstance?.id || null,
             spotify_playlist_id: spotifyPlaylistId,
+            resolution_source: resolutionSource,
           });
         } else if (spotifyPlaylistId) {
+          userPlaylistInstance = playlistRepo.upsertUserPlaylistInstance({
+            userId,
+            spotifyUserId: user.spotify_user_id,
+            playlistCode,
+            displayName,
+            spotifyPlaylistId,
+            spotifyOwnerId: userPlaylistInstance?.spotify_owner_id || user.spotify_user_id,
+            source: instanceSource,
+            selectionJson,
+            lastTrackCount: localUris.length,
+          });
           summary.playlists_reused_from_db += 1;
-          logSend("reused Spotify playlist from local DB", {
+          logSend("reused user playlist instance", {
+            user_id: userId,
+            spotify_user_id: user.spotify_user_id,
             playlist_code: playlistCode,
             display_name: displayName,
+            user_playlist_instance_id: userPlaylistInstance?.id || null,
             spotify_playlist_id: spotifyPlaylistId,
+            resolution_source: resolutionSource,
           });
         } else if (existingPlaylist?.id) {
           await ensureSpotifyPlaylistName(userId, existingPlaylist, displayName);
           spotifyPlaylistId = existingPlaylist.id;
-          playlistRepo.updateSpotifyPlaylistId(playlistCode, spotifyPlaylistId);
+          resolutionSource = "spotify_name_match";
+          userPlaylistInstance = playlistRepo.upsertUserPlaylistInstance({
+            userId,
+            spotifyUserId: user.spotify_user_id,
+            playlistCode,
+            displayName,
+            spotifyPlaylistId,
+            spotifyOwnerId: existingPlaylist.owner?.id || user.spotify_user_id,
+            source: instanceSource,
+            selectionJson,
+            lastTrackCount: localUris.length,
+          });
           summary.playlists_found_existing += 1;
-          logSend("reused existing Spotify playlist by name", {
+          logSend("reused current-user Spotify playlist by name", {
+            user_id: userId,
+            spotify_user_id: user.spotify_user_id,
             playlist_code: playlistCode,
             display_name: displayName,
+            user_playlist_instance_id: userPlaylistInstance?.id || null,
             spotify_playlist_id: spotifyPlaylistId,
+            resolution_source: resolutionSource,
           });
         }
 
@@ -401,13 +469,28 @@ async function syncPlaylists(userId, options = {}) {
           });
 
           spotifyPlaylistId = playlist.id;
-          playlistRepo.updateSpotifyPlaylistId(playlistCode, spotifyPlaylistId);
+          resolutionSource = "created";
           spotifyPlaylistsByName.set(displayName, playlist);
+          userPlaylistInstance = playlistRepo.upsertUserPlaylistInstance({
+            userId,
+            spotifyUserId: user.spotify_user_id,
+            playlistCode,
+            displayName,
+            spotifyPlaylistId,
+            spotifyOwnerId: playlist.owner?.id || user.spotify_user_id,
+            source: instanceSource,
+            selectionJson,
+            lastTrackCount: localUris.length,
+          });
           summary.playlists_created += 1;
-          logSend("created Spotify playlist", {
+          logSend("created user Spotify playlist instance", {
+            user_id: userId,
+            spotify_user_id: user.spotify_user_id,
             playlist_code: playlistCode,
             display_name: displayName,
+            user_playlist_instance_id: userPlaylistInstance?.id || null,
             spotify_playlist_id: spotifyPlaylistId,
+            resolution_source: resolutionSource,
           });
         }
 
@@ -428,10 +511,18 @@ async function syncPlaylists(userId, options = {}) {
           summary.tracks_removed += urisToRemove.length;
         }
 
+        userPlaylistInstance = playlistRepo.markUserPlaylistInstanceSynced({
+          userId,
+          playlistCode,
+          lastTrackCount: localUris.length,
+        });
+
         const playlistResult = {
           playlist_code: playlistCode,
           display_name: displayName,
+          user_playlist_instance_id: userPlaylistInstance?.id || null,
           spotify_playlist_id: spotifyPlaylistId,
+          resolution_source: resolutionSource,
           track_count: localUris.length,
           tracks_added: urisToAdd.length,
           tracks_removed: urisToRemove.length,
@@ -439,7 +530,18 @@ async function syncPlaylists(userId, options = {}) {
         };
 
         summary.playlist_results.push(playlistResult);
-        logSend("playlist sync result", playlistResult);
+        logSend("synced user playlist instance", {
+          user_id: userId,
+          spotify_user_id: user.spotify_user_id,
+          playlist_code: playlistCode,
+          display_name: displayName,
+          user_playlist_instance_id: userPlaylistInstance?.id || null,
+          spotify_playlist_id: spotifyPlaylistId,
+          resolution_source: resolutionSource,
+          tracks_added: urisToAdd.length,
+          tracks_removed: urisToRemove.length,
+          track_count: localUris.length,
+        });
       } catch (err) {
         console.error("[Crate Send] Spotify playlist sync error", {
           playlist_code: playlistCode,

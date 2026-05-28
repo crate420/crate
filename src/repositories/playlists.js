@@ -60,6 +60,122 @@ function updateSpotifyPlaylistId(playlistCode, spotifyPlaylistId) {
     .run({ playlistCode, spotifyPlaylistId, now });
 }
 
+function serializeSelectionJson(selectionJson) {
+  if (selectionJson === undefined || selectionJson === null) {
+    return null;
+  }
+  return typeof selectionJson === "string" ? selectionJson : JSON.stringify(selectionJson);
+}
+
+function normalizeUserPlaylistInstance(instance) {
+  return {
+    userId: instance.userId,
+    spotifyUserId: instance.spotifyUserId || null,
+    playlistCode: instance.playlistCode,
+    displayName: instance.displayName,
+    spotifyPlaylistId: instance.spotifyPlaylistId || null,
+    spotifyOwnerId: instance.spotifyOwnerId || null,
+    source: instance.source || "selected",
+    selectionJson: serializeSelectionJson(instance.selectionJson),
+    lastTrackCount: Number.isFinite(Number(instance.lastTrackCount))
+      ? Number(instance.lastTrackCount)
+      : 0,
+  };
+}
+
+function findUserPlaylistInstance(userId, playlistCode) {
+  return openDatabase()
+    .prepare(`
+      SELECT *
+      FROM user_playlist_instances
+      WHERE user_id = @userId
+        AND playlist_code = @playlistCode
+    `)
+    .get({ userId, playlistCode });
+}
+
+function upsertUserPlaylistInstance(instance) {
+  const db = openDatabase();
+  const now = new Date().toISOString();
+  const normalized = normalizeUserPlaylistInstance(instance);
+
+  db.prepare(`
+    INSERT INTO user_playlist_instances (
+      user_id,
+      spotify_user_id,
+      playlist_code,
+      display_name,
+      spotify_playlist_id,
+      spotify_owner_id,
+      source,
+      selection_json,
+      last_track_count,
+      created_at,
+      updated_at
+    )
+    VALUES (
+      @userId,
+      @spotifyUserId,
+      @playlistCode,
+      @displayName,
+      @spotifyPlaylistId,
+      @spotifyOwnerId,
+      @source,
+      @selectionJson,
+      @lastTrackCount,
+      @now,
+      @now
+    )
+    ON CONFLICT(user_id, playlist_code) DO UPDATE SET
+      spotify_user_id = excluded.spotify_user_id,
+      display_name = excluded.display_name,
+      spotify_playlist_id = COALESCE(excluded.spotify_playlist_id, user_playlist_instances.spotify_playlist_id),
+      spotify_owner_id = COALESCE(excluded.spotify_owner_id, user_playlist_instances.spotify_owner_id),
+      source = excluded.source,
+      selection_json = excluded.selection_json,
+      last_track_count = excluded.last_track_count,
+      updated_at = excluded.updated_at
+  `).run({ ...normalized, now });
+
+  return findUserPlaylistInstance(normalized.userId, normalized.playlistCode);
+}
+
+function updateUserPlaylistInstanceSpotifyId({ userId, playlistCode, spotifyPlaylistId, spotifyOwnerId = null }) {
+  const now = new Date().toISOString();
+
+  openDatabase()
+    .prepare(`
+      UPDATE user_playlist_instances
+      SET
+        spotify_playlist_id = @spotifyPlaylistId,
+        spotify_owner_id = COALESCE(@spotifyOwnerId, spotify_owner_id),
+        updated_at = @now
+      WHERE user_id = @userId
+        AND playlist_code = @playlistCode
+    `)
+    .run({ userId, playlistCode, spotifyPlaylistId, spotifyOwnerId, now });
+
+  return findUserPlaylistInstance(userId, playlistCode);
+}
+
+function markUserPlaylistInstanceSynced({ userId, playlistCode, lastTrackCount = 0 }) {
+  const now = new Date().toISOString();
+
+  openDatabase()
+    .prepare(`
+      UPDATE user_playlist_instances
+      SET
+        last_synced_at = @now,
+        last_track_count = @lastTrackCount,
+        updated_at = @now
+      WHERE user_id = @userId
+        AND playlist_code = @playlistCode
+    `)
+    .run({ userId, playlistCode, lastTrackCount, now });
+
+  return findUserPlaylistInstance(userId, playlistCode);
+}
+
 function startPlaylistSyncRun(userId) {
   const result = openDatabase()
     .prepare(`
@@ -107,9 +223,14 @@ function findPlaylistSyncRunById(runId) {
 }
 
 module.exports = {
+  findPlaylistSyncRunById,
+  findUserPlaylistInstance,
   finishPlaylistSyncRun,
   getPlaylistDefinitionsByCode,
+  markUserPlaylistInstanceSynced,
   startPlaylistSyncRun,
   updateSpotifyPlaylistId,
+  updateUserPlaylistInstanceSpotifyId,
   upsertPlaylistDefinitions,
+  upsertUserPlaylistInstance,
 };
