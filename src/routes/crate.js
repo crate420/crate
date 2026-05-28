@@ -39,6 +39,7 @@ const { applyTrackOverride, getTrackForReview } = require("../crate/trackOverrid
 const { importTrainingData } = require("../crate/trainingImport");
 const { getUnmatchedDiagnostics } = require("../crate/unmatchedDiagnostics");
 const { getUnmatchedGenreSummary } = require("../crate/unmatchedGenres");
+const { getUnmatchedGenreLearningSummary } = require("../crate/unmatchedGenreLearning");
 const { getUnmatchedTracks } = require("../crate/unmatchedTracks");
 const artistGenreRepo = require("../repositories/artistGenres");
 const betaAccessCodes = require("../repositories/betaAccessCodes");
@@ -585,6 +586,17 @@ router.get("/unmatched-diagnostics", requireCurrentUser, async (req, res, next) 
     const result = await getUnmatchedDiagnostics(req.currentUser.id);
 
     return res.json(result);
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.get("/admin/unmatched-genre-learning", requireCurrentUser, requireAdminUser, (req, res, next) => {
+  try {
+    return res.json(getUnmatchedGenreLearningSummary(req.currentUser.id, {
+      limit: req.query.limit,
+      recentLimit: req.query.recent_limit,
+    }));
   } catch (err) {
     return next(err);
   }

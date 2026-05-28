@@ -4,6 +4,7 @@ const spotifyArtists = require("../spotify/artists");
 const { matchAlbumPlaylistCode, maybeLogScoreDebug, scorePlaylistCode } = require("./sortRules");
 const { getTrackTaxonomy } = require("./taxonomyMap");
 const { getArtistIds, getArtistNames, getTrackContext, parseRawTrack } = require("./trackContext");
+const { logUnmatchedTrackGenres } = require("./unmatchedGenreLearning");
 
 function elapsedMs(startedAt) {
   return Number(process.hrtime.bigint() - startedAt) / 1_000_000;
@@ -136,6 +137,8 @@ async function sortTracks(userId) {
 
   let processed = 0;
   let albumFallbackClassified = 0;
+  let unmatchedGenreLogAttempts = 0;
+  let unmatchedGenreLogsWritten = 0;
   const albumFallbackExamples = [];
 
   for (const row of unsortedTracks) {
@@ -176,6 +179,9 @@ async function sortTracks(userId) {
       });
     } else {
       unmatched += 1;
+      const unmatchedLogResult = logUnmatchedTrackGenres(userId, context, decision);
+      unmatchedGenreLogAttempts += unmatchedLogResult.attempted;
+      unmatchedGenreLogsWritten += unmatchedLogResult.logged;
     }
 
     if (processed % 1000 === 0 || processed === unsortedTracks.length) {
@@ -186,6 +192,8 @@ async function sortTracks(userId) {
         matched,
         unmatched,
         album_fallback_classified: albumFallbackClassified,
+        unmatched_genre_log_attempts: unmatchedGenreLogAttempts,
+        unmatched_genre_logs_written: unmatchedGenreLogsWritten,
         memory: memorySnapshot(),
       });
     }
@@ -202,6 +210,8 @@ async function sortTracks(userId) {
     unmatched,
     album_fallback_classified: albumFallbackClassified,
     album_fallback_examples: albumFallbackExamples,
+    unmatched_genre_log_attempts: unmatchedGenreLogAttempts,
+    unmatched_genre_logs_written: unmatchedGenreLogsWritten,
     duration_ms: Math.round(elapsedMs(matchingStartedAt)),
     memory: memorySnapshot(),
   });
@@ -233,6 +243,8 @@ async function sortTracks(userId) {
     processed: unsortedTracks.length,
     matched,
     unmatched,
+    unmatchedGenreLogAttempts,
+    unmatchedGenreLogsWritten,
     discovery,
     timing: {
       artistFetchMs,
