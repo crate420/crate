@@ -879,6 +879,7 @@
         if (panelKey === 'genre' && genreSelectedCount) genreSelectedCount.textContent = label;
         if (panelKey === 'artist' && artistSelectedCount) artistSelectedCount.textContent = label;
         updateSelectedPlaylistSummary();
+        updateSendButtonGate('selection-change');
       }
 
       function togglePlaylistSelection(panelKey, key, item) {
@@ -1363,6 +1364,27 @@
         applyStageLabels('go');
       }
 
+      function updateSendButtonGate(source = 'render') {
+        if (!spotifySendButton) return;
+        const selectedCount = selectedPlaylistCount();
+        const connected = isConnected();
+        const sorted = sortCompleted();
+        const busy = isBusy();
+        const disabled = busy || !connected || !sorted || selectedCount === 0;
+        spotifySendButton.disabled = disabled;
+        spotifySendButton.setAttribute('aria-disabled', disabled ? 'true' : 'false');
+        console.log('[Crate Send] button gate', {
+          source,
+          status: state.status,
+          userTracksSorted: state.status?.userTracksSorted ?? null,
+          sortCompleted: sorted,
+          selectedPlaylistCount: selectedCount,
+          connected,
+          busy,
+          disabled,
+        });
+      }
+
       function renderProcessStatus() {
         const connected = isConnected();
         const sorted = sortCompleted();
@@ -1387,12 +1409,8 @@
         if (rescanLibraryButton) rescanLibraryButton.disabled = isBusy() || !connected || state.progress.onboarding;
         reviewButton.disabled = isBusy() || !connected || !sorted;
         sendFlowButton.disabled = isBusy() || !connected || !sorted;
-        if (spotifySendButton) {
-          const noPlaylistsSelected = selectedPlaylistCount() === 0;
-          spotifySendButton.disabled = isBusy() || !connected || !sorted || noPlaylistsSelected;
-          spotifySendButton.setAttribute('aria-disabled', (!connected || !sorted || isBusy() || noPlaylistsSelected) ? 'true' : 'false');
-        }
         updateSelectedPlaylistSummary();
+        updateSendButtonGate('renderProcessStatus');
         if (syncButton) syncButton.disabled = isBusy() || !connected || !sorted;
         sendFlowButton.classList.toggle('is-hidden', !connected || !sorted);
         syncButton?.classList.toggle('is-hidden', !connected || !sorted);
