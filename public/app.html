@@ -158,7 +158,7 @@
       }
       function categoryRows() { return Array.isArray(state.status?.playlist_category_counts) ? state.status.playlist_category_counts : []; }
       function isConnected() { return Boolean(state.auth?.user); }
-      function sortCompleted() { return Number(state.status?.sorted_tracks_count || state.status?.matched_tracks_count || 0) > 0; }
+      function sortCompleted() { return Number(state.status?.userTracksSorted || state.status?.sorted_tracks_count || state.status?.matched_tracks_count || 0) > 0; }
       function sendCompleted() { return Boolean(state.status?.last_playlist_sync_run?.completed_at); }
       function selectedUiMode() {
         if (!isConnected()) return 'disconnected';
