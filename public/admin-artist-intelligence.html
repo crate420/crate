@@ -48,6 +48,8 @@
       .comparison { border-top:1px solid var(--border); margin-top:12px; padding-top:12px; }
       .comparison-block { margin-top:10px; }
       .notes { color:var(--muted); margin:6px 0 0; padding-left:18px; }
+      .operations { display:grid; gap:10px; margin-bottom:14px; }
+      .operations-summary { background:#f8fafc; border:1px solid var(--border); border-radius:6px; color:var(--muted); min-height:38px; padding:9px; white-space:pre-wrap; }
       @media (max-width:980px) { .layout { grid-template-columns:1fr; } }
       @media (max-width:720px) { main { padding:16px; } header, .section-header { flex-direction:column; } input { min-width:0; width:100%; } }
     </style>
@@ -78,6 +80,19 @@
           <button id="recalculateButton" type="button">Recalculate Confidence</button>
         </div>
       </section>
+      <section class="panel operations">
+        <div><h2>Operations</h2><div class="muted">Admin-only cache maintenance. Batches are capped at 50 artists and run one artist at a time.</div></div>
+        <div class="toolbar">
+          <button data-operation="seed" data-source="tracks" type="button">Seed from Tracks</button>
+          <button data-operation="seed" data-source="artist_genres" type="button">Seed from Artist Genres</button>
+          <button data-operation="batch" data-source="spotify" type="button">Batch Fetch Missing Spotify</button>
+          <button data-operation="batch" data-source="lastfm" type="button">Batch Fetch Missing Last.fm</button>
+          <button data-operation="batch" data-source="musicbrainz" type="button">Batch Fetch Missing MusicBrainz</button>
+          <button data-operation="batch-all" type="button">Batch Fetch All Missing Sources</button>
+          <button data-operation="stale" type="button">Refresh Stale Summary</button>
+        </div>
+        <div class="operations-summary" id="operationsSummary">No maintenance operation run yet.</div>
+      </section>
       <div class="message" id="message">Loading artist intelligence...</div>
       <div class="layout">
         <section class="panel">
@@ -105,6 +120,7 @@
       const clearButton = document.getElementById('clearButton');
       const refreshButton = document.getElementById('refreshButton');
       const recalculateButton = document.getElementById('recalculateButton');
+      const operationsSummary = document.getElementById('operationsSummary');
       let selectedArtistId = null;
 
       function escapeHtml(value) { return String(value ?? '').replace(/[&<>"]/g, (char) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[char])); }
@@ -238,6 +254,34 @@
         }
       }
 
+      function renderOperationSummary(payload = {}) {
+        operationsSummary.textContent = JSON.stringify(payload, null, 2);
+      }
+
+      async function runOperation(button) {
+        const operation = button.dataset.operation;
+        const source = button.dataset.source;
+        button.disabled = true;
+        setMessage(`Running ${button.textContent.trim()}...`);
+        try {
+          let payload;
+          if (operation === 'seed') {
+            payload = await requestJson('/crate/admin/artist-intelligence/seed', { method:'POST', body:JSON.stringify({ source, limit:250 }) });
+          } else if (operation === 'stale') {
+            payload = await requestJson('/crate/admin/artist-intelligence/stale');
+          } else {
+            payload = await requestJson('/crate/admin/artist-intelligence/batch-fetch', { method:'POST', body:JSON.stringify({ sources:operation === 'batch-all' ? ['spotify','lastfm','musicbrainz'] : [source], limit:10, onlyMissing:true, onlyExpired:false }) });
+          }
+          renderOperationSummary(payload);
+          setMessage(`${button.textContent.trim()} complete.`);
+          await loadArtists();
+        } catch (error) {
+          setMessage(`${button.textContent.trim()} failed: ${error.message}`, 'error');
+        } finally {
+          button.disabled = false;
+        }
+      }
+
       artistRows.addEventListener('click', (event) => { const row = event.target.closest('tr[data-artist-id]'); if (row) loadDetail(row.dataset.artistId); });
       detail.addEventListener('click', (event) => {
         if (event.target.id === 'fetchSpotifyButton') fetchSpotify();
@@ -247,6 +291,7 @@
       refreshButton.addEventListener('click', loadArtists);
       clearButton.addEventListener('click', () => { searchInput.value = ''; statusSelect.value = ''; loadArtists(); });
       recalculateButton.addEventListener('click', recalculateConfidence);
+      document.querySelectorAll('[data-operation]').forEach((button) => button.addEventListener('click', () => runOperation(button)));
       searchInput.addEventListener('keydown', (event) => { if (event.key === 'Enter') loadArtists(); });
       loadArtists();
     </script>

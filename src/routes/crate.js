@@ -29,6 +29,11 @@ const {
   fetchLastfmArtistGenreSuggestions,
   getLastfmArtistGenreSuggestions,
 } = require("../crate/lastfmGenreSuggestions");
+const {
+  batchFetchArtistIntelligence,
+  getStaleArtistIntelligence,
+  seedArtistIntelligence,
+} = require("../crate/artistIntelligenceOperations");
 const { getDatabaseDiagnostics } = require("../crate/dbDiagnostics");
 const { getMissingArtistGenres } = require("../crate/missingArtistGenres");
 const { fetchAndCacheMusicBrainzArtistIntelligence } = require("../crate/musicbrainzArtistIntelligence");
@@ -662,6 +667,36 @@ router.get("/admin/artist-intelligence", requireCurrentUser, requireAdminUser, (
       artists,
     });
   } catch (err) {
+    return next(err);
+  }
+});
+
+router.get("/admin/artist-intelligence/stale", requireCurrentUser, requireAdminUser, (req, res, next) => {
+  try {
+    return res.json({ status: "ok", ...getStaleArtistIntelligence() });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.post("/admin/artist-intelligence/seed", requireCurrentUser, requireAdminUser, (req, res, next) => {
+  try {
+    return res.json({ status: "ok", ...seedArtistIntelligence(req.body) });
+  } catch (err) {
+    if (err.statusCode) {
+      return res.status(err.statusCode).json({ error: err.code || "artist_intelligence_seed_error", message: err.message });
+    }
+    return next(err);
+  }
+});
+
+router.post("/admin/artist-intelligence/batch-fetch", requireCurrentUser, requireAdminUser, async (req, res, next) => {
+  try {
+    return res.json({ status: "ok", ...await batchFetchArtistIntelligence(req.currentUser.id, req.body) });
+  } catch (err) {
+    if (err.statusCode) {
+      return res.status(err.statusCode).json({ error: err.code || "artist_intelligence_batch_fetch_error", message: err.message });
+    }
     return next(err);
   }
 });

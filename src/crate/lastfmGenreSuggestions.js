@@ -111,6 +111,52 @@ function cacheLastfmArtistIntelligence({ artistName, sourceArtistName, rawPayloa
   });
 }
 
+async function fetchAndCacheLastfmArtistIntelligence({ artistName, artistIntelligenceId } = {}) {
+  const existing = artistIntelligenceId
+    ? artistIntelligenceRepo.getArtistIntelligenceById(artistIntelligenceId)
+    : null;
+  const lookupName = String(artistName || existing?.display_artist_name || "").trim();
+
+  if (!lookupName) {
+    const error = new Error("artistName is required.");
+    error.code = "invalid_artist_name";
+    error.statusCode = 400;
+    throw error;
+  }
+
+  if (artistIntelligenceId && !existing) {
+    const error = new Error("Artist intelligence record not found.");
+    error.code = "artist_intelligence_not_found";
+    error.statusCode = 404;
+    throw error;
+  }
+
+  const result = await lastfmClient.getArtistTopTags(lookupName);
+  const rawTags = result.tags
+    .slice(0, 20)
+    .map((tag) => ({ name: tag.name, count: Number.parseInt(tag.count, 10) || 0 }))
+    .filter((tag) => tag.name);
+  const source = cacheLastfmArtistIntelligence({
+    artistName: existing?.display_artist_name || lookupName,
+    sourceArtistName: result.sourceArtistName,
+    rawPayload: result.rawPayload,
+    rawTags,
+  });
+  const refreshedArtist = artistIntelligenceRepo.getArtistIntelligenceById(source.artist_intelligence_id);
+
+  return {
+    artist_intelligence_id: refreshedArtist.id,
+    artist_name: refreshedArtist.display_artist_name,
+    source: source.source,
+    source_artist_name: source.source_artist_name,
+    normalized_signals: JSON.parse(source.normalized_signals_json || "[]"),
+    fetched_at: source.fetched_at,
+    expires_at: source.expires_at,
+    source_count: refreshedArtist.source_count,
+    confidence_score: refreshedArtist.confidence_score,
+  };
+}
+
 function serializeRow(row) {
   return {
     artist_name: row.artist_name,
@@ -319,6 +365,7 @@ module.exports = {
   applyLastfmArtistGenreSuggestion,
   applySafeLastfmArtistGenreSuggestionBatch,
   cacheLastfmArtistIntelligence,
+  fetchAndCacheLastfmArtistIntelligence,
   fetchLastfmArtistGenreSuggestions,
   getLastfmArtistGenreSuggestions,
   normalizeLastfmSignals,
