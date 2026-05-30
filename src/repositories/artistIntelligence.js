@@ -45,6 +45,22 @@ function getArtistIntelligenceByName(artistName) {
     .get(normalizedArtistName);
 }
 
+function getArtistIntelligenceById(id) {
+  const parsedId = Number.parseInt(id, 10);
+
+  if (!Number.isInteger(parsedId) || parsedId <= 0) {
+    return undefined;
+  }
+
+  return openDatabase()
+    .prepare(`
+      SELECT *
+      FROM artist_intelligence
+      WHERE id = ?
+    `)
+    .get(parsedId);
+}
+
 function getOrCreateArtistIntelligence({ artistName, spotifyArtistId = null }) {
   const { displayArtistName, normalizedArtistName } = requireArtistName(artistName);
   const now = new Date().toISOString();
@@ -80,33 +96,64 @@ function getOrCreateArtistIntelligence({ artistName, spotifyArtistId = null }) {
   return getArtistIntelligenceByName(normalizedArtistName);
 }
 
-function listArtistIntelligence({ limit = 100, offset = 0, reviewStatus } = {}) {
+function listArtistIntelligence({ limit = 100, offset = 0, reviewStatus, search } = {}) {
   const normalizedLimit = Math.min(normalizePositiveInteger(limit, 100), 500);
   const parsedOffset = Number.parseInt(offset, 10);
   const normalizedOffset = Number.isInteger(parsedOffset) && parsedOffset >= 0 ? parsedOffset : 0;
   const normalizedReviewStatus = normalizeOptionalText(reviewStatus);
+  const normalizedSearch = normalizeOptionalText(search);
   const db = openDatabase();
+  const clauses = [];
+  const params = { limit: normalizedLimit, offset: normalizedOffset };
 
   if (normalizedReviewStatus) {
-    return db
-      .prepare(`
-        SELECT *
-        FROM artist_intelligence
-        WHERE review_status = @reviewStatus
-        ORDER BY display_artist_name COLLATE NOCASE ASC
-        LIMIT @limit OFFSET @offset
-      `)
-      .all({ reviewStatus: normalizedReviewStatus, limit: normalizedLimit, offset: normalizedOffset });
+    clauses.push("review_status = @reviewStatus");
+    params.reviewStatus = normalizedReviewStatus;
+  }
+
+  if (normalizedSearch) {
+    clauses.push("display_artist_name LIKE @search COLLATE NOCASE");
+    params.search = `%${normalizedSearch}%`;
   }
 
   return db
     .prepare(`
       SELECT *
       FROM artist_intelligence
+      ${clauses.length ? `WHERE ${clauses.join(" AND ")}` : ""}
       ORDER BY display_artist_name COLLATE NOCASE ASC
       LIMIT @limit OFFSET @offset
     `)
-    .all({ limit: normalizedLimit, offset: normalizedOffset });
+    .all(params);
+}
+
+function getArtistIntelligenceSummary({ reviewStatus, search } = {}) {
+  const normalizedReviewStatus = normalizeOptionalText(reviewStatus);
+  const normalizedSearch = normalizeOptionalText(search);
+  const clauses = [];
+  const params = {};
+
+  if (normalizedReviewStatus) {
+    clauses.push("review_status = @reviewStatus");
+    params.reviewStatus = normalizedReviewStatus;
+  }
+
+  if (normalizedSearch) {
+    clauses.push("display_artist_name LIKE @search COLLATE NOCASE");
+    params.search = `%${normalizedSearch}%`;
+  }
+
+  return openDatabase()
+    .prepare(`
+      SELECT
+        COUNT(*) AS total,
+        COALESCE(SUM(CASE WHEN review_status = 'pending' THEN 1 ELSE 0 END), 0) AS pending,
+        COALESCE(SUM(CASE WHEN review_status = 'reviewed' THEN 1 ELSE 0 END), 0) AS reviewed,
+        COALESCE(SUM(CASE WHEN source_count > 0 THEN 1 ELSE 0 END), 0) AS with_sources
+      FROM artist_intelligence
+      ${clauses.length ? `WHERE ${clauses.join(" AND ")}` : ""}
+    `)
+    .get(params);
 }
 
 function refreshArtistIntelligenceStats(artistIntelligenceId) {
@@ -230,7 +277,9 @@ function listArtistIntelligenceSources(artistIntelligenceId) {
 }
 
 module.exports = {
+  getArtistIntelligenceById,
   getArtistIntelligenceByName,
+  getArtistIntelligenceSummary,
   getOrCreateArtistIntelligence,
   listArtistIntelligence,
   listArtistIntelligenceSources,

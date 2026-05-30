@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Crate Artist Intelligence</title>
+    <style>
+      :root { --bg:#f6f8fb; --panel:#fff; --text:#17202a; --muted:#657080; --border:#d7dde5; --action:#1769aa; --bad:#b42318; }
+      * { box-sizing:border-box; }
+      body { margin:0; background:var(--bg); color:var(--text); font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; font-size:14px; }
+      main { max-width:1440px; margin:0 auto; padding:24px; }
+      header, .section-header { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; }
+      header { margin-bottom:16px; }
+      h1 { margin:0; font-size:24px; }
+      h2 { margin:0; font-size:18px; }
+      h3 { margin:0; font-size:15px; }
+      .toolbar, .search { display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
+      button, a.button, input, select { border:1px solid var(--border); border-radius:6px; background:#fff; color:var(--text); min-height:34px; padding:6px 10px; font:inherit; }
+      button, a.button { cursor:pointer; display:inline-flex; align-items:center; text-decoration:none; }
+      button.primary { background:var(--action); border-color:var(--action); color:#fff; }
+      button:disabled { cursor:wait; opacity:.6; }
+      input { min-width:240px; }
+      .message { min-height:22px; color:var(--muted); margin:10px 0; font-weight:600; }
+      .message.error { color:var(--bad); }
+      .layout { display:grid; grid-template-columns:minmax(0,1.2fr) minmax(320px,.8fr); gap:14px; align-items:start; }
+      .panel { background:var(--panel); border:1px solid var(--border); border-radius:8px; padding:14px; overflow:auto; }
+      .section-header { margin-bottom:10px; }
+      .counts { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px; }
+      .count { border:1px solid var(--border); border-radius:6px; padding:7px 9px; min-width:90px; }
+      .count strong { display:block; font-size:18px; }
+      .count span, .label { color:var(--muted); font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; }
+      table { width:100%; border-collapse:collapse; min-width:700px; }
+      th, td { border-bottom:1px solid var(--border); padding:8px; text-align:left; vertical-align:top; }
+      th { color:#334155; font-size:12px; text-transform:uppercase; letter-spacing:.04em; background:#f8fafc; position:sticky; top:0; }
+      tbody tr { cursor:pointer; }
+      tbody tr:hover, tbody tr.active { background:#eef6ff; }
+      .artist { font-weight:700; }
+      .muted { color:var(--muted); }
+      .badge, .signal { border-radius:999px; display:inline-block; padding:2px 7px; font-size:12px; }
+      .badge { background:#eef2f7; color:#334155; white-space:nowrap; }
+      .signals { display:flex; flex-wrap:wrap; gap:4px; margin-top:8px; }
+      .signal { background:#e8f1fb; color:#214f7a; }
+      .source-list { display:grid; gap:10px; margin-top:10px; }
+      .source { border:1px solid var(--border); border-radius:7px; padding:10px; }
+      .source.empty { color:var(--muted); background:#fafbfc; }
+      .source-meta { color:var(--muted); display:grid; gap:3px; font-size:12px; margin-top:7px; }
+      .detail-heading { margin-bottom:10px; }
+      @media (max-width:980px) { .layout { grid-template-columns:1fr; } }
+      @media (max-width:720px) { main { padding:16px; } header, .section-header { flex-direction:column; } input { min-width:0; width:100%; } }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <div>
+          <h1>Artist Intelligence</h1>
+          <div class="muted">Read-only view of cached artist evidence from external intelligence sources.</div>
+        </div>
+        <nav class="toolbar">
+          <a class="button" href="/admin.html">Admin Home</a>
+          <a class="button" href="/admin-learning.html">Learning Review</a>
+          <a class="button" href="/admin-review.html">Artist Review Queue</a>
+        </nav>
+      </header>
+      <section class="panel" style="margin-bottom:14px">
+        <div class="search">
+          <input id="searchInput" type="search" placeholder="Search artist name" aria-label="Search artist name">
+          <select id="statusSelect" aria-label="Filter review status">
+            <option value="">All statuses</option>
+            <option value="pending">Pending</option>
+            <option value="reviewed">Reviewed</option>
+          </select>
+          <button class="primary" id="searchButton" type="button">Search</button>
+          <button id="clearButton" type="button">Clear</button>
+        </div>
+      </section>
+      <div class="message" id="message">Loading artist intelligence...</div>
+      <div class="layout">
+        <section class="panel">
+          <div class="section-header"><h2>Artists</h2><button id="refreshButton" type="button">Refresh</button></div>
+          <div class="counts" id="counts"></div>
+          <table>
+            <thead><tr><th>Artist</th><th>Sources</th><th>Confidence</th><th>Status</th><th>Updated</th></tr></thead>
+            <tbody id="artistRows"><tr><td colspan="5" class="muted">Loading...</td></tr></tbody>
+          </table>
+        </section>
+        <aside class="panel" aria-live="polite">
+          <div class="detail-heading"><h2>Source Comparison</h2><div class="muted">Select an artist to inspect cached evidence.</div></div>
+          <div id="detail"><div class="muted">No artist selected.</div></div>
+        </aside>
+      </div>
+    </main>
+    <script>
+      const artistRows = document.getElementById('artistRows');
+      const counts = document.getElementById('counts');
+      const detail = document.getElementById('detail');
+      const message = document.getElementById('message');
+      const searchInput = document.getElementById('searchInput');
+      const statusSelect = document.getElementById('statusSelect');
+      const searchButton = document.getElementById('searchButton');
+      const clearButton = document.getElementById('clearButton');
+      const refreshButton = document.getElementById('refreshButton');
+      let selectedArtistId = null;
+
+      function escapeHtml(value) { return String(value ?? '').replace(/[&<>"]/g, (char) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[char])); }
+      function formatDate(value) { return value ? new Date(value).toLocaleString() : '-'; }
+      function formatNumber(value) { return Number(value || 0).toLocaleString(); }
+      function setMessage(text, type = '') { message.textContent = text; message.className = 'message' + (type ? ' ' + type : ''); }
+
+      async function requestJson(url) {
+        const response = await fetch(url, { credentials:'include' });
+        const body = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(body.message || body.error || `Request failed: ${response.status}`);
+        return body;
+      }
+
+      function renderCounts(summary = {}) {
+        counts.innerHTML = [
+          ['Artists', summary.total],
+          ['Pending', summary.pending],
+          ['Reviewed', summary.reviewed],
+          ['With sources', summary.with_sources],
+        ].map(([label, value]) => `<div class="count"><strong>${formatNumber(value)}</strong><span>${escapeHtml(label)}</span></div>`).join('');
+      }
+
+      function renderArtists(artists = []) {
+        artistRows.innerHTML = artists.length ? artists.map((artist) => `
+          <tr data-artist-id="${artist.id}" class="${artist.id === selectedArtistId ? 'active' : ''}">
+            <td><div class="artist">${escapeHtml(artist.artist_name)}</div><div class="muted">${escapeHtml(artist.spotify_artist_id || 'No Spotify artist ID')}</div></td>
+            <td>${formatNumber(artist.source_count)}</td><td>${formatNumber(artist.confidence_score)}</td>
+            <td><span class="badge">${escapeHtml(artist.review_status)}</span></td><td>${escapeHtml(formatDate(artist.updated_at))}</td>
+          </tr>
+        `).join('') : '<tr><td colspan="5" class="muted">No artist intelligence records found.</td></tr>';
+      }
+
+      function renderSource(sourceName, source) {
+        if (!source) return `<section class="source empty"><h3>${escapeHtml(sourceName)}</h3><div>No cached source data.</div></section>`;
+        const signals = Array.isArray(source.normalized_signals) ? source.normalized_signals : [];
+        return `<section class="source"><h3>${escapeHtml(sourceName)}</h3>
+          <div class="signals">${signals.length ? signals.map((signal) => `<span class="signal">${escapeHtml(signal)}</span>`).join('') : '<span class="muted">No normalized signals.</span>'}</div>
+          <div class="source-meta"><div>Source artist: ${escapeHtml(source.source_artist_name || '-')}</div><div>Fetched: ${escapeHtml(formatDate(source.fetched_at))}</div><div>Expires: ${escapeHtml(formatDate(source.expires_at))}</div><div>Status: ${escapeHtml(source.error_code ? `Error: ${source.error_code}` : 'Cached')}</div></div>
+        </section>`;
+      }
+
+      function renderDetail(payload) {
+        const artist = payload.artist;
+        const bySource = Object.fromEntries((payload.sources || []).map((source) => [source.source.toLowerCase(), source]));
+        detail.innerHTML = `<div class="detail-heading"><h3>${escapeHtml(artist.artist_name)}</h3><div class="muted">Stored confidence: ${formatNumber(artist.confidence_score)} · ${formatNumber(artist.source_count)} source(s)</div></div>
+          <div class="source-list">${renderSource('Spotify', bySource.spotify)}${renderSource('Last.fm', bySource.lastfm)}${renderSource('MusicBrainz', bySource.musicbrainz)}</div>`;
+      }
+
+      async function loadDetail(artistId) {
+        selectedArtistId = Number(artistId);
+        [...artistRows.querySelectorAll('tr[data-artist-id]')].forEach((row) => row.classList.toggle('active', Number(row.dataset.artistId) === selectedArtistId));
+        detail.innerHTML = '<div class="muted">Loading source comparison...</div>';
+        try { renderDetail(await requestJson(`/crate/admin/artist-intelligence/${selectedArtistId}`)); }
+        catch (error) { detail.innerHTML = `<div class="muted">Failed to load artist details: ${escapeHtml(error.message)}</div>`; }
+      }
+
+      async function loadArtists() {
+        setMessage('Loading artist intelligence...');
+        const params = new URLSearchParams({ limit:'250', offset:'0' });
+        if (searchInput.value.trim()) params.set('search', searchInput.value.trim());
+        if (statusSelect.value) params.set('review_status', statusSelect.value);
+        try {
+          const payload = await requestJson(`/crate/admin/artist-intelligence?${params}`);
+          renderCounts(payload.summary);
+          renderArtists(payload.artists);
+          setMessage(`Loaded ${formatNumber(payload.count)} artist intelligence record(s).`);
+        } catch (error) { setMessage(`Failed to load artist intelligence: ${error.message}`, 'error'); }
+      }
+
+      artistRows.addEventListener('click', (event) => { const row = event.target.closest('tr[data-artist-id]'); if (row) loadDetail(row.dataset.artistId); });
+      searchButton.addEventListener('click', loadArtists);
+      refreshButton.addEventListener('click', loadArtists);
+      clearButton.addEventListener('click', () => { searchInput.value = ''; statusSelect.value = ''; loadArtists(); });
+      searchInput.addEventListener('keydown', (event) => { if (event.key === 'Enter') loadArtists(); });
+      loadArtists();
+    </script>
+  </body>
+</html>

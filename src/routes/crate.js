@@ -42,6 +42,7 @@ const { getUnmatchedGenreSummary } = require("../crate/unmatchedGenres");
 const { getUnmatchedGenreLearningSummary } = require("../crate/unmatchedGenreLearning");
 const { getUnmatchedTracks } = require("../crate/unmatchedTracks");
 const artistGenreRepo = require("../repositories/artistGenres");
+const artistIntelligenceRepo = require("../repositories/artistIntelligence");
 const betaAccessCodes = require("../repositories/betaAccessCodes");
 const runs = require("../repositories/runs");
 const trackRepo = require("../repositories/tracks");
@@ -598,6 +599,95 @@ router.get("/admin/unmatched-genre-learning", requireCurrentUser, requireAdminUs
       recentLimit: req.query.recent_limit,
       scope: req.query.scope,
     }));
+  } catch (err) {
+    return next(err);
+  }
+});
+
+function serializeArtistIntelligence(row) {
+  return {
+    id: row.id,
+    artist_name: row.display_artist_name,
+    normalized_artist_name: row.normalized_artist_name,
+    spotify_artist_id: row.spotify_artist_id,
+    review_status: row.review_status,
+    source_count: row.source_count,
+    confidence_score: row.confidence_score,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+  };
+}
+
+function parseArtistIntelligenceSignals(value) {
+  try {
+    const signals = JSON.parse(value || "[]");
+    return Array.isArray(signals) ? signals : [];
+  } catch (err) {
+    return [];
+  }
+}
+
+function serializeArtistIntelligenceSource(row) {
+  return {
+    id: row.id,
+    source: row.source,
+    source_artist_id: row.source_artist_id,
+    source_artist_name: row.source_artist_name,
+    normalized_signals: parseArtistIntelligenceSignals(row.normalized_signals_json),
+    error_code: row.error_code,
+    error_message: row.error_message,
+    fetched_at: row.fetched_at,
+    expires_at: row.expires_at,
+    updated_at: row.updated_at,
+  };
+}
+
+router.get("/admin/artist-intelligence", requireCurrentUser, requireAdminUser, (req, res, next) => {
+  try {
+    const options = {
+      limit: req.query.limit,
+      offset: req.query.offset,
+      reviewStatus: req.query.review_status,
+      search: req.query.search,
+    };
+    const artists = artistIntelligenceRepo.listArtistIntelligence(options).map(serializeArtistIntelligence);
+
+    return res.json({
+      status: "ok",
+      count: artists.length,
+      summary: artistIntelligenceRepo.getArtistIntelligenceSummary(options),
+      artists,
+    });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.get("/admin/artist-intelligence/:id", requireCurrentUser, requireAdminUser, (req, res, next) => {
+  try {
+    const artist = artistIntelligenceRepo.getArtistIntelligenceById(req.params.id);
+
+    if (!artist) {
+      return res.status(404).json({
+        error: "artist_intelligence_not_found",
+        message: "Artist intelligence record not found.",
+      });
+    }
+
+    const sources = artistIntelligenceRepo
+      .listArtistIntelligenceSources(artist.id)
+      .map(serializeArtistIntelligenceSource);
+
+    return res.json({
+      status: "ok",
+      artist: serializeArtistIntelligence(artist),
+      sources,
+      source_summary: {
+        count: sources.length,
+        available: sources.map((source) => source.source),
+        expected: ["spotify", "lastfm", "musicbrainz"],
+      },
+    });
   } catch (err) {
     return next(err);
   }
