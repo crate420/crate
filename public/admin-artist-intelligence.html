@@ -45,6 +45,9 @@
       .source.empty { color:var(--muted); background:#fafbfc; }
       .source-meta { color:var(--muted); display:grid; gap:3px; font-size:12px; margin-top:7px; }
       .detail-heading { margin-bottom:10px; }
+      .comparison { border-top:1px solid var(--border); margin-top:12px; padding-top:12px; }
+      .comparison-block { margin-top:10px; }
+      .notes { color:var(--muted); margin:6px 0 0; padding-left:18px; }
       @media (max-width:980px) { .layout { grid-template-columns:1fr; } }
       @media (max-width:720px) { main { padding:16px; } header, .section-header { flex-direction:column; } input { min-width:0; width:100%; } }
     </style>
@@ -72,6 +75,7 @@
           </select>
           <button class="primary" id="searchButton" type="button">Search</button>
           <button id="clearButton" type="button">Clear</button>
+          <button id="recalculateButton" type="button">Recalculate Confidence</button>
         </div>
       </section>
       <div class="message" id="message">Loading artist intelligence...</div>
@@ -100,6 +104,7 @@
       const searchButton = document.getElementById('searchButton');
       const clearButton = document.getElementById('clearButton');
       const refreshButton = document.getElementById('refreshButton');
+      const recalculateButton = document.getElementById('recalculateButton');
       let selectedArtistId = null;
 
       function escapeHtml(value) { return String(value ?? '').replace(/[&<>"]/g, (char) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[char])); }
@@ -142,11 +147,27 @@
         </section>`;
       }
 
+      function renderSignals(signals = []) {
+        return signals.length ? signals.map((signal) => `<span class="signal">${escapeHtml(signal)}</span>`).join('') : '<span class="muted">None</span>';
+      }
+
+      function renderComparison(comparison = {}) {
+        const sourceOnly = comparison.source_only_signals || {};
+        const freshness = comparison.freshness || [];
+        const notes = comparison.disagreement_notes || [];
+        return `<section class="comparison"><h3>Cached Signal Comparison</h3>
+          <div class="comparison-block"><div class="label">Shared signals</div><div class="signals">${renderSignals(comparison.shared_signals || [])}</div></div>
+          <div class="comparison-block"><div class="label">Source-only signals</div>${Object.entries(sourceOnly).map(([source, signals]) => `<div><strong>${escapeHtml(source)}:</strong> <span class="signals">${renderSignals(signals)}</span></div>`).join('') || '<div class="muted">None</div>'}</div>
+          <div class="comparison-block"><div class="label">Freshness</div>${freshness.map((source) => `<div>${escapeHtml(source.source)}: <span class="badge">${escapeHtml(source.freshness)}</span>${source.has_error ? ' <span class="badge">error</span>' : ''}</div>`).join('') || '<div class="muted">No cached sources.</div>'}</div>
+          <div class="comparison-block"><div class="label">Disagreement notes</div>${notes.length ? `<ul class="notes">${notes.map((note) => `<li>${escapeHtml(note)}</li>`).join('')}</ul>` : '<div class="muted">No disagreement indicators.</div>'}</div>
+        </section>`;
+      }
+
       function renderDetail(payload) {
         const artist = payload.artist;
         const bySource = Object.fromEntries((payload.sources || []).map((source) => [source.source.toLowerCase(), source]));
         detail.innerHTML = `<div class="detail-heading"><h3>${escapeHtml(artist.artist_name)}</h3><div class="muted">Stored confidence: ${formatNumber(artist.confidence_score)} · ${formatNumber(artist.source_count)} source(s)</div><div class="toolbar"><button id="fetchSpotifyButton" type="button">Fetch Spotify</button><button id="fetchMusicBrainzButton" type="button">Fetch MusicBrainz</button></div></div>
-          <div class="source-list">${renderSource('Spotify', bySource.spotify)}${renderSource('Last.fm', bySource.lastfm)}${renderSource('MusicBrainz', bySource.musicbrainz)}</div>`;
+          <div class="source-list">${renderSource('Spotify', bySource.spotify)}${renderSource('Last.fm', bySource.lastfm)}${renderSource('MusicBrainz', bySource.musicbrainz)}</div>${renderComparison(payload.source_comparison)}`;
       }
 
       async function loadDetail(artistId) {
@@ -202,6 +223,21 @@
         }
       }
 
+      async function recalculateConfidence() {
+        recalculateButton.disabled = true;
+        setMessage('Recalculating stored confidence scores...');
+        try {
+          const payload = await requestJson('/crate/admin/artist-intelligence/recalculate-confidence', { method:'POST', body:'{}' });
+          setMessage(`Recalculated confidence for ${formatNumber(payload.updated)} artist intelligence record(s).`);
+          if (selectedArtistId) await loadDetail(selectedArtistId);
+          await loadArtists();
+        } catch (error) {
+          setMessage(`Confidence recalculation failed: ${error.message}`, 'error');
+        } finally {
+          recalculateButton.disabled = false;
+        }
+      }
+
       artistRows.addEventListener('click', (event) => { const row = event.target.closest('tr[data-artist-id]'); if (row) loadDetail(row.dataset.artistId); });
       detail.addEventListener('click', (event) => {
         if (event.target.id === 'fetchSpotifyButton') fetchSpotify();
@@ -210,6 +246,7 @@
       searchButton.addEventListener('click', loadArtists);
       refreshButton.addEventListener('click', loadArtists);
       clearButton.addEventListener('click', () => { searchInput.value = ''; statusSelect.value = ''; loadArtists(); });
+      recalculateButton.addEventListener('click', recalculateConfidence);
       searchInput.addEventListener('keydown', (event) => { if (event.key === 'Enter') loadArtists(); });
       loadArtists();
     </script>

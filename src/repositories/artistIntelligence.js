@@ -1,4 +1,5 @@
 const { openDatabase } = require("../db");
+const { calculateArtistIntelligenceConfidence } = require("../crate/artistIntelligenceComparison");
 
 function normalizeArtistName(name) {
   return String(name || "").trim().toLowerCase();
@@ -158,28 +159,41 @@ function getArtistIntelligenceSummary({ reviewStatus, search } = {}) {
 
 function refreshArtistIntelligenceStats(artistIntelligenceId) {
   const now = new Date().toISOString();
+  const db = openDatabase();
+  const artist = getArtistIntelligenceById(artistIntelligenceId);
+  const sources = listArtistIntelligenceSources(artistIntelligenceId);
+  const confidenceScore = calculateArtistIntelligenceConfidence(artist, sources);
 
-  openDatabase()
+  db
     .prepare(`
       UPDATE artist_intelligence
       SET
-        source_count = (
-          SELECT COUNT(*)
-          FROM artist_intelligence_sources
-          WHERE artist_intelligence_id = @artistIntelligenceId
-        ),
+        source_count = @sourceCount,
+        confidence_score = @confidenceScore,
         updated_at = @now
       WHERE id = @artistIntelligenceId
     `)
-    .run({ artistIntelligenceId, now });
+    .run({ artistIntelligenceId, sourceCount: sources.length, confidenceScore, now });
 
-  return openDatabase()
+  return db
     .prepare(`
       SELECT *
       FROM artist_intelligence
       WHERE id = ?
     `)
     .get(artistIntelligenceId);
+}
+
+function recalculateAllArtistIntelligenceConfidence() {
+  const artists = openDatabase()
+    .prepare("SELECT id FROM artist_intelligence ORDER BY id ASC")
+    .all();
+
+  for (const artist of artists) {
+    refreshArtistIntelligenceStats(artist.id);
+  }
+
+  return { updated: artists.length };
 }
 
 function upsertArtistIntelligenceSource({
@@ -284,6 +298,7 @@ module.exports = {
   listArtistIntelligence,
   listArtistIntelligenceSources,
   normalizeArtistName,
+  recalculateAllArtistIntelligenceConfidence,
   refreshArtistIntelligenceStats,
   upsertArtistIntelligenceSource,
 };

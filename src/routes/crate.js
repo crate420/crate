@@ -21,6 +21,7 @@ const {
   getCuratedArtistSuggestion,
   getMissingArtistGenreSuggestions,
 } = require("../crate/artistGenreSuggestions");
+const { compareArtistIntelligenceSources } = require("../crate/artistIntelligenceComparison");
 const { importArtistGenreSeed } = require("../crate/artistGenreSeedImport");
 const {
   applyLastfmArtistGenreSuggestion,
@@ -676,9 +677,8 @@ router.get("/admin/artist-intelligence/:id", requireCurrentUser, requireAdminUse
       });
     }
 
-    const sources = artistIntelligenceRepo
-      .listArtistIntelligenceSources(artist.id)
-      .map(serializeArtistIntelligenceSource);
+    const sourceRows = artistIntelligenceRepo.listArtistIntelligenceSources(artist.id);
+    const sources = sourceRows.map(serializeArtistIntelligenceSource);
 
     return res.json({
       status: "ok",
@@ -689,6 +689,7 @@ router.get("/admin/artist-intelligence/:id", requireCurrentUser, requireAdminUse
         available: sources.map((source) => source.source),
         expected: ["spotify", "lastfm", "musicbrainz"],
       },
+      source_comparison: compareArtistIntelligenceSources(sourceRows),
     });
   } catch (err) {
     return next(err);
@@ -733,6 +734,17 @@ router.post("/admin/artist-intelligence/spotify/fetch", requireCurrentUser, requ
       });
     }
 
+    return next(err);
+  }
+});
+
+router.post("/admin/artist-intelligence/recalculate-confidence", requireCurrentUser, requireAdminUser, (req, res, next) => {
+  try {
+    return res.json({
+      status: "ok",
+      ...artistIntelligenceRepo.recalculateAllArtistIntelligenceConfidence(),
+    });
+  } catch (err) {
     return next(err);
   }
 });
