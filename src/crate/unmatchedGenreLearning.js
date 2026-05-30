@@ -1,4 +1,5 @@
 const unmatchedGenreLogRepo = require("../repositories/unmatchedGenreLogs");
+const { suggestPlaylist } = require("./unmatchedPlaylistSuggestions");
 
 function normalizeLimit(value, fallback = 50, maximum = 500) {
   const parsed = Number.parseInt(value, 10);
@@ -73,10 +74,20 @@ function getUnmatchedGenreLearningSummary(userId, options = {}) {
     user_id: userId,
     most_common_genres: unmatchedGenreLogRepo.getMostCommonUnmatchedGenres(userId, { limit, scope }),
     unmatched_artists: unmatchedGenreLogRepo.getMostCommonUnmatchedArtists(userId, { limit, scope }),
-    recent_unmatched_items: unmatchedGenreLogRepo.getRecentUnmatchedGenreLogs(userId, { limit: recentLimit, scope }).map((row) => ({
-      ...row,
-      playlist_attempt_context: parseContext(row.playlist_attempt_context),
-    })),
+    recent_unmatched_items: unmatchedGenreLogRepo.getRecentUnmatchedGenreLogs(userId, { limit: recentLimit, scope }).map((row) => {
+      const playlistAttemptContext = parseContext(row.playlist_attempt_context);
+
+      return {
+        ...row,
+        playlist_attempt_context: playlistAttemptContext,
+        suggested_playlist: suggestPlaylist({
+          genre: row.genre,
+          artistName: row.artist_name,
+          trackName: row.track_name,
+          playlistAttemptContext,
+        }),
+      };
+    }),
   };
 }
 

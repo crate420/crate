@@ -65,7 +65,7 @@
         <section class="panel">
           <div class="section-header"><h2>Recent Unmatched Tracks</h2></div>
           <table>
-            <thead><tr><th>Track</th><th>Artist</th><th>Genre</th><th>Suggested playlist</th><th>Score</th><th>User</th><th>Last seen</th><th>Occurrences</th></tr></thead>
+            <thead><tr><th>Track</th><th>Artist</th><th>Genre</th><th>Suggested playlist</th><th>Confidence</th><th>Reason</th><th>Score</th><th>User</th><th>Last seen</th><th>Occurrences</th></tr></thead>
             <tbody id="recentRows"></tbody>
           </table>
         </section>
@@ -86,10 +86,6 @@
       function formatDate(value) { return value ? new Date(value).toLocaleString() : '-'; }
       function emptyRow(columns, label) { return `<tr><td colspan="${columns}" class="muted">${escapeHtml(label)}</td></tr>`; }
 
-      function topCandidate(item) {
-        return item.playlist_attempt_context?.top_candidates?.[0] || null;
-      }
-
       function render(payload) {
         const genres = payload.most_common_genres || [];
         const artists = payload.unmatched_artists || [];
@@ -101,9 +97,9 @@
           <tr><td>${escapeHtml(item.artist_name)}</td><td>${formatNumber(item.user_count)}</td><td>${formatNumber(item.genre_count)}</td><td>${formatNumber(item.occurrence_count)}</td><td>${escapeHtml(formatDate(item.last_seen_at))}</td></tr>
         `).join('') : emptyRow(5, 'No unmatched artist logs yet.');
         recentRows.innerHTML = recent.length ? recent.map((item) => {
-          const candidate = topCandidate(item);
-          return `<tr><td><div class="track">${escapeHtml(item.track_name || '-')}</div><div class="muted">${escapeHtml(item.spotify_track_id || '')}</div></td><td>${escapeHtml(item.artist_name)}</td><td><span class="tag">${escapeHtml(item.genre)}</span></td><td class="candidate">${escapeHtml(candidate?.playlist_code || '-')}</td><td>${escapeHtml(candidate?.score ?? '-')}</td><td>${escapeHtml(item.user_id)}</td><td>${escapeHtml(formatDate(item.last_seen_at))}</td><td>${formatNumber(item.occurrence_count)}</td></tr>`;
-        }).join('') : emptyRow(8, 'No recent unmatched items yet.');
+          const suggestion = item.suggested_playlist || {};
+          return `<tr><td><div class="track">${escapeHtml(item.track_name || '-')}</div><div class="muted">${escapeHtml(item.spotify_track_id || '')}</div></td><td>${escapeHtml(item.artist_name)}</td><td><span class="tag">${escapeHtml(item.genre)}</span></td><td class="candidate">${escapeHtml(suggestion.playlist_label || '-')}</td><td>${escapeHtml(suggestion.confidence || 'none')}</td><td>${escapeHtml(suggestion.reason || '-')}</td><td>${escapeHtml(suggestion.score ?? '-')}</td><td>${escapeHtml(item.user_id)}</td><td>${escapeHtml(formatDate(item.last_seen_at))}</td><td>${formatNumber(item.occurrence_count)}</td></tr>`;
+        }).join('') : emptyRow(10, 'No recent unmatched items yet.');
       }
 
       async function loadLearningLogs() {
