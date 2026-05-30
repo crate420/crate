@@ -30,6 +30,7 @@ const {
 } = require("../crate/lastfmGenreSuggestions");
 const { getDatabaseDiagnostics } = require("../crate/dbDiagnostics");
 const { getMissingArtistGenres } = require("../crate/missingArtistGenres");
+const { fetchAndCacheMusicBrainzArtistIntelligence } = require("../crate/musicbrainzArtistIntelligence");
 const { getCrateStatus, getGlobalCrateStatus } = require("../crate/status");
 const { getTopArtists } = require("../crate/topArtists");
 const { syncPlaylists } = require("../crate/syncPlaylists");
@@ -689,6 +690,27 @@ router.get("/admin/artist-intelligence/:id", requireCurrentUser, requireAdminUse
       },
     });
   } catch (err) {
+    return next(err);
+  }
+});
+
+router.post("/admin/artist-intelligence/musicbrainz/fetch", requireCurrentUser, requireAdminUser, async (req, res, next) => {
+  try {
+    return res.json({
+      status: "ok",
+      intelligence: await fetchAndCacheMusicBrainzArtistIntelligence({
+        artistName: req.body?.artistName,
+        artistIntelligenceId: req.body?.artistIntelligenceId,
+      }),
+    });
+  } catch (err) {
+    if (err.statusCode) {
+      return res.status(err.statusCode).json({
+        error: err.code || "musicbrainz_fetch_error",
+        message: err.message,
+      });
+    }
+
     return next(err);
   }
 });
