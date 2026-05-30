@@ -32,6 +32,8 @@
       .recommendation { border:1px solid var(--border); border-radius:7px; display:grid; gap:6px; margin-top:8px; padding:9px; }
       .recommendation.approved { border-color:#86efac; background:#f0fdf4; }
       .approved-note { color:var(--good); font-weight:700; }
+      .bulk-apply { border-color:#b42318; color:#b42318; font-weight:700; }
+      pre { background:#101827; border-radius:6px; color:#e7edf6; margin:10px 0 0; max-height:360px; overflow:auto; padding:10px; white-space:pre-wrap; }
       @media (max-width:720px) { main { padding:16px; } header, .section-header { align-items:flex-start; flex-direction:column; } }
     </style>
   </head>
@@ -52,6 +54,17 @@
       </section>
       <div class="message" id="message">Loading recommendations...</div>
       <section class="panel">
+        <div><h2>Bulk Approval</h2><div class="muted">Admin-triggered strongest-evidence approval only. Defaults require confidence 95 and support from all 3 sources.</div></div>
+        <div class="toolbar" style="margin-top:10px">
+          <label>Confidence minimum <input id="bulkConfidenceInput" type="number" min="95" max="95" value="95"></label>
+          <label>Support minimum <input id="bulkSupportInput" type="number" min="2" max="3" value="3"></label>
+          <label>Artist limit <input id="bulkLimitInput" type="number" min="1" max="100" value="50"></label>
+          <button id="bulkPreviewButton" type="button">Preview Bulk Approval</button>
+          <button class="bulk-apply" id="bulkApplyButton" type="button">Apply Bulk Approval</button>
+        </div>
+        <pre id="bulkResult">No bulk preview run yet.</pre>
+      </section>
+      <section class="panel">
         <table>
           <thead><tr><th>Artist</th><th>Confidence</th><th>Recommended Genres</th><th>Evidence</th></tr></thead>
           <tbody id="recommendationRows"><tr><td colspan="4" class="muted">Loading...</td></tr></tbody>
@@ -66,6 +79,12 @@
       const pendingOnlyInput = document.getElementById('pendingOnlyInput');
       const reviewedOnlyInput = document.getElementById('reviewedOnlyInput');
       const refreshButton = document.getElementById('refreshButton');
+      const bulkConfidenceInput = document.getElementById('bulkConfidenceInput');
+      const bulkSupportInput = document.getElementById('bulkSupportInput');
+      const bulkLimitInput = document.getElementById('bulkLimitInput');
+      const bulkPreviewButton = document.getElementById('bulkPreviewButton');
+      const bulkApplyButton = document.getElementById('bulkApplyButton');
+      const bulkResult = document.getElementById('bulkResult');
       const ignored = new Set();
       const approved = new Set();
       let recommendations = [];
@@ -97,8 +116,13 @@
         try { const payload = await requestJson('/crate/admin/artist-intelligence/recommendations/apply', { method:'POST', body:JSON.stringify({ artist_intelligence_id:Number(artistId), genre }) }); approved.add(key(artistId, genre)); renderRows(); setMessage(`${payload.genre} approved for ${payload.artist.artist_name}. Inserted ${payload.inserted_count} new genre row(s).`); }
         catch (error) { button.disabled = false; setMessage(`Approval failed: ${error.message}`, 'error'); }
       }
+      function bulkOptions() { return { confidence_min:Number(bulkConfidenceInput.value || 95), support_min:Number(bulkSupportInput.value || 3), limit:Number(bulkLimitInput.value || 50) }; }
+      async function previewBulkApproval() { bulkPreviewButton.disabled = true; setMessage('Previewing bulk approval...'); const params = new URLSearchParams(bulkOptions()); try { const payload = await requestJson(`/crate/admin/artist-intelligence/recommendations/bulk-preview?${params}`); bulkResult.textContent = JSON.stringify(payload, null, 2); setMessage(`Bulk preview found ${payload.total_candidate_genres} genre candidate(s) across ${payload.total_candidate_artists} artist(s).`); } catch (error) { setMessage(`Bulk preview failed: ${error.message}`, 'error'); } finally { bulkPreviewButton.disabled = false; } }
+      async function applyBulkApproval() { if (!confirm('Apply the previewed strongest Artist Intelligence genre recommendations?')) return; bulkApplyButton.disabled = true; setMessage('Applying bulk approval...'); try { const payload = await requestJson('/crate/admin/artist-intelligence/recommendations/apply-bulk', { method:'POST', body:JSON.stringify(bulkOptions()) }); bulkResult.textContent = JSON.stringify(payload, null, 2); setMessage(`Bulk approval inserted ${payload.genres_inserted} genre row(s) and skipped ${payload.duplicates_skipped} duplicate(s).`); await loadRecommendations(); } catch (error) { setMessage(`Bulk approval failed: ${error.message}`, 'error'); } finally { bulkApplyButton.disabled = false; } }
       recommendationRows.addEventListener('click', (event) => { const button = event.target.closest('button[data-action]'); if (!button) return; if (button.dataset.action === 'ignore') { ignored.add(key(button.dataset.artistId, button.dataset.genre)); renderRows(); setMessage('Recommendation hidden for this browser session. No data was changed.'); } else approveRecommendation(button.dataset.artistId, button.dataset.genre, button); });
       refreshButton.addEventListener('click', loadRecommendations);
+      bulkPreviewButton.addEventListener('click', previewBulkApproval);
+      bulkApplyButton.addEventListener('click', applyBulkApproval);
       loadRecommendations();
     </script>
   </body>
