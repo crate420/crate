@@ -32,6 +32,18 @@ function createApp() {
 
   app.use(express.json({ limit: "1mb" }));
 
+  app.get("/admin.html", requireAdminPage, (req, res) => {
+    res.sendFile(path.join(config.rootDir, "public/admin.html"));
+  });
+
+  app.get("/admin-review.html", requireAdminPage, (req, res) => {
+    res.sendFile(path.join(config.rootDir, "public/admin-review.html"));
+  });
+
+  app.get("/admin-playlists.html", requireAdminPage, (req, res) => {
+    res.sendFile(path.join(config.rootDir, "public/admin-playlists.html"));
+  });
+
   app.get("/admin-unmatched.html", requireAdminPage, (req, res) => {
     res.sendFile(path.join(config.rootDir, "public/admin-unmatched.html"));
   });

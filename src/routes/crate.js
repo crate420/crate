@@ -368,7 +368,7 @@ router.get("/spotify/liked-songs", requireCurrentUser, async (req, res, next) =>
   }
 });
 
-router.get("/admin/playlists", (req, res) => {
+router.get("/admin/playlists", requireCurrentUser, requireAdminUser, (req, res) => {
   return res.sendFile(path.join(__dirname, "../../public/admin-playlists.html"));
 });
 
@@ -494,7 +494,7 @@ router.get(
   },
 );
 
-router.get("/admin/playlists.json", requireCurrentUser, (req, res, next) => {
+router.get("/admin/playlists.json", requireCurrentUser, requireAdminUser, (req, res, next) => {
   try {
     return res.json(getAdminPlaylistOverview(req.currentUser.id));
   } catch (err) {
@@ -502,7 +502,7 @@ router.get("/admin/playlists.json", requireCurrentUser, (req, res, next) => {
   }
 });
 
-router.get("/admin/playlists/:code/tracks", requireCurrentUser, (req, res, next) => {
+router.get("/admin/playlists/:code/tracks", requireCurrentUser, requireAdminUser, (req, res, next) => {
   try {
     return res.json(getAdminPlaylistTracks(req.currentUser.id, req.params.code));
   } catch (err) {
@@ -627,7 +627,7 @@ router.get("/missing-artist-genre-suggestions", requireCurrentUser, async (req, 
   }
 });
 
-router.get("/artist-genre-suggestions", requireCurrentUser, (req, res, next) => {
+router.get("/artist-genre-suggestions", requireCurrentUser, requireAdminUser, (req, res, next) => {
   try {
     return res.json(getArtistGenreSuggestions({ status: req.query.status }));
   } catch (err) {
@@ -635,7 +635,7 @@ router.get("/artist-genre-suggestions", requireCurrentUser, (req, res, next) => 
   }
 });
 
-router.post("/artist-genre-suggestions/apply", requireCurrentUser, (req, res, next) => {
+router.post("/artist-genre-suggestions/apply", requireCurrentUser, requireAdminUser, (req, res, next) => {
   try {
     const artistName = req.body?.artist_name;
 
@@ -672,7 +672,7 @@ router.post("/artist-genre-suggestions/apply", requireCurrentUser, (req, res, ne
   }
 });
 
-router.post("/artist-genre-suggestions/apply-all", requireCurrentUser, (req, res, next) => {
+router.post("/artist-genre-suggestions/apply-all", requireCurrentUser, requireAdminUser, (req, res, next) => {
   try {
     return res.json({
       status: "ok",
@@ -686,6 +686,7 @@ router.post("/artist-genre-suggestions/apply-all", requireCurrentUser, (req, res
 router.post(
   "/lastfm-artist-genre-suggestions/fetch",
   requireCurrentUser,
+  requireAdminUser,
   async (req, res, next) => {
     try {
       const result = await fetchLastfmArtistGenreSuggestions(req.currentUser.id, {
@@ -709,7 +710,7 @@ router.post(
   },
 );
 
-router.get("/lastfm-artist-genre-suggestions", requireCurrentUser, (req, res, next) => {
+router.get("/lastfm-artist-genre-suggestions", requireCurrentUser, requireAdminUser, (req, res, next) => {
   try {
     return res.json(getLastfmArtistGenreSuggestions({ status: req.query.status }));
   } catch (err) {
@@ -717,7 +718,7 @@ router.get("/lastfm-artist-genre-suggestions", requireCurrentUser, (req, res, ne
   }
 });
 
-router.post("/lastfm-artist-genre-suggestions/apply", requireCurrentUser, (req, res, next) => {
+router.post("/lastfm-artist-genre-suggestions/apply", requireCurrentUser, requireAdminUser, (req, res, next) => {
   try {
     const result = applyLastfmArtistGenreSuggestion(req.body?.artist_name);
 
@@ -740,6 +741,7 @@ router.post("/lastfm-artist-genre-suggestions/apply", requireCurrentUser, (req, 
 router.post(
   "/lastfm-artist-genre-suggestions/apply-safe-batch",
   requireCurrentUser,
+  requireAdminUser,
   (req, res, next) => {
     try {
       return res.json({
@@ -752,7 +754,7 @@ router.post(
   },
 );
 
-router.get("/admin/review-queue", requireCurrentUser, async (req, res, next) => {
+router.get("/admin/review-queue", requireCurrentUser, requireAdminUser, async (req, res, next) => {
   try {
     return res.json(await getAdminReviewQueue(req.currentUser.id));
   } catch (err) {
@@ -760,7 +762,7 @@ router.get("/admin/review-queue", requireCurrentUser, async (req, res, next) => 
   }
 });
 
-router.post("/admin/review-queue/apply", requireCurrentUser, (req, res, next) => {
+router.post("/admin/review-queue/apply", requireCurrentUser, requireAdminUser, (req, res, next) => {
   try {
     return res.json({
       status: "ok",
@@ -781,7 +783,7 @@ router.post("/admin/review-queue/apply", requireCurrentUser, (req, res, next) =>
   }
 });
 
-router.post("/admin/review-queue/ignore", requireCurrentUser, (req, res, next) => {
+router.post("/admin/review-queue/ignore", requireCurrentUser, requireAdminUser, (req, res, next) => {
   try {
     return res.json({
       status: "ok",
