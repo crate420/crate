@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Crate Artist Recommendations</title>
+    <style>
+      :root { --bg:#f6f8fb; --panel:#fff; --text:#17202a; --muted:#657080; --border:#d7dde5; --action:#1769aa; --good:#166534; --bad:#b42318; }
+      * { box-sizing:border-box; }
+      body { margin:0; background:var(--bg); color:var(--text); font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; font-size:14px; }
+      main { max-width:1440px; margin:0 auto; padding:24px; }
+      header, .section-header, .toolbar { display:flex; flex-wrap:wrap; gap:10px; align-items:center; justify-content:space-between; }
+      header { margin-bottom:16px; }
+      h1, h2, h3 { margin:0; }
+      h1 { font-size:24px; } h2 { font-size:18px; } h3 { font-size:15px; }
+      button, a.button, input { border:1px solid var(--border); border-radius:6px; background:#fff; color:var(--text); min-height:34px; padding:6px 10px; font:inherit; }
+      button, a.button { cursor:pointer; display:inline-flex; align-items:center; text-decoration:none; }
+      button.primary { background:var(--action); border-color:var(--action); color:#fff; }
+      button:disabled { cursor:wait; opacity:.6; }
+      input { width:100px; }
+      .message { min-height:22px; color:var(--muted); margin:10px 0; font-weight:600; }
+      .message.error { color:var(--bad); }
+      .panel { background:var(--panel); border:1px solid var(--border); border-radius:8px; margin-bottom:14px; overflow:auto; padding:14px; }
+      table { width:100%; border-collapse:collapse; min-width:760px; }
+      th, td { border-bottom:1px solid var(--border); padding:9px; text-align:left; vertical-align:top; }
+      th { color:#334155; font-size:12px; text-transform:uppercase; letter-spacing:.04em; background:#f8fafc; }
+      .muted { color:var(--muted); }
+      .artist { font-weight:700; }
+      .badge, .signal { border-radius:999px; display:inline-block; font-size:12px; padding:2px 7px; }
+      .badge { background:#eef2f7; color:#334155; }
+      .signal { background:#e8f1fb; color:#214f7a; margin:2px; }
+      .recommendation { border:1px solid var(--border); border-radius:7px; display:grid; gap:6px; margin-top:8px; padding:9px; }
+      .recommendation.approved { border-color:#86efac; background:#f0fdf4; }
+      .approved-note { color:var(--good); font-weight:700; }
+      @media (max-width:720px) { main { padding:16px; } header, .section-header { align-items:flex-start; flex-direction:column; } }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <div><h1>Artist Intelligence Recommendations</h1><div class="muted">Human-review candidates only. Crate writes an artist genre only after explicit admin approval.</div></div>
+        <nav class="toolbar"><a class="button" href="/admin.html">Admin Home</a><a class="button" href="/admin-learning.html">Learning Review</a><a class="button" href="/admin-artist-intelligence.html">Artist Intelligence</a></nav>
+      </header>
+      <section class="panel">
+        <div class="toolbar">
+          <label>Minimum confidence <input id="confidenceInput" type="number" min="85" max="95" value="85"></label>
+          <label>Limit <input id="limitInput" type="number" min="1" max="500" value="100"></label>
+          <label><input id="pendingOnlyInput" type="checkbox"> Pending only</label>
+          <label><input id="reviewedOnlyInput" type="checkbox"> Reviewed only</label>
+          <button class="primary" id="refreshButton" type="button">Refresh</button>
+        </div>
+      </section>
+      <div class="message" id="message">Loading recommendations...</div>
+      <section class="panel">
+        <table>
+          <thead><tr><th>Artist</th><th>Confidence</th><th>Recommended Genres</th><th>Evidence</th></tr></thead>
+          <tbody id="recommendationRows"><tr><td colspan="4" class="muted">Loading...</td></tr></tbody>
+        </table>
+      </section>
+    </main>
+    <script>
+      const recommendationRows = document.getElementById('recommendationRows');
+      const message = document.getElementById('message');
+      const confidenceInput = document.getElementById('confidenceInput');
+      const limitInput = document.getElementById('limitInput');
+      const pendingOnlyInput = document.getElementById('pendingOnlyInput');
+      const reviewedOnlyInput = document.getElementById('reviewedOnlyInput');
+      const refreshButton = document.getElementById('refreshButton');
+      const ignored = new Set();
+      const approved = new Set();
+      let recommendations = [];
+
+      function escapeHtml(value) { return String(value ?? '').replace(/[&<>"]/g, (char) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[char])); }
+      function setMessage(text, type = '') { message.textContent = text; message.className = 'message' + (type ? ' ' + type : ''); }
+      function key(artistId, genre) { return `${artistId}:${genre}`; }
+      async function requestJson(url, options = {}) { const response = await fetch(url, { credentials:'include', headers:{ 'Content-Type':'application/json', ...(options.headers || {}) }, ...options }); const body = await response.json().catch(() => ({})); if (!response.ok) throw new Error(body.message || body.error || `Request failed: ${response.status}`); return body; }
+
+      function renderRecommendation(artist, recommendation) {
+        const recommendationKey = key(artist.id, recommendation.genre);
+        if (ignored.has(recommendationKey)) return '';
+        const isApproved = approved.has(recommendationKey);
+        return `<div class="recommendation${isApproved ? ' approved' : ''}"><div><strong>${escapeHtml(recommendation.genre)}</strong> <span class="badge">${recommendation.support_count} sources</span></div><div class="muted">${recommendation.sources.map(escapeHtml).join(', ')}</div><div class="toolbar">${isApproved ? '<span class="approved-note">Approved</span>' : `<button class="primary" type="button" data-action="approve" data-artist-id="${artist.id}" data-genre="${escapeHtml(recommendation.genre)}">Approve</button><button type="button" data-action="ignore" data-artist-id="${artist.id}" data-genre="${escapeHtml(recommendation.genre)}">Ignore</button>`}</div></div>`;
+      }
+      function renderRows() {
+        const rows = recommendations.map((row) => { const cards = row.recommendations.map((recommendation) => renderRecommendation(row.artist, recommendation)).join(''); if (!cards) return ''; return `<tr><td><div class="artist">${escapeHtml(row.artist.artist_name)}</div><div class="muted">${escapeHtml(row.artist.review_status)}</div></td><td>${row.confidence_score}</td><td>${row.recommended_genres.map((genre) => `<span class="signal">${escapeHtml(genre)}</span>`).join('')}</td><td>${cards}</td></tr>`; }).join('');
+        recommendationRows.innerHTML = rows || '<tr><td colspan="4" class="muted">No recommendation candidates match the current filters.</td></tr>';
+      }
+      async function loadRecommendations() {
+        refreshButton.disabled = true; setMessage('Loading recommendations...');
+        const params = new URLSearchParams({ confidence_min:confidenceInput.value || '85', limit:limitInput.value || '100', pending_only:String(pendingOnlyInput.checked), reviewed_only:String(reviewedOnlyInput.checked) });
+        try { const payload = await requestJson(`/crate/admin/artist-intelligence/recommendations?${params}`); recommendations = payload.recommendations || []; renderRows(); setMessage(`Loaded ${payload.count || 0} artist recommendation candidate(s).`); }
+        catch (error) { setMessage(`Failed to load recommendations: ${error.message}`, 'error'); }
+        finally { refreshButton.disabled = false; }
+      }
+      async function approveRecommendation(artistId, genre, button) {
+        button.disabled = true; setMessage(`Approving ${genre}...`);
+        try { const payload = await requestJson('/crate/admin/artist-intelligence/recommendations/apply', { method:'POST', body:JSON.stringify({ artist_intelligence_id:Number(artistId), genre }) }); approved.add(key(artistId, genre)); renderRows(); setMessage(`${payload.genre} approved for ${payload.artist.artist_name}. Inserted ${payload.inserted_count} new genre row(s).`); }
+        catch (error) { button.disabled = false; setMessage(`Approval failed: ${error.message}`, 'error'); }
+      }
+      recommendationRows.addEventListener('click', (event) => { const button = event.target.closest('button[data-action]'); if (!button) return; if (button.dataset.action === 'ignore') { ignored.add(key(button.dataset.artistId, button.dataset.genre)); renderRows(); setMessage('Recommendation hidden for this browser session. No data was changed.'); } else approveRecommendation(button.dataset.artistId, button.dataset.genre, button); });
+      refreshButton.addEventListener('click', loadRecommendations);
+      loadRecommendations();
+    </script>
+  </body>
+</html>

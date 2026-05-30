@@ -34,6 +34,12 @@ const {
   getStaleArtistIntelligence,
   seedArtistIntelligence,
 } = require("../crate/artistIntelligenceOperations");
+const {
+  findRecommendation,
+  getArtistRecommendationDetail,
+  listArtistIntelligenceRecommendations,
+  normalizeGenre,
+} = require("../crate/artistIntelligenceRecommendations");
 const { getDatabaseDiagnostics } = require("../crate/dbDiagnostics");
 const { getMissingArtistGenres } = require("../crate/missingArtistGenres");
 const { fetchAndCacheMusicBrainzArtistIntelligence } = require("../crate/musicbrainzArtistIntelligence");
@@ -697,6 +703,45 @@ router.post("/admin/artist-intelligence/batch-fetch", requireCurrentUser, requir
     if (err.statusCode) {
       return res.status(err.statusCode).json({ error: err.code || "artist_intelligence_batch_fetch_error", message: err.message });
     }
+    return next(err);
+  }
+});
+
+router.get("/admin/artist-intelligence/recommendations", requireCurrentUser, requireAdminUser, (req, res, next) => {
+  try {
+    const recommendations = listArtistIntelligenceRecommendations({
+      confidenceMin: req.query.confidence_min,
+      limit: req.query.limit,
+      reviewedOnly: req.query.reviewed_only === "true",
+      pendingOnly: req.query.pending_only === "true",
+    });
+    return res.json({ status: "ok", count: recommendations.length, recommendations });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.get("/admin/artist-intelligence/recommendations/:id", requireCurrentUser, requireAdminUser, (req, res, next) => {
+  try {
+    const detail = getArtistRecommendationDetail(req.params.id);
+    if (!detail) return res.status(404).json({ error: "artist_intelligence_not_found", message: "Artist intelligence record not found." });
+    return res.json({ status: "ok", ...detail });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.post("/admin/artist-intelligence/recommendations/apply", requireCurrentUser, requireAdminUser, (req, res, next) => {
+  try {
+    const artistIntelligenceId = Number.parseInt(req.body?.artist_intelligence_id, 10);
+    const genre = normalizeGenre(req.body?.genre);
+    const detail = getArtistRecommendationDetail(artistIntelligenceId);
+    if (!detail) return res.status(404).json({ error: "artist_intelligence_not_found", message: "Artist intelligence record not found." });
+    const recommendation = findRecommendation(artistIntelligenceId, genre);
+    if (!recommendation) return res.status(400).json({ error: "recommendation_not_found", message: "Genre is not a current approved Artist Intelligence recommendation." });
+    const result = artistGenreRepo.insertArtistGenres({ artistName: detail.artist.artist_name, genres: [genre], source: "artist_intelligence_admin" });
+    return res.json({ status: "ok", artist: detail.artist, genre, support_count: recommendation.support_count, supporting_sources: recommendation.sources, inserted_count: result.inserted });
+  } catch (err) {
     return next(err);
   }
 });

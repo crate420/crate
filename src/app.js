@@ -56,6 +56,10 @@ function createApp() {
     res.sendFile(path.join(config.rootDir, "public/admin-artist-intelligence.html"));
   });
 
+  app.get("/admin-artist-recommendations.html", requireAdminPage, (req, res) => {
+    res.sendFile(path.join(config.rootDir, "public/admin-artist-recommendations.html"));
+  });
+
   app.use(express.static(path.join(config.rootDir, "public")));
 
   app.use("/auth", authRouter);
