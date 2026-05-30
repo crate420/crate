@@ -1,10 +1,12 @@
 const artistGenreRepo = require("../repositories/artistGenres");
+const artistIntelligenceRepo = require("../repositories/artistIntelligence");
 const lastfmArtistTagRepo = require("../repositories/lastfmArtistTags");
 const lastfmClient = require("../lastfm/client");
 const { getMissingArtistGenres } = require("./missingArtistGenres");
 
 const DEFAULT_LIMIT = 25;
 const MAX_LIMIT = 100;
+const ARTIST_INTELLIGENCE_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
 // Conservative v1 mapper. Last.fm is folksonomy data, so only clear tags map
 // to Crate's existing category names. Everything else remains review-only.
@@ -84,6 +86,29 @@ function getConfidence(mappedGenres) {
   }
 
   return "low";
+}
+
+function normalizeLastfmSignals(tags) {
+  return [...new Set(
+    tags
+      .map((tag) => String(tag.name || "").trim().toLowerCase())
+      .filter(Boolean),
+  )];
+}
+
+function cacheLastfmArtistIntelligence({ artistName, sourceArtistName, rawPayload, rawTags }) {
+  const fetchedAt = new Date();
+  const artistIntelligence = artistIntelligenceRepo.getOrCreateArtistIntelligence({ artistName });
+
+  return artistIntelligenceRepo.upsertArtistIntelligenceSource({
+    artistIntelligenceId: artistIntelligence.id,
+    source: "lastfm",
+    sourceArtistName,
+    rawPayload,
+    normalizedSignals: normalizeLastfmSignals(rawTags),
+    fetchedAt: fetchedAt.toISOString(),
+    expiresAt: new Date(fetchedAt.getTime() + ARTIST_INTELLIGENCE_TTL_MS).toISOString(),
+  });
 }
 
 function serializeRow(row) {
@@ -166,6 +191,20 @@ async function fetchLastfmArtistGenreSuggestions(userId, options = {}) {
       };
 
       lastfmArtistTagRepo.upsertLookup(row);
+      try {
+        cacheLastfmArtistIntelligence({
+          artistName,
+          sourceArtistName: result.sourceArtistName,
+          rawPayload: result.rawPayload,
+          rawTags,
+        });
+      } catch (error) {
+        console.error("[Crate Intelligence] Last.fm sidecar cache failed; preserving existing workflow", {
+          artist_name: artistName,
+          code: error.code || null,
+          message: error.message,
+        });
+      }
       stats.cached += 1;
       stats.artists.push({
         artist_name: artistName,
@@ -279,6 +318,8 @@ function applySafeLastfmArtistGenreSuggestionBatch() {
 module.exports = {
   applyLastfmArtistGenreSuggestion,
   applySafeLastfmArtistGenreSuggestionBatch,
+  cacheLastfmArtistIntelligence,
   fetchLastfmArtistGenreSuggestions,
   getLastfmArtistGenreSuggestions,
+  normalizeLastfmSignals,
 };
