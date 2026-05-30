@@ -145,7 +145,7 @@
       function renderDetail(payload) {
         const artist = payload.artist;
         const bySource = Object.fromEntries((payload.sources || []).map((source) => [source.source.toLowerCase(), source]));
-        detail.innerHTML = `<div class="detail-heading"><h3>${escapeHtml(artist.artist_name)}</h3><div class="muted">Stored confidence: ${formatNumber(artist.confidence_score)} · ${formatNumber(artist.source_count)} source(s)</div><button id="fetchMusicBrainzButton" type="button">Fetch MusicBrainz</button></div>
+        detail.innerHTML = `<div class="detail-heading"><h3>${escapeHtml(artist.artist_name)}</h3><div class="muted">Stored confidence: ${formatNumber(artist.confidence_score)} · ${formatNumber(artist.source_count)} source(s)</div><div class="toolbar"><button id="fetchSpotifyButton" type="button">Fetch Spotify</button><button id="fetchMusicBrainzButton" type="button">Fetch MusicBrainz</button></div></div>
           <div class="source-list">${renderSource('Spotify', bySource.spotify)}${renderSource('Last.fm', bySource.lastfm)}${renderSource('MusicBrainz', bySource.musicbrainz)}</div>`;
       }
 
@@ -186,8 +186,27 @@
         }
       }
 
+      async function fetchSpotify() {
+        if (!selectedArtistId) return;
+        const button = document.getElementById('fetchSpotifyButton');
+        if (button) button.disabled = true;
+        setMessage('Fetching Spotify artist intelligence...');
+        try {
+          const payload = await requestJson('/crate/admin/artist-intelligence/spotify/fetch', { method:'POST', body:JSON.stringify({ artistIntelligenceId:selectedArtistId }) });
+          setMessage(`Cached Spotify evidence for ${payload.intelligence.artist_name}.`);
+          await loadDetail(selectedArtistId);
+          await loadArtists();
+        } catch (error) {
+          setMessage(`Spotify fetch failed: ${error.message}`, 'error');
+          if (button) button.disabled = false;
+        }
+      }
+
       artistRows.addEventListener('click', (event) => { const row = event.target.closest('tr[data-artist-id]'); if (row) loadDetail(row.dataset.artistId); });
-      detail.addEventListener('click', (event) => { if (event.target.id === 'fetchMusicBrainzButton') fetchMusicBrainz(); });
+      detail.addEventListener('click', (event) => {
+        if (event.target.id === 'fetchSpotifyButton') fetchSpotify();
+        if (event.target.id === 'fetchMusicBrainzButton') fetchMusicBrainz();
+      });
       searchButton.addEventListener('click', loadArtists);
       refreshButton.addEventListener('click', loadArtists);
       clearButton.addEventListener('click', () => { searchInput.value = ''; statusSelect.value = ''; loadArtists(); });

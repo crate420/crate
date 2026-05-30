@@ -70,6 +70,40 @@ async function getArtistsByIds(userId, artistIds) {
   return artistsById;
 }
 
+async function getArtistById(userId, artistId) {
+  const normalizedArtistId = String(artistId || "").trim();
+
+  if (!normalizedArtistId) {
+    const error = new Error("artistId is required.");
+    error.code = "invalid_spotify_artist_id";
+    error.statusCode = 400;
+    throw error;
+  }
+
+  return requestSpotify(userId, `/artists/${encodeURIComponent(normalizedArtistId)}`);
+}
+
+async function searchArtists(userId, artistName, limit = 5) {
+  const normalizedArtistName = String(artistName || "").trim();
+
+  if (!normalizedArtistName) {
+    const error = new Error("artistName is required.");
+    error.code = "invalid_artist_name";
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const params = new URLSearchParams({
+    q: `artist:${normalizedArtistName}`,
+    type: "artist",
+    limit: String(limit),
+  });
+
+  return requestSpotify(userId, `/search?${params.toString()}`);
+}
+
 module.exports = {
+  getArtistById,
   getArtistsByIds,
+  searchArtists,
 };

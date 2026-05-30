@@ -36,6 +36,7 @@ const { getTopArtists } = require("../crate/topArtists");
 const { syncPlaylists } = require("../crate/syncPlaylists");
 const { syncLikedSongs } = require("../crate/syncLikedSongs");
 const { sortTracks } = require("../crate/sortTracks");
+const { fetchAndCacheSpotifyArtistIntelligence } = require("../crate/spotifyArtistIntelligence");
 const { applyTrackOverride, getTrackForReview } = require("../crate/trackOverrides");
 const { importTrainingData } = require("../crate/trainingImport");
 const { getUnmatchedDiagnostics } = require("../crate/unmatchedDiagnostics");
@@ -707,6 +708,27 @@ router.post("/admin/artist-intelligence/musicbrainz/fetch", requireCurrentUser, 
     if (err.statusCode) {
       return res.status(err.statusCode).json({
         error: err.code || "musicbrainz_fetch_error",
+        message: err.message,
+      });
+    }
+
+    return next(err);
+  }
+});
+
+router.post("/admin/artist-intelligence/spotify/fetch", requireCurrentUser, requireAdminUser, async (req, res, next) => {
+  try {
+    return res.json({
+      status: "ok",
+      intelligence: await fetchAndCacheSpotifyArtistIntelligence(req.currentUser.id, {
+        artistName: req.body?.artistName,
+        artistIntelligenceId: req.body?.artistIntelligenceId,
+      }),
+    });
+  } catch (err) {
+    if (err.statusCode) {
+      return res.status(err.statusCode).json({
+        error: err.code || "spotify_artist_intelligence_fetch_error",
         message: err.message,
       });
     }
