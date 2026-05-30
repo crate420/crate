@@ -50,6 +50,9 @@
       .notes { color:var(--muted); margin:6px 0 0; padding-left:18px; }
       .operations { display:grid; gap:10px; margin-bottom:14px; }
       .operations-summary { background:#f8fafc; border:1px solid var(--border); border-radius:6px; color:var(--muted); min-height:38px; padding:9px; white-space:pre-wrap; }
+      .auto-run { border-top:1px solid var(--border); display:grid; gap:9px; padding-top:10px; }
+      .auto-run label { color:var(--muted); display:grid; font-size:12px; font-weight:700; gap:3px; }
+      .auto-run input, .auto-run select { min-width:110px; }
       @media (max-width:980px) { .layout { grid-template-columns:1fr; } }
       @media (max-width:720px) { main { padding:16px; } header, .section-header { flex-direction:column; } input { min-width:0; width:100%; } }
     </style>
@@ -91,6 +94,17 @@
           <button data-operation="batch-all" type="button">Batch Fetch All Missing Sources</button>
           <button data-operation="stale" type="button">Refresh Stale Summary</button>
         </div>
+        <div class="auto-run">
+          <div><h3>Auto Run</h3><div class="muted">Runs capped browser-driven batches until the limit is reached, no eligible artists remain, a request fails, or you stop it.</div></div>
+          <div class="toolbar">
+            <label>Source<select id="autoRunSource"><option value="spotify">Spotify</option><option value="lastfm">Last.fm</option><option value="musicbrainz">MusicBrainz</option><option value="all">All sources</option></select></label>
+            <label>Batch limit<input id="autoRunLimit" type="number" min="1" max="50" value="10"></label>
+            <label>Delay seconds<input id="autoRunDelay" type="number" min="1" max="60" value="5"></label>
+            <label>Max batches<input id="autoRunMaxBatches" type="number" min="1" max="100" value="5"></label>
+          </div>
+          <div class="toolbar"><button class="primary" id="startAutoRunButton" type="button">Start Auto Run</button><button id="stopAutoRunButton" type="button" disabled>Stop Auto Run</button></div>
+          <div class="operations-summary" id="autoRunSummary">Auto Run is idle.</div>
+        </div>
         <div class="operations-summary" id="operationsSummary">No maintenance operation run yet.</div>
       </section>
       <div class="message" id="message">Loading artist intelligence...</div>
@@ -121,7 +135,15 @@
       const refreshButton = document.getElementById('refreshButton');
       const recalculateButton = document.getElementById('recalculateButton');
       const operationsSummary = document.getElementById('operationsSummary');
+      const autoRunSource = document.getElementById('autoRunSource');
+      const autoRunLimit = document.getElementById('autoRunLimit');
+      const autoRunDelay = document.getElementById('autoRunDelay');
+      const autoRunMaxBatches = document.getElementById('autoRunMaxBatches');
+      const startAutoRunButton = document.getElementById('startAutoRunButton');
+      const stopAutoRunButton = document.getElementById('stopAutoRunButton');
+      const autoRunSummary = document.getElementById('autoRunSummary');
       let selectedArtistId = null;
+      let autoRunState = null;
 
       function escapeHtml(value) { return String(value ?? '').replace(/[&<>"]/g, (char) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[char])); }
       function formatDate(value) { return value ? new Date(value).toLocaleString() : '-'; }
@@ -282,6 +304,47 @@
         }
       }
 
+      function clampInteger(value, fallback, min, max) { const parsed = Number.parseInt(value, 10); return Math.min(Math.max(Number.isInteger(parsed) ? parsed : fallback, min), max); }
+      function wait(ms) { return new Promise((resolve) => setTimeout(resolve, ms)); }
+      function autoRunSources() { return autoRunSource.value === 'all' ? ['spotify','lastfm','musicbrainz'] : [autoRunSource.value]; }
+      function renderAutoRunSummary(lastResult = null) {
+        if (!autoRunState) { autoRunSummary.textContent = 'Auto Run is idle.'; return; }
+        autoRunSummary.textContent = JSON.stringify({ running:autoRunState.running, batch:autoRunState.batch, max_batches:autoRunState.maxBatches, total_attempted:autoRunState.attempted, total_succeeded:autoRunState.succeeded, total_failed:autoRunState.failed, last_result:lastResult || autoRunState.lastResult }, null, 2);
+      }
+      function stopAutoRun(message = 'Auto Run stopped.') {
+        if (!autoRunState) return;
+        autoRunState.running = false;
+        startAutoRunButton.disabled = false;
+        stopAutoRunButton.disabled = true;
+        renderAutoRunSummary();
+        setMessage(message);
+      }
+      async function startAutoRun() {
+        if (autoRunState?.running) return;
+        autoRunState = { running:true, batch:0, maxBatches:clampInteger(autoRunMaxBatches.value,5,1,100), attempted:0, succeeded:0, failed:0, lastResult:null };
+        const limit = clampInteger(autoRunLimit.value,10,1,50);
+        const delayMs = clampInteger(autoRunDelay.value,5,1,60) * 1000;
+        startAutoRunButton.disabled = true;
+        stopAutoRunButton.disabled = false;
+        renderAutoRunSummary();
+        while (autoRunState.running && autoRunState.batch < autoRunState.maxBatches) {
+          autoRunState.batch += 1;
+          setMessage(`Auto Run batch ${autoRunState.batch} of ${autoRunState.maxBatches}...`);
+          try {
+            const payload = await requestJson('/crate/admin/artist-intelligence/batch-fetch', { method:'POST', body:JSON.stringify({ sources:autoRunSources(), limit, onlyMissing:true, onlyExpired:false }) });
+            autoRunState.lastResult = payload;
+            autoRunState.attempted += Number(payload.attempted || 0);
+            autoRunState.succeeded += Number(payload.succeeded || 0);
+            autoRunState.failed += Number(payload.failed || 0);
+            renderAutoRunSummary(payload);
+            if (!payload.attempted) { stopAutoRun('Auto Run complete: no eligible artists remain.'); break; }
+            if (autoRunState.batch < autoRunState.maxBatches) await wait(delayMs);
+          } catch (error) { stopAutoRun(`Auto Run failed: ${error.message}`); break; }
+        }
+        if (autoRunState?.running) stopAutoRun(`Auto Run complete after ${autoRunState.batch} batch(es).`);
+        await loadArtists();
+      }
+
       artistRows.addEventListener('click', (event) => { const row = event.target.closest('tr[data-artist-id]'); if (row) loadDetail(row.dataset.artistId); });
       detail.addEventListener('click', (event) => {
         if (event.target.id === 'fetchSpotifyButton') fetchSpotify();
@@ -292,6 +355,8 @@
       clearButton.addEventListener('click', () => { searchInput.value = ''; statusSelect.value = ''; loadArtists(); });
       recalculateButton.addEventListener('click', recalculateConfidence);
       document.querySelectorAll('[data-operation]').forEach((button) => button.addEventListener('click', () => runOperation(button)));
+      startAutoRunButton.addEventListener('click', startAutoRun);
+      stopAutoRunButton.addEventListener('click', () => stopAutoRun('Auto Run stopped by admin.'));
       searchInput.addEventListener('keydown', (event) => { if (event.key === 'Enter') loadArtists(); });
       loadArtists();
     </script>

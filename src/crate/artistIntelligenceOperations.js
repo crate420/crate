@@ -9,6 +9,7 @@ const DEFAULT_BATCH_LIMIT = 10;
 const MAX_BATCH_LIMIT = 50;
 const DEFAULT_SEED_LIMIT = 250;
 const MAX_SEED_LIMIT = 1000;
+const ERROR_RETRY_COOLDOWN_MS = 24 * 60 * 60 * 1000;
 
 const SOURCE_ADAPTERS = {
   spotify: (userId, artist) => fetchAndCacheSpotifyArtistIntelligence(userId, { artistIntelligenceId: artist.id }),
@@ -110,8 +111,13 @@ function listSourceRowsByArtistId() {
   return rowsByArtistId;
 }
 
-function sourceNeedsFetch(row, { onlyMissing, onlyExpired }, nowMs) {
-  if (!row) return onlyMissing;
+function sourceNeedsFetch(row, { onlyMissing, onlyExpired, force }, nowMs) {
+  if (!row) return onlyMissing || force;
+  if (force) return true;
+  if (row.error_code) {
+    const retryAtMs = row.expires_at ? new Date(row.expires_at).getTime() : null;
+    return onlyExpired && Number.isFinite(retryAtMs) && retryAtMs <= nowMs;
+  }
   if (onlyExpired) {
     const expiresAtMs = row.expires_at ? new Date(row.expires_at).getTime() : null;
     return Number.isFinite(expiresAtMs) && expiresAtMs <= nowMs;
@@ -119,17 +125,23 @@ function sourceNeedsFetch(row, { onlyMissing, onlyExpired }, nowMs) {
   return !onlyMissing;
 }
 
-function selectBatchArtists({ sources, limit, onlyMissing, onlyExpired }) {
+function selectBatchArtists({ sources, limit, onlyMissing, onlyExpired, force }) {
   const rowsByArtistId = listSourceRowsByArtistId();
   const nowMs = Date.now();
   return openDatabase().prepare("SELECT * FROM artist_intelligence ORDER BY updated_at ASC, id ASC").all()
-    .filter((artist) => sources.some((source) => sourceNeedsFetch(rowsByArtistId.get(artist.id)?.get(source), { onlyMissing, onlyExpired }, nowMs)))
+    .map((artist) => {
+      const sourceRows = rowsByArtistId.get(artist.id) || new Map();
+      const eligibleSources = sources.filter((source) => sourceNeedsFetch(sourceRows.get(source), { onlyMissing, onlyExpired, force }, nowMs));
+      return { artist, sourceRows, eligibleSources, missingCount: eligibleSources.filter((source) => !sourceRows.get(source)).length };
+    })
+    .filter(({ eligibleSources }) => eligibleSources.length > 0)
+    .sort((left, right) => right.missingCount - left.missingCount || left.artist.updated_at.localeCompare(right.artist.updated_at) || left.artist.id - right.artist.id)
     .slice(0, limit)
-    .map((artist) => ({ artist, sourceRows: rowsByArtistId.get(artist.id) || new Map() }));
+    .map(({ artist, sourceRows }) => ({ artist, sourceRows }));
 }
 
 function cacheSourceError(artist, source, error) {
-  const fetchedAt = new Date().toISOString();
+  const fetchedAt = new Date();
   artistIntelligenceRepo.upsertArtistIntelligenceSource({
     artistIntelligenceId: artist.id,
     source,
@@ -137,8 +149,8 @@ function cacheSourceError(artist, source, error) {
     normalizedSignals: [],
     errorCode: error.code || `${source}_fetch_error`,
     errorMessage: error.message,
-    fetchedAt,
-    expiresAt: fetchedAt,
+    fetchedAt: fetchedAt.toISOString(),
+    expiresAt: new Date(fetchedAt.getTime() + ERROR_RETRY_COOLDOWN_MS).toISOString(),
   });
 }
 
@@ -147,6 +159,7 @@ async function batchFetchArtistIntelligence(userId, options = {}, adapters = SOU
   const limit = normalizeLimit(options.limit, DEFAULT_BATCH_LIMIT, MAX_BATCH_LIMIT);
   const onlyExpired = options.onlyExpired === true;
   const onlyMissing = onlyExpired ? false : options.onlyMissing !== false;
+  const force = options.force === true;
   if (sources.length === 0) {
     const error = new Error("At least one supported source is required.");
     error.code = "invalid_artist_intelligence_sources";
@@ -154,9 +167,9 @@ async function batchFetchArtistIntelligence(userId, options = {}, adapters = SOU
     throw error;
   }
 
-  const artists = selectBatchArtists({ sources, limit, onlyMissing, onlyExpired });
+  const artists = selectBatchArtists({ sources, limit, onlyMissing, onlyExpired, force });
   const summary = {
-    limit, sources, only_missing: onlyMissing, only_expired: onlyExpired, artists_selected: artists.length,
+    limit, sources, only_missing: onlyMissing, only_expired: onlyExpired, force, artists_selected: artists.length,
     attempted: 0, succeeded: 0, failed: 0, skipped: 0,
     per_source: Object.fromEntries(sources.map((source) => [source, { attempted: 0, succeeded: 0, failed: 0, skipped: 0 }])),
     errors: [],
@@ -164,7 +177,7 @@ async function batchFetchArtistIntelligence(userId, options = {}, adapters = SOU
 
   for (const { artist, sourceRows } of artists) {
     for (const source of sources) {
-      if (!sourceNeedsFetch(sourceRows.get(source), { onlyMissing, onlyExpired }, Date.now())) {
+      if (!sourceNeedsFetch(sourceRows.get(source), { onlyMissing, onlyExpired, force }, Date.now())) {
         summary.skipped += 1;
         summary.per_source[source].skipped += 1;
         continue;
@@ -204,4 +217,4 @@ function getStaleArtistIntelligence() {
   };
 }
 
-module.exports = { MAX_BATCH_LIMIT, SUPPORTED_SOURCES, batchFetchArtistIntelligence, getStaleArtistIntelligence, parseTrackArtists, seedArtistIntelligence };
+module.exports = { ERROR_RETRY_COOLDOWN_MS, MAX_BATCH_LIMIT, SUPPORTED_SOURCES, batchFetchArtistIntelligence, getStaleArtistIntelligence, parseTrackArtists, seedArtistIntelligence };
