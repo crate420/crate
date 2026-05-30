@@ -1,5 +1,6 @@
 const { openDatabase } = require("../db");
 const { sourceComparisonSignals } = require("./artistIntelligenceComparison");
+const { classifySignal } = require("./signalClassification");
 
 const MIN_RECOMMENDATION_CONFIDENCE = 85;
 const DEFAULT_LIMIT = 100;
@@ -42,8 +43,8 @@ function buildRecommendations(artist, sources = []) {
   }
 
   return [...supportingSources.entries()]
-    .filter(([, names]) => names.size >= 2)
-    .map(([genre, names]) => ({ genre, support_count: names.size, sources: [...names].sort() }))
+    .filter(([signal, names]) => names.size >= 2 && classifySignal(signal) === "GENRE")
+    .map(([genre, names]) => ({ genre, classification: "GENRE", support_count: names.size, sources: [...names].sort() }))
     .sort((left, right) => right.support_count - left.support_count || left.genre.localeCompare(right.genre));
 }
 

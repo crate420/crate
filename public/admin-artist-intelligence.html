@@ -48,6 +48,7 @@
       .comparison { border-top:1px solid var(--border); margin-top:12px; padding-top:12px; }
       .comparison-block { margin-top:10px; }
       .notes { color:var(--muted); margin:6px 0 0; padding-left:18px; }
+      .signal-breakdown { border-top:1px solid var(--border); margin-top:12px; padding-top:12px; }
       .operations { display:grid; gap:10px; margin-bottom:14px; }
       .operations-summary { background:#f8fafc; border:1px solid var(--border); border-radius:6px; color:var(--muted); min-height:38px; padding:9px; white-space:pre-wrap; }
       .auto-run { border-top:1px solid var(--border); display:grid; gap:9px; padding-top:10px; }
@@ -202,11 +203,16 @@
         </section>`;
       }
 
+      function renderSignalBreakdown(signals = []) {
+        const grouped = signals.reduce((result, signal) => { (result[signal.classification] ||= []).push(signal); return result; }, {});
+        return `<section class="signal-breakdown"><h3>Signal Breakdown</h3>${['GENRE','COUNTRY','REGION','ERA','DESCRIPTOR','MOOD','STYLE','UNKNOWN'].map((type) => `<div class="comparison-block"><div class="label">${type}</div><div class="signals">${renderSignals((grouped[type] || []).map((signal) => signal.signal))}</div></div>`).join('')}</section>`;
+      }
+
       function renderDetail(payload) {
         const artist = payload.artist;
         const bySource = Object.fromEntries((payload.sources || []).map((source) => [source.source.toLowerCase(), source]));
         detail.innerHTML = `<div class="detail-heading"><h3>${escapeHtml(artist.artist_name)}</h3><div class="muted">Stored confidence: ${formatNumber(artist.confidence_score)} · ${formatNumber(artist.source_count)} source(s)</div><div class="toolbar"><button id="fetchSpotifyButton" type="button">Fetch Spotify</button><button id="fetchMusicBrainzButton" type="button">Fetch MusicBrainz</button></div></div>
-          <div class="source-list">${renderSource('Spotify', bySource.spotify)}${renderSource('Last.fm', bySource.lastfm)}${renderSource('MusicBrainz', bySource.musicbrainz)}</div>${renderComparison(payload.source_comparison)}`;
+          <div class="source-list">${renderSource('Spotify', bySource.spotify)}${renderSource('Last.fm', bySource.lastfm)}${renderSource('MusicBrainz', bySource.musicbrainz)}</div>${renderComparison(payload.source_comparison)}${renderSignalBreakdown(payload.signal_breakdown)}`;
       }
 
       async function loadDetail(artistId) {

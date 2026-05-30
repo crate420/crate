@@ -22,6 +22,7 @@ const {
   getMissingArtistGenreSuggestions,
 } = require("../crate/artistGenreSuggestions");
 const { compareArtistIntelligenceSources } = require("../crate/artistIntelligenceComparison");
+const { classifySignals } = require("../crate/signalClassification");
 const { importArtistGenreSeed } = require("../crate/artistGenreSeedImport");
 const {
   applyLastfmArtistGenreSuggestion,
@@ -770,6 +771,7 @@ router.get("/admin/artist-intelligence/:id", requireCurrentUser, requireAdminUse
         expected: ["spotify", "lastfm", "musicbrainz"],
       },
       source_comparison: compareArtistIntelligenceSources(sourceRows),
+      signal_breakdown: classifySignals(sourceRows.flatMap((source) => parseArtistIntelligenceSignals(source.normalized_signals_json))),
     });
   } catch (err) {
     return next(err);
