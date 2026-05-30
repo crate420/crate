@@ -735,20 +735,32 @@ router.get("/admin/artist-intelligence/recommendations/bulk-preview", requireCur
 router.post("/admin/artist-intelligence/recommendations/apply-bulk", requireCurrentUser, requireAdminUser, (req, res, next) => {
   try {
     const plan = getBulkRecommendationCandidates({ confidenceMin: req.body?.confidence_min, supportMin: req.body?.support_min, limit: req.body?.limit });
-    const summary = { artists_reviewed: plan.artists.length, genres_inserted: 0, duplicates_skipped: 0, rejected_count: 0, sample_inserted_rows: [] };
+    const db = openDatabase();
+    const artistGenresBefore = db.prepare("SELECT COUNT(*) AS count FROM artist_genres").get().count;
+    const summary = { artists_reviewed: plan.artists.length, candidates_considered: 0, genres_inserted: 0, duplicates_skipped: 0, rejected_count: 0, error_count: 0, errors: [], sample_inserted_rows: [] };
     for (const row of plan.artists) {
       for (const recommendation of row.recommendations) {
+        summary.candidates_considered += 1;
         if (recommendation.classification !== "GENRE") { summary.rejected_count += 1; continue; }
-        const result = artistGenreRepo.insertArtistGenres({ artistName: row.artist.artist_name, genres: [recommendation.genre], source: "artist_intelligence_admin_bulk" });
-        if (result.inserted) {
-          summary.genres_inserted += result.inserted;
-          if (summary.sample_inserted_rows.length < 20) summary.sample_inserted_rows.push({ artist_name: row.artist.artist_name, genre: recommendation.genre, support_count: recommendation.support_count, supporting_sources: recommendation.sources });
-        } else {
-          summary.duplicates_skipped += 1;
+        try {
+          const result = artistGenreRepo.insertArtistGenres({ artistName: row.artist.artist_name, genres: [recommendation.genre], source: "artist_intelligence_admin_bulk" });
+          if (result.inserted) {
+            summary.genres_inserted += result.inserted;
+            if (summary.sample_inserted_rows.length < 20) summary.sample_inserted_rows.push({ artist_name: row.artist.artist_name, genre: recommendation.genre, support_count: recommendation.support_count, supporting_sources: recommendation.sources });
+          } else {
+            summary.duplicates_skipped += 1;
+          }
+        } catch (error) {
+          summary.error_count += 1;
+          summary.errors.push({ artist_name: row.artist.artist_name, genre: recommendation.genre, message: error.message });
         }
       }
     }
-    return res.json({ status: "ok", confidence_min: plan.confidence_min, support_min: plan.support_min, limit: plan.limit, ...summary });
+    const artistGenresAfter = db.prepare("SELECT COUNT(*) AS count FROM artist_genres").get().count;
+    const noInsertReason = summary.genres_inserted === 0
+      ? (summary.candidates_considered === 0 ? "No recommendations matched the bulk filters." : summary.duplicates_skipped === summary.candidates_considered ? "All matching recommendations already exist in artist_genres." : "No new artist_genres rows were inserted. Review rejected_count and errors.")
+      : null;
+    return res.json({ status: "ok", confidence_min: plan.confidence_min, support_min: plan.support_min, limit: plan.limit, artist_genres_before: artistGenresBefore, artist_genres_after: artistGenresAfter, artist_genres_delta: artistGenresAfter - artistGenresBefore, no_insert_reason: noInsertReason, ...summary });
   } catch (err) {
     return next(err);
   }
