@@ -84,17 +84,22 @@ function logUnmatchedGenre({
   return { logged: result.changes > 0 };
 }
 
-function getMostCommonUnmatchedGenres(userId, { limit = 50 } = {}) {
+function scopeFilter(scope) {
+  return scope === "all" ? "" : "WHERE user_id = @userId";
+}
+
+function getMostCommonUnmatchedGenres(userId, { limit = 50, scope = "user" } = {}) {
   return openDatabase()
     .prepare(`
       SELECT
         normalized_genre,
         MAX(genre) AS genre,
+        COUNT(DISTINCT user_id) AS user_count,
         COUNT(*) AS artist_count,
         SUM(occurrence_count) AS occurrence_count,
         MAX(last_seen_at) AS last_seen_at
       FROM unmatched_genre_logs
-      WHERE user_id = @userId
+      ${scopeFilter(scope)}
       GROUP BY normalized_genre
       ORDER BY occurrence_count DESC, artist_count DESC, genre COLLATE NOCASE ASC
       LIMIT @limit
@@ -102,17 +107,18 @@ function getMostCommonUnmatchedGenres(userId, { limit = 50 } = {}) {
     .all({ userId, limit });
 }
 
-function getMostCommonUnmatchedArtists(userId, { limit = 50 } = {}) {
+function getMostCommonUnmatchedArtists(userId, { limit = 50, scope = "user" } = {}) {
   return openDatabase()
     .prepare(`
       SELECT
         normalized_artist_name,
         MAX(artist_name) AS artist_name,
+        COUNT(DISTINCT user_id) AS user_count,
         COUNT(*) AS genre_count,
         SUM(occurrence_count) AS occurrence_count,
         MAX(last_seen_at) AS last_seen_at
       FROM unmatched_genre_logs
-      WHERE user_id = @userId
+      ${scopeFilter(scope)}
       GROUP BY normalized_artist_name
       ORDER BY occurrence_count DESC, genre_count DESC, artist_name COLLATE NOCASE ASC
       LIMIT @limit
@@ -120,7 +126,7 @@ function getMostCommonUnmatchedArtists(userId, { limit = 50 } = {}) {
     .all({ userId, limit });
 }
 
-function getRecentUnmatchedGenreLogs(userId, { limit = 100 } = {}) {
+function getRecentUnmatchedGenreLogs(userId, { limit = 100, scope = "user" } = {}) {
   return openDatabase()
     .prepare(`
       SELECT
@@ -135,7 +141,7 @@ function getRecentUnmatchedGenreLogs(userId, { limit = 100 } = {}) {
         last_seen_at,
         occurrence_count
       FROM unmatched_genre_logs
-      WHERE user_id = @userId
+      ${scopeFilter(scope)}
       ORDER BY last_seen_at DESC, id DESC
       LIMIT @limit
     `)

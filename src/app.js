@@ -36,6 +36,10 @@ function createApp() {
     res.sendFile(path.join(config.rootDir, "public/admin-unmatched.html"));
   });
 
+  app.get("/admin-learning.html", requireAdminPage, (req, res) => {
+    res.sendFile(path.join(config.rootDir, "public/admin-learning.html"));
+  });
+
   app.use(express.static(path.join(config.rootDir, "public")));
 
   app.use("/auth", authRouter);

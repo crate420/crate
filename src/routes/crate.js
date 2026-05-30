@@ -596,6 +596,7 @@ router.get("/admin/unmatched-genre-learning", requireCurrentUser, requireAdminUs
     return res.json(getUnmatchedGenreLearningSummary(req.currentUser.id, {
       limit: req.query.limit,
       recentLimit: req.query.recent_limit,
+      scope: req.query.scope,
     }));
   } catch (err) {
     return next(err);

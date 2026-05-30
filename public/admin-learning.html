@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Crate Admin Learning Review</title>
+    <style>
+      :root { --bg:#f6f8fb; --panel:#fff; --text:#17202a; --muted:#657080; --border:#d7dde5; --action:#1769aa; --bad:#b42318; }
+      * { box-sizing:border-box; }
+      body { margin:0; background:var(--bg); color:var(--text); font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; font-size:14px; }
+      main { max-width:1440px; margin:0 auto; padding:24px; }
+      header, .section-header { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; }
+      header { margin-bottom:16px; }
+      h1 { margin:0; font-size:24px; }
+      h2 { margin:0; font-size:18px; }
+      .toolbar { display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
+      button, a.button { border:1px solid var(--border); border-radius:6px; background:#fff; color:var(--text); cursor:pointer; display:inline-flex; align-items:center; min-height:34px; padding:6px 10px; text-decoration:none; font:inherit; }
+      button.primary { background:var(--action); border-color:var(--action); color:#fff; }
+      button:disabled { cursor:wait; opacity:.6; }
+      .message { min-height:22px; color:var(--muted); margin-bottom:12px; font-weight:600; }
+      .message.error { color:var(--bad); }
+      .layout { display:grid; gap:14px; }
+      .panel { background:var(--panel); border:1px solid var(--border); border-radius:8px; padding:14px; overflow:auto; }
+      .section-header { margin-bottom:10px; }
+      .muted { color:var(--muted); }
+      table { width:100%; border-collapse:collapse; min-width:760px; }
+      th, td { border-bottom:1px solid var(--border); padding:8px; text-align:left; vertical-align:top; }
+      th { color:#334155; font-size:12px; text-transform:uppercase; letter-spacing:.04em; background:#f8fafc; position:sticky; top:0; }
+      .track { font-weight:700; }
+      .tag { border-radius:999px; background:#eef2f7; color:#334155; display:inline-block; padding:2px 7px; font-size:12px; }
+      .candidate { color:#334155; }
+      @media (max-width:820px) { main { padding:16px; } header { flex-direction:column; } }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <div>
+          <h1>Crate Learning Review</h1>
+          <div class="muted">Read-only admin view of unmatched genre signals collected during sorting.</div>
+        </div>
+        <nav class="toolbar">
+          <a class="button" href="/admin.html">Admin Home</a>
+          <a class="button" href="/crate/admin/unmatched-review">Unmatched Review</a>
+          <a class="button" href="/admin-review.html">Artist Review Queue</a>
+          <button class="primary" id="refreshButton" type="button">Refresh</button>
+        </nav>
+      </header>
+      <div class="message" id="message">Loading learning logs...</div>
+      <div class="layout">
+        <section class="panel">
+          <div class="section-header"><h2>Top Unmatched Genres</h2></div>
+          <table>
+            <thead><tr><th>Genre</th><th>Users</th><th>Artists</th><th>Occurrences</th><th>Last seen</th></tr></thead>
+            <tbody id="genreRows"></tbody>
+          </table>
+        </section>
+        <section class="panel">
+          <div class="section-header"><h2>Top Unmatched Artists</h2></div>
+          <table>
+            <thead><tr><th>Artist</th><th>Users</th><th>Genres</th><th>Occurrences</th><th>Last seen</th></tr></thead>
+            <tbody id="artistRows"></tbody>
+          </table>
+        </section>
+        <section class="panel">
+          <div class="section-header"><h2>Recent Unmatched Tracks</h2></div>
+          <table>
+            <thead><tr><th>Track</th><th>Artist</th><th>Genre</th><th>Suggested playlist</th><th>Score</th><th>User</th><th>Last seen</th><th>Occurrences</th></tr></thead>
+            <tbody id="recentRows"></tbody>
+          </table>
+        </section>
+      </div>
+    </main>
+    <script>
+      const refreshButton = document.getElementById('refreshButton');
+      const message = document.getElementById('message');
+      const genreRows = document.getElementById('genreRows');
+      const artistRows = document.getElementById('artistRows');
+      const recentRows = document.getElementById('recentRows');
+
+      function escapeHtml(value) {
+        return String(value ?? '').replace(/[&<>\"]/g, (char) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[char]));
+      }
+
+      function formatNumber(value) { return Number(value || 0).toLocaleString(); }
+      function formatDate(value) { return value ? new Date(value).toLocaleString() : '-'; }
+      function emptyRow(columns, label) { return `<tr><td colspan="${columns}" class="muted">${escapeHtml(label)}</td></tr>`; }
+
+      function topCandidate(item) {
+        return item.playlist_attempt_context?.top_candidates?.[0] || null;
+      }
+
+      function render(payload) {
+        const genres = payload.most_common_genres || [];
+        const artists = payload.unmatched_artists || [];
+        const recent = payload.recent_unmatched_items || [];
+        genreRows.innerHTML = genres.length ? genres.map((item) => `
+          <tr><td><span class="tag">${escapeHtml(item.genre)}</span></td><td>${formatNumber(item.user_count)}</td><td>${formatNumber(item.artist_count)}</td><td>${formatNumber(item.occurrence_count)}</td><td>${escapeHtml(formatDate(item.last_seen_at))}</td></tr>
+        `).join('') : emptyRow(5, 'No unmatched genre logs yet.');
+        artistRows.innerHTML = artists.length ? artists.map((item) => `
+          <tr><td>${escapeHtml(item.artist_name)}</td><td>${formatNumber(item.user_count)}</td><td>${formatNumber(item.genre_count)}</td><td>${formatNumber(item.occurrence_count)}</td><td>${escapeHtml(formatDate(item.last_seen_at))}</td></tr>
+        `).join('') : emptyRow(5, 'No unmatched artist logs yet.');
+        recentRows.innerHTML = recent.length ? recent.map((item) => {
+          const candidate = topCandidate(item);
+          return `<tr><td><div class="track">${escapeHtml(item.track_name || '-')}</div><div class="muted">${escapeHtml(item.spotify_track_id || '')}</div></td><td>${escapeHtml(item.artist_name)}</td><td><span class="tag">${escapeHtml(item.genre)}</span></td><td class="candidate">${escapeHtml(candidate?.playlist_code || '-')}</td><td>${escapeHtml(candidate?.score ?? '-')}</td><td>${escapeHtml(item.user_id)}</td><td>${escapeHtml(formatDate(item.last_seen_at))}</td><td>${formatNumber(item.occurrence_count)}</td></tr>`;
+        }).join('') : emptyRow(8, 'No recent unmatched items yet.');
+      }
+
+      async function loadLearningLogs() {
+        refreshButton.disabled = true;
+        message.textContent = 'Loading learning logs...';
+        message.className = 'message';
+        try {
+          const response = await fetch('/crate/admin/unmatched-genre-learning?scope=all&limit=50&recent_limit=100', { credentials:'include' });
+          const body = await response.json().catch(() => ({}));
+          if (!response.ok) throw new Error(body.message || body.error || `Request failed: ${response.status}`);
+          render(body);
+          message.textContent = `Loaded ${formatNumber((body.recent_unmatched_items || []).length)} recent learning rows.`;
+        } catch (err) {
+          message.textContent = 'Failed to load learning logs: ' + err.message;
+          message.className = 'message error';
+        } finally {
+          refreshButton.disabled = false;
+        }
+      }
+
+      refreshButton.addEventListener('click', loadLearningLogs);
+      loadLearningLogs();
+    </script>
+  </body>
+</html>

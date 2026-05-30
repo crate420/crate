@@ -65,13 +65,15 @@ function logUnmatchedTrackGenres(userId, context, decision) {
 function getUnmatchedGenreLearningSummary(userId, options = {}) {
   const limit = normalizeLimit(options.limit);
   const recentLimit = normalizeLimit(options.recentLimit || options.recent_limit, 100);
+  const scope = options.scope === "all" ? "all" : "user";
 
   return {
     status: "ok",
+    scope,
     user_id: userId,
-    most_common_genres: unmatchedGenreLogRepo.getMostCommonUnmatchedGenres(userId, { limit }),
-    unmatched_artists: unmatchedGenreLogRepo.getMostCommonUnmatchedArtists(userId, { limit }),
-    recent_unmatched_items: unmatchedGenreLogRepo.getRecentUnmatchedGenreLogs(userId, { limit: recentLimit }).map((row) => ({
+    most_common_genres: unmatchedGenreLogRepo.getMostCommonUnmatchedGenres(userId, { limit, scope }),
+    unmatched_artists: unmatchedGenreLogRepo.getMostCommonUnmatchedArtists(userId, { limit, scope }),
+    recent_unmatched_items: unmatchedGenreLogRepo.getRecentUnmatchedGenreLogs(userId, { limit: recentLimit, scope }).map((row) => ({
       ...row,
       playlist_attempt_context: parseContext(row.playlist_attempt_context),
     })),
