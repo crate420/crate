@@ -108,6 +108,21 @@
         gap: 10px;
       }
 
+      .recommendations {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        margin-bottom: 16px;
+        padding: 14px;
+      }
+
+      .recommendations h2 { margin: 0 0 4px; font-size: 18px; }
+      .recommendations p { color: var(--muted); margin: 0 0 10px; }
+      .recommendation-list { display: grid; gap: 6px; margin: 10px 0; }
+      .recommendation-row { align-items: center; display: grid; gap: 8px; grid-template-columns: 24px minmax(160px, 1fr) minmax(120px, .7fr) 80px 70px; }
+      .recommendation-row input { height: 16px; width: 16px; }
+      .badge { background: #e8f7ed; border: 1px solid #8acb9b; border-radius: 999px; color: #216c36; display: inline-flex; font-size: 12px; justify-content: center; padding: 2px 7px; }
+
       .row {
         display: grid;
         grid-template-columns: minmax(180px, 1.2fr) 80px minmax(180px, 1.2fr) minmax(180px, 1fr) minmax(220px, 1.4fr) 90px minmax(220px, 1.2fr) 150px;
@@ -208,6 +223,16 @@
 
       <div class="message" id="message"></div>
 
+      <section class="recommendations">
+        <h2>Recommended Approvals</h2>
+        <p>Conservative artist fallbacks for unmatched tracks. Review the checked rows, then approve deliberately.</p>
+        <div class="toolbar">
+          <button class="primary" id="approveSelectedButton" type="button">Approve Selected</button>
+          <button id="approveAllSafeButton" type="button">Approve All Safe Recommendations</button>
+        </div>
+        <div class="recommendation-list" id="recommendationList"><span class="muted">Loading recommendations...</span></div>
+      </section>
+
       <section class="queue" id="queue">
         <div class="row head">
           <div>Artist</div>
@@ -229,25 +254,13 @@
       const refreshButton = document.getElementById("refreshButton");
       const syncLikedButton = document.getElementById("syncLikedButton");
       const sortButton = document.getElementById("sortButton");
+      const recommendationList = document.getElementById("recommendationList");
+      const approveSelectedButton = document.getElementById("approveSelectedButton");
+      const approveAllSafeButton = document.getElementById("approveAllSafeButton");
       let reviewCount = 0;
-      const allowedGenres = [
-        { value: "rock", label: "Rock" },
-        { value: "alternative", label: "Alternative" },
-        { value: "pop", label: "Pop" },
-        { value: "hiphop", label: "Hip-Hop" },
-        { value: "rb", label: "R&B" },
-        { value: "soul", label: "Soul" },
-        { value: "country", label: "Country" },
-        { value: "dance", label: "Dance" },
-        { value: "jazz", label: "Jazz" },
-        { value: "blues", label: "Blues" },
-        { value: "folk", label: "Folk" },
-        { value: "singer_songwriter", label: "Singer-Songwriter" },
-        { value: "newwave", label: "New Wave" },
-        { value: "soundtrack", label: "Soundtrack" },
-        { value: "seasonal", label: "Seasonal" },
-      ];
-      const allowedGenreValues = new Set(allowedGenres.map((genre) => genre.value));
+      let allowedGenres = [];
+      let allowedGenreValues = new Set();
+      let recommendedApprovals = [];
 
       function setMessage(text) {
         messageEl.textContent = text || "";
@@ -307,7 +320,7 @@
       function createGenreSelect(artist) {
         const select = document.createElement("select");
         const emptyOption = document.createElement("option");
-        const suggestedValue = (artist.suggested_genres || []).find((genre) =>
+        const suggestedValue = artist.recommendation?.genres?.[0] || (artist.suggested_genres || []).find((genre) =>
           allowedGenreValues.has(genre),
         );
 
@@ -433,12 +446,46 @@
         return row;
       }
 
+      function selectedRecommendedApprovals() {
+        return [...recommendationList.querySelectorAll('[data-recommendation]:checked')].map((input) => recommendedApprovals[Number(input.dataset.recommendation)]).filter(Boolean);
+      }
+
+      function renderRecommendations(rows) {
+        recommendedApprovals = Array.isArray(rows) ? rows : [];
+        recommendationList.replaceChildren();
+        if (!recommendedApprovals.length) {
+          const empty = document.createElement('span'); empty.className = 'muted'; empty.textContent = 'No safe recommendations are waiting.'; recommendationList.appendChild(empty); return;
+        }
+        recommendedApprovals.forEach((row, index) => {
+          const wrapper = document.createElement('label'); wrapper.className = 'recommendation-row';
+          const checkbox = document.createElement('input'); checkbox.type = 'checkbox'; checkbox.checked = true; checkbox.dataset.recommendation = String(index);
+          const artist = document.createElement('strong'); artist.textContent = row.artist_name;
+          const lane = document.createElement('span'); lane.textContent = row.playlist_label;
+          const tracks = document.createElement('span'); tracks.textContent = row.track_count + ' track' + (row.track_count === 1 ? '' : 's');
+          const confidence = document.createElement('span'); confidence.className = 'badge'; confidence.textContent = row.confidence;
+          wrapper.append(checkbox, artist, lane, tracks, confidence); recommendationList.appendChild(wrapper);
+        });
+      }
+
+      async function applyBulk(payload) {
+        approveSelectedButton.disabled = true; approveAllSafeButton.disabled = true; setMessage('Applying artist fallback approvals...');
+        try {
+          const result = await requestJson('/crate/admin/review-queue/apply-bulk', { method:'POST', body:JSON.stringify(payload) });
+          setMessage('Approved ' + result.approved_count + ' artist(s), inserted ' + result.inserted_genres_count + ' genre fallback row(s), skipped ' + result.duplicates_skipped + ' duplicate(s).');
+          await loadQueue();
+        } catch (err) { setMessage('Bulk approval failed: ' + err.message); }
+        finally { approveSelectedButton.disabled = false; approveAllSafeButton.disabled = false; }
+      }
+
       async function loadQueue() {
         refreshButton.disabled = true;
         setMessage("Loading queue...");
 
         try {
           const result = await requestJson("/crate/admin/review-queue");
+          allowedGenres = Array.isArray(result.genre_options) ? result.genre_options : [];
+          allowedGenreValues = new Set(allowedGenres.map((genre) => genre.value));
+          renderRecommendations(result.recommended_approvals);
           queueEl.replaceChildren();
 
           const header = document.createElement("div");
@@ -497,6 +544,15 @@
         }
       }
 
+      approveSelectedButton.addEventListener('click', () => {
+        const approvals = selectedRecommendedApprovals().map((row) => ({ artist_name:row.artist_name, genres:row.genres }));
+        if (!approvals.length) { setMessage('Select at least one recommendation first.'); return; }
+        if (confirm('Approve ' + approvals.length + ' selected artist fallback(s)?')) applyBulk({ approvals });
+      });
+      approveAllSafeButton.addEventListener('click', () => {
+        if (!recommendedApprovals.length) { setMessage('No safe recommendations are waiting.'); return; }
+        if (confirm('Approve all ' + recommendedApprovals.length + ' safe artist fallback recommendation(s)?')) applyBulk({ safe_recommendations:true });
+      });
       refreshButton.addEventListener("click", loadQueue);
       syncLikedButton.addEventListener("click", syncLikedSongs);
       sortButton.addEventListener("click", runSort);

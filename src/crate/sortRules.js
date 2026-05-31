@@ -67,6 +67,7 @@ const SORT_RULES = [
       "metalcore",
       "power metal",
       "symphonic metal",
+      "folk metal",
       // Keep exact generic metal as a fallback for artists tagged only as metal.
       "metal",
       // V1 fallback alias, narrowed from generic sludge.
@@ -98,6 +99,9 @@ const SORT_RULES = [
       "oi",
       "crust punk",
       "riot grrrl",
+      "proto-punk",
+      "folk punk",
+      "garage punk",
     ],
     weakGenreIncludes: ["post-punk"],
     genrePenalties: [
@@ -126,6 +130,7 @@ const SORT_RULES = [
       "shoegaze",
       // V1 fallback aliases from unmatched Spotify genres.
       "southern gothic",
+      "indie",
     ],
     weakGenreIncludes: [
       "post-grunge",
@@ -159,6 +164,16 @@ const SORT_RULES = [
       "gospel",
       "christian rock",
       "christian alternative rock",
+    ],
+  },
+  {
+    playlistCode: "pop_punk",
+    genreIncludes: [
+      "pop punk",
+      "emo pop",
+      "neon pop punk",
+      "easycore",
+      "skate punk",
     ],
   },
   {
@@ -208,6 +223,7 @@ const SORT_RULES = [
       "caribbean",
       "jamaican",
       "ragga",
+      "nz reggae",
     ],
     weakGenreIncludes: [
       "reggaeton",
@@ -690,6 +706,7 @@ const SORT_RULES = [
       "edm",
       "dance music",
       "house",
+      "tech house",
       "electro house",
       "progressive house",
       "big room",
@@ -859,6 +876,16 @@ const SORT_RULES = [
     ],
   },
   {
+    playlistCode: "sunshine_pop",
+    genreIncludes: [
+      "baroque pop",
+      "sunshine pop",
+      "chamber pop",
+      "orchestral pop",
+      "brill building pop",
+    ],
+  },
+  {
     playlistCode: "classical",
     genreIncludes: [
       "classical",
@@ -904,7 +931,9 @@ const SORT_RULES = [
       "tv soundtrack",
       "broadway",
       "musical",
+      "musicals",
       "show tunes",
+      "showtunes",
       "orchestral soundtrack",
       "epic soundtrack",
       "anime soundtrack",
@@ -935,7 +964,7 @@ const SORT_RULES = [
   },
   {
     playlistCode: "pop",
-    genreIncludes: ["pop", "dance pop", "indie pop", "art pop", "power pop", "soft pop", "electropop", "bedroom pop", "k-pop", "k pop"],
+    genreIncludes: ["pop", "dance pop", "indie pop", "art pop", "power pop", "soft pop", "electropop", "bedroom pop", "k-pop", "k pop", "swedish pop", "europop"],
     phraseBlocks: [
       "pop rock",
       "country pop",
@@ -1532,7 +1561,7 @@ function findMatchingNeedle(value, rule) {
     }
 
     // Keep Alternative phrase-aware: generic grunge should not match post-grunge.
-    if (rule.playlistCode === "alternative" && normalizedNeedle === "grunge") {
+    if (rule.playlistCode === "alternative" && ["grunge", "indie"].includes(normalizedNeedle)) {
       return normalizedValue === normalizedNeedle;
     }
 

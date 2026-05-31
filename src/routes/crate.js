@@ -12,6 +12,7 @@ const {
 } = require("../crate/adminUnmatchedReview");
 const {
   applyAdminReviewQueueArtist,
+  applyAdminReviewQueueBulk,
   getAdminReviewQueue,
   ignoreAdminReviewQueueArtist,
 } = require("../crate/adminReviewQueue");
@@ -54,7 +55,11 @@ const { sortTracks } = require("../crate/sortTracks");
 const { fetchAndCacheSpotifyArtistIntelligence } = require("../crate/spotifyArtistIntelligence");
 const { applyTrackOverride, getTrackForReview } = require("../crate/trackOverrides");
 const { importTrainingData } = require("../crate/trainingImport");
-const { getUnmatchedDiagnostics } = require("../crate/unmatchedDiagnostics");
+const {
+  getAdminUnmatchedDiagnostic,
+  getAdminUnmatchedDiagnostics,
+  getUnmatchedDiagnostics,
+} = require("../crate/unmatchedDiagnostics");
 const { getUnmatchedGenreSummary } = require("../crate/unmatchedGenres");
 const { getUnmatchedGenreLearningSummary } = require("../crate/unmatchedGenreLearning");
 const { getUnmatchedTracks } = require("../crate/unmatchedTracks");
@@ -609,6 +614,33 @@ router.get("/unmatched-diagnostics", requireCurrentUser, async (req, res, next) 
   }
 });
 
+router.get("/admin/unmatched-diagnostics", requireCurrentUser, requireAdminUser, async (req, res, next) => {
+  try {
+    return res.json(await getAdminUnmatchedDiagnostics(req.currentUser.id, {
+      limit: req.query.limit,
+      offset: req.query.offset,
+      search: req.query.search,
+      reason: req.query.reason,
+    }));
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.get("/admin/unmatched-diagnostics/:trackId", requireCurrentUser, requireAdminUser, async (req, res, next) => {
+  try {
+    return res.json({
+      status: "ok",
+      diagnostic: await getAdminUnmatchedDiagnostic(req.currentUser.id, req.params.trackId),
+    });
+  } catch (err) {
+    if (err.statusCode) {
+      return res.status(err.statusCode).json({ error: err.code, message: err.message });
+    }
+    return next(err);
+  }
+});
+
 router.get("/admin/unmatched-genre-learning", requireCurrentUser, requireAdminUser, (req, res, next) => {
   try {
     return res.json(getUnmatchedGenreLearningSummary(req.currentUser.id, {
@@ -1051,6 +1083,21 @@ router.post("/admin/review-queue/apply", requireCurrentUser, requireAdminUser, (
       });
     }
 
+    return next(err);
+  }
+});
+
+router.post("/admin/review-queue/apply-bulk", requireCurrentUser, requireAdminUser, async (req, res, next) => {
+  try {
+    return res.json({
+      status: "ok",
+      ...await applyAdminReviewQueueBulk(req.currentUser.id, {
+        approvals: req.body?.approvals,
+        safeRecommendations: req.body?.safe_recommendations === true,
+      }),
+    });
+  } catch (err) {
+    if (err.statusCode) return res.status(err.statusCode).json({ error: err.code || "admin_review_queue_error", message: err.message });
     return next(err);
   }
 });

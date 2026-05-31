@@ -1,5 +1,6 @@
 const config = require("../config");
 const { openDatabase } = require("../db");
+const { ACTIVE_PLAYLIST_DEFINITIONS } = require("./playlistDefinitions");
 
 function tableExists(db, tableName) {
   const row = db.prepare(`
@@ -80,6 +81,19 @@ function emptyDiscoverySummary() {
     topCollections: [],
     topSpecialInterest: [],
   };
+}
+
+function getPlaylistRegistry() {
+  return ACTIVE_PLAYLIST_DEFINITIONS.map((definition) => ({
+    playlist_code: definition.playlistCode,
+    display_name: definition.displayName,
+    short_label: definition.shortLabel,
+    description: definition.description,
+    category: definition.category,
+    active: definition.active,
+    sort_order: definition.sortOrder,
+    icon: definition.icon,
+  }));
 }
 
 function normalizeDiscoverySummary(value) {
@@ -340,6 +354,7 @@ function getEmptyUserStatus(userId = null) {
     unmatched_tracks_count: 0,
     matched_tracks_count: 0,
     playlist_category_counts: playlistCategoryCounts,
+    playlist_registry: getPlaylistRegistry(),
     era_counts: eraCounts,
     discovery: emptyDiscoverySummary(),
     last_sync_run: null,
@@ -389,6 +404,7 @@ function getUserCrateStatus(userId) {
     unmatched_tracks_count: userTracksUnmatched,
     matched_tracks_count: userTracksSorted,
     playlist_category_counts: playlistCategoryCounts,
+    playlist_registry: getPlaylistRegistry(),
     era_counts: getEraCounts(sortedTrackRows),
     discovery,
     last_sync_run: getLastCrateRunByStep(db, "syncLikedSongs", userId),
@@ -416,6 +432,7 @@ function getGlobalCrateStatus() {
     unmatched_tracks_count: readCount(db, "user_tracks", "WHERE playlist_code IS NULL"),
     matched_tracks_count: readCount(db, "user_tracks", "WHERE playlist_code IS NOT NULL"),
     playlist_category_counts: getPlaylistCategoryCounts(sortedTrackRows),
+    playlist_registry: getPlaylistRegistry(),
     era_counts: getEraCounts(sortedTrackRows),
     discovery: normalizeDiscoverySummary(lastSortRun?.summary?.discovery),
     last_sync_run: getLastCrateRunByStep(db, "syncLikedSongs"),
