@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Crate Playlist Seeds</title>
+    <style>
+      :root { color-scheme: light; --bg:#f6f8fb; --panel:#fff; --border:#d7dde5; --muted:#657080; --text:#17202a; --action:#1769aa; --danger:#a23a3a; --ok:#166534; --warn:#92400e; }
+      * { box-sizing:border-box; }
+      body { margin:0; background:var(--bg); color:var(--text); font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; font-size:14px; }
+      main { max-width:1400px; margin:0 auto; padding:24px; }
+      header { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:16px; }
+      h1,h2 { margin:0; line-height:1.2; }
+      h1 { font-size:24px; }
+      h2 { font-size:18px; }
+      .muted { color:var(--muted); }
+      .toolbar { display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
+      .button,button { border:1px solid var(--border); border-radius:6px; background:#fff; color:var(--text); min-height:34px; padding:6px 10px; font:inherit; text-decoration:none; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; }
+      button.primary { background:var(--action); border-color:var(--action); color:#fff; }
+      button:disabled { cursor:not-allowed; opacity:.55; }
+      .panel { background:var(--panel); border:1px solid var(--border); border-radius:8px; padding:16px; margin-bottom:14px; }
+      .summary { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; margin-top:12px; }
+      .stat { border:1px solid var(--border); border-radius:8px; padding:11px; background:#fff; }
+      .stat strong { display:block; font-size:24px; line-height:1; }
+      .stat span { display:block; margin-top:5px; color:var(--muted); font-size:12px; font-weight:700; text-transform:uppercase; }
+      .message { min-height:22px; margin:8px 0; color:var(--muted); }
+      .message.error { color:var(--danger); }
+      .message.ok { color:var(--ok); }
+      table { width:100%; border-collapse:collapse; background:#fff; }
+      th,td { border-bottom:1px solid var(--border); padding:9px 8px; text-align:left; vertical-align:top; }
+      th { color:#334155; font-size:12px; text-transform:uppercase; letter-spacing:.03em; }
+      tr:hover td { background:#f8fafc; }
+      .seed-name { font-weight:700; }
+      .small { color:var(--muted); font-size:12px; margin-top:3px; overflow-wrap:anywhere; }
+      .badge { display:inline-flex; align-items:center; border:1px solid #cbd5e1; border-radius:999px; background:#f8fafc; color:#334155; padding:2px 7px; font-size:12px; white-space:nowrap; text-transform:capitalize; }
+      .quality-high { border-color:#86efac; color:#166534; background:#f0fdf4; }
+      .quality-medium_high { border-color:#fde68a; color:#92400e; background:#fffbeb; }
+      .quality-medium { border-color:#bfdbfe; color:#1d4ed8; background:#eff6ff; }
+      .cache-current { border-color:#86efac; color:#166534; background:#f0fdf4; }
+      .cache-stale { border-color:#fde68a; color:#92400e; background:#fffbeb; }
+      .cache-missing { border-color:#fecaca; color:#991b1b; background:#fef2f2; }
+      .result { max-height:220px; overflow:auto; background:#0f172a; color:#e2e8f0; border-radius:8px; padding:12px; font-size:12px; white-space:pre-wrap; }
+      @media (max-width:1000px) { main { padding:16px; } header { flex-direction:column; } table { display:block; overflow-x:auto; } }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <div>
+          <h1>Playlist Seed Registry</h1>
+          <div class="muted">Read-only registry and Spotify cache for future specialty playlist intelligence.</div>
+        </div>
+        <nav class="toolbar">
+          <a class="button" href="/admin.html">Admin Home</a>
+          <a class="button" href="/admin-playlists.html">Playlist Admin</a>
+          <a class="button" href="/admin-era-diagnostics.html">Era Diagnostics</a>
+          <a class="button" href="/admin-specialty-validation.html">Specialty Validation</a>
+          <a class="button" href="/admin-artist-intelligence.html">Artist Intelligence</a>
+          <button id="fetchAllButton" class="primary" type="button">Fetch All Seeds</button>
+          <button class="primary" id="refreshButton" type="button">Refresh</button>
+        </nav>
+      </header>
+      <section class="panel">
+        <h2>Summary</h2>
+        <div class="summary" id="summary"></div>
+      </section>
+      <div class="message" id="message">Loading playlist seeds...</div>
+      <section class="panel">
+        <table>
+          <thead>
+            <tr>
+              <th>Seed</th>
+              <th>Playlist ID</th>
+              <th>Owner</th>
+              <th>Supports</th>
+              <th>Registry</th>
+              <th>Cache</th>
+              <th>Snapshot</th>
+              <th>Quality</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="rows"><tr><td colspan="9" class="muted">Loading...</td></tr></tbody>
+        </table>
+      </section>
+      <section class="panel">
+        <h2>Last Fetch Result</h2>
+        <pre class="result" id="resultJson">No fetch run yet.</pre>
+      </section>
+    </main>
+    <script>
+      const summary = document.getElementById('summary');
+      const message = document.getElementById('message');
+      const rows = document.getElementById('rows');
+      const refreshButton = document.getElementById('refreshButton');
+      const fetchAllButton = document.getElementById('fetchAllButton');
+      const resultJson = document.getElementById('resultJson');
+      let latestSeeds = [];
+
+      function escapeHtml(value) { return String(value ?? '').replace(/[&<>"]/g, function(char) { return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[char]; }); }
+      function formatNumber(value) { return Number(value || 0).toLocaleString(); }
+      function formatDate(value) { if (!value) return '-'; const date = new Date(value); return Number.isNaN(date.getTime()) ? '-' : date.toLocaleString(); }
+      function setMessage(text, type) { message.textContent = text; message.className = 'message' + (type ? ' ' + type : ''); }
+      function setResult(payload) { resultJson.textContent = JSON.stringify(payload, null, 2); }
+
+      async function requestJson(url, options) {
+        const response = await fetch(url, { credentials:'include', ...(options || {}) });
+        const body = await response.json().catch(function() { return {}; });
+        if (!response.ok) throw new Error(body.message || body.error || 'Request failed: ' + response.status);
+        return body;
+      }
+
+      function cacheBadge(cache) {
+        if (!cache || !cache.cached) return '<span class="badge cache-missing">Missing</span>';
+        if (cache.stale) return '<span class="badge cache-stale">Stale</span>';
+        return '<span class="badge cache-current">Current</span>';
+      }
+
+      function renderSummary(payload) {
+        const quality = payload.quality_summary || {};
+        const cache = payload.cache_summary || {};
+        const stats = [
+          ['Total seeds', payload.total_seed_count],
+          ['Active seeds', payload.active_seed_count],
+          ['Cached seeds', cache.cached || 0],
+          ['Stale/missing', cache.stale || 0],
+          ['High quality', quality.high || 0],
+          ['Medium-high', quality.medium_high || 0],
+          ['Medium', quality.medium || 0],
+        ];
+        summary.innerHTML = stats.map(function(pair) {
+          return '<div class="stat"><strong>' + formatNumber(pair[1]) + '</strong><span>' + escapeHtml(pair[0]) + '</span></div>';
+        }).join('');
+      }
+
+      function renderRows(seeds) {
+        latestSeeds = seeds || [];
+        rows.innerHTML = latestSeeds.length ? latestSeeds.map(function(seed) {
+          const cache = seed.cache || {};
+          return '<tr>'
+            + '<td><div class="seed-name">' + escapeHtml(seed.playlist_name) + '</div><div class="small">' + escapeHtml(seed.seed_code) + '</div></td>'
+            + '<td><div>' + escapeHtml(seed.playlist_id) + '</div><div class="small">Refresh: ' + escapeHtml(seed.refresh_interval_days) + ' days</div></td>'
+            + '<td>' + escapeHtml(seed.owner_name) + '<div class="small">' + escapeHtml(seed.owner_id) + '</div></td>'
+            + '<td><span class="badge">' + escapeHtml(seed.supports_playlist_code) + '</span><div class="small">' + escapeHtml(seed.category) + '</div></td>'
+            + '<td>' + formatNumber(seed.track_count) + ' tracks<div class="small">' + formatNumber(seed.follower_count) + ' followers</div></td>'
+            + '<td>' + cacheBadge(cache) + '<div class="small">' + formatNumber(cache.cached_track_count || 0) + ' cached tracks</div><div class="small">Fetched: ' + escapeHtml(formatDate(cache.fetched_at)) + '</div></td>'
+            + '<td><div>' + escapeHtml(cache.snapshot_id || '-') + '</div><div class="small">Age: ' + escapeHtml(cache.age_days == null ? '-' : cache.age_days + ' days') + '</div></td>'
+            + '<td><span class="badge quality-' + escapeHtml(seed.quality) + '">' + escapeHtml(String(seed.quality || '').replace(/_/g, ' ')) + '</span><div class="small">' + escapeHtml(seed.notes) + '</div></td>'
+            + '<td><button type="button" data-fetch-seed="' + escapeHtml(seed.seed_code) + '">Fetch</button></td>'
+            + '</tr>';
+        }).join('') : '<tr><td colspan="9" class="muted">No active playlist seeds.</td></tr>';
+      }
+
+      async function loadSeeds() {
+        setMessage('Loading playlist seeds...');
+        try {
+          const payload = await requestJson('/crate/admin/playlist-seeds');
+          renderSummary(payload);
+          renderRows(payload.seeds || []);
+          setMessage('Loaded ' + formatNumber(payload.active_seed_count) + ' active playlist seed(s).');
+        } catch (err) {
+          rows.innerHTML = '<tr><td colspan="9" class="muted">Failed to load playlist seeds.</td></tr>';
+          setMessage(err.message, 'error');
+        }
+      }
+
+      async function fetchSeed(seedCode, button) {
+        if (!seedCode) return;
+        const original = button ? button.textContent : '';
+        if (button) { button.disabled = true; button.textContent = 'Fetching...'; }
+        setMessage('Fetching ' + seedCode + ' from Spotify...');
+        try {
+          const payload = await requestJson('/crate/admin/playlist-seed-cache/fetch/' + encodeURIComponent(seedCode), { method:'POST' });
+          setResult(payload);
+          setMessage('Fetched ' + seedCode + ': ' + formatNumber(payload.cached_track_count) + ' cached track(s).', 'ok');
+          await loadSeeds();
+        } catch (err) {
+          setResult({ status:'error', seed_code:seedCode, message:err.message });
+          setMessage(err.message, 'error');
+        } finally {
+          if (button) { button.disabled = false; button.textContent = original || 'Fetch'; }
+        }
+      }
+
+      async function fetchAllSeeds() {
+        fetchAllButton.disabled = true;
+        fetchAllButton.textContent = 'Fetching...';
+        setMessage('Fetching all active playlist seeds from Spotify...');
+        try {
+          const payload = await requestJson('/crate/admin/playlist-seed-cache/fetch-all', { method:'POST' });
+          setResult(payload);
+          setMessage('Fetch all complete: ' + formatNumber(payload.succeeded) + ' succeeded, ' + formatNumber(payload.failed) + ' failed.', payload.failed ? 'error' : 'ok');
+          await loadSeeds();
+        } catch (err) {
+          setResult({ status:'error', message:err.message });
+          setMessage(err.message, 'error');
+        } finally {
+          fetchAllButton.disabled = false;
+          fetchAllButton.textContent = 'Fetch All Seeds';
+        }
+      }
+
+      rows.addEventListener('click', function(event) {
+        const button = event.target.closest('[data-fetch-seed]');
+        if (!button) return;
+        fetchSeed(button.getAttribute('data-fetch-seed'), button);
+      });
+      fetchAllButton.addEventListener('click', fetchAllSeeds);
+      refreshButton.addEventListener('click', loadSeeds);
+      loadSeeds();
+    </script>
+  </body>
+</html>

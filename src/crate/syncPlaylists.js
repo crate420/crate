@@ -3,6 +3,8 @@ const trackRepo = require("../repositories/tracks");
 const userRepo = require("../repositories/users");
 const spotifyPlaylists = require("../spotify/playlists");
 const { PLAYLIST_DEFINITIONS } = require("./playlistDefinitions");
+const { effectiveReleaseYearForRow } = require("./eraYears");
+const { resolveSpecialtyTracksForUser, seedCodeForSpecialtyPlaylistCode, specialtyPlaylistCodeForSeed } = require("./specialtyTrackResolver");
 
 const ERA_LABELS = {
   all: "All",
@@ -66,6 +68,13 @@ function displayNameForEraSelection(era) {
   return compactCrateName(ERA_LABELS[normalizeEra(era)] || String(era || ""));
 }
 
+function displayNameForSpecialtySelection(seedCode, playlistCode = null) {
+  const effectivePlaylistCode = playlistCode || specialtyPlaylistCodeForSeed(seedCode);
+  const definition = PLAYLIST_DEFINITIONS.find((candidate) => candidate.playlistCode === effectivePlaylistCode);
+  if (definition?.displayName) return definition.displayName;
+  return compactCrateName(String(seedCode || "").split("_").filter(Boolean).map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join(" "));
+}
+
 function legacyNameCandidates(displayName) {
   const names = new Set([displayName]);
   const eraRanges = {
@@ -107,14 +116,7 @@ function normalizeEra(era) {
 }
 
 function releaseYearForTrack(track) {
-  try {
-    const raw = JSON.parse(track.raw_json || "{}");
-    const releaseDate = raw.album?.release_date || raw.release_date || "";
-    const year = Number(String(releaseDate).slice(0, 4));
-    return Number.isFinite(year) ? year : null;
-  } catch (err) {
-    return null;
-  }
+  return effectiveReleaseYearForRow(track);
 }
 
 function trackMatchesEra(track, era) {
@@ -165,7 +167,16 @@ function trackMatchesArtist(track, artistName) {
   ));
 }
 
-function selectedDefinitionFor(selection, allTracks) {
+function specialtyTracksForSelection(userId, seedCode) {
+  const preview = resolveSpecialtyTracksForUser(userId, seedCode, { limit: 10000 });
+  return (preview.tracks || []).map((track) => ({
+    ...track,
+    uri: track.spotify_uri,
+    playlist_code: preview.playlist_code,
+  }));
+}
+
+function selectedDefinitionFor(selection, allTracks, userId) {
   const type = String(selection?.type || "").trim().toLowerCase();
 
   if (type === "genre") {
@@ -203,14 +214,27 @@ function selectedDefinitionFor(selection, allTracks) {
     };
   }
 
+  if (type === "specialty") {
+    const seedCode = String(selection.seed_code || "").trim() || seedCodeForSpecialtyPlaylistCode(selection.playlist_code);
+    const playlistCode = specialtyPlaylistCodeForSeed(seedCode);
+    if (!seedCode || !playlistCode) return null;
+    return {
+      playlistCode,
+      displayName: displayNameForSpecialtySelection(seedCode, playlistCode),
+      source: "specialty",
+      selection: { type: "specialty", seed_code: seedCode, playlist_code: playlistCode },
+      tracks: specialtyTracksForSelection(userId, seedCode),
+    };
+  }
+
   return null;
 }
 
-function buildSelectedDefinitions(selections, allTracks) {
+function buildSelectedDefinitions(selections, allTracks, userId) {
   const definitionsByCode = new Map();
 
   for (const selection of selections) {
-    const definition = selectedDefinitionFor(selection, allTracks);
+    const definition = selectedDefinitionFor(selection, allTracks, userId);
     if (!definition || !definition.displayName || !definition.playlistCode) {
       continue;
     }
@@ -275,7 +299,7 @@ async function syncPlaylists(userId, options = {}) {
   const selectedPlaylists = Array.isArray(options.playlists) ? options.playlists : null;
   const allTracks = trackRepo.getSortedTracksForPlaylistSync(userId);
   const syncDefinitions = selectedPlaylists
-    ? buildSelectedDefinitions(selectedPlaylists, allTracks)
+    ? buildSelectedDefinitions(selectedPlaylists, allTracks, userId)
     : buildAllStaticDefinitions(allTracks);
 
   if (selectedPlaylists && syncDefinitions.length === 0) {

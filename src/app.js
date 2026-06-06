@@ -44,8 +44,24 @@ function createApp() {
     res.sendFile(path.join(config.rootDir, "public/admin-playlists.html"));
   });
 
+  app.get("/admin-playlist-seeds.html", requireAdminPage, (req, res) => {
+    res.sendFile(path.join(config.rootDir, "public/admin-playlist-seeds.html"));
+  });
+
+  app.get("/admin-specialty-validation.html", requireAdminPage, (req, res) => {
+    res.sendFile(path.join(config.rootDir, "public/admin-specialty-validation.html"));
+  });
+
   app.get("/admin-unmatched.html", requireAdminPage, (req, res) => {
     res.sendFile(path.join(config.rootDir, "public/admin-unmatched.html"));
+  });
+
+  app.get("/admin-unmatched-diagnostics.html", requireAdminPage, (req, res) => {
+    res.sendFile(path.join(config.rootDir, "public/admin-unmatched-diagnostics.html"));
+  });
+
+  app.get("/admin-era-diagnostics.html", requireAdminPage, (req, res) => {
+    res.sendFile(path.join(config.rootDir, "public/admin-era-diagnostics.html"));
   });
 
   app.get("/admin-learning.html", requireAdminPage, (req, res) => {

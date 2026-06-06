@@ -1813,6 +1813,11 @@ function scoreSeasonalThemes(context, scores) {
 }
 
 function getReleaseYear(context) {
+  const effectiveYear = Number.parseInt(context.album?.effectiveReleaseYear, 10);
+  if (Number.isInteger(effectiveYear)) {
+    return effectiveYear;
+  }
+
   const releaseDate = context.album?.releaseDate;
   const year = Number.parseInt(String(releaseDate || "").slice(0, 4), 10);
 

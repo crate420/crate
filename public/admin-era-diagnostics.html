@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Crate Era Diagnostics</title>
+    <style>
+      :root { color-scheme: light; --bg:#f6f8fb; --panel:#fff; --border:#d7dde5; --muted:#657080; --text:#17202a; --action:#1769aa; --danger:#a23a3a; }
+      * { box-sizing:border-box; }
+      body { margin:0; background:var(--bg); color:var(--text); font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; font-size:14px; }
+      main { max-width:1280px; margin:0 auto; padding:24px; }
+      header { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:16px; }
+      h1,h2 { margin:0; line-height:1.2; }
+      h1 { font-size:24px; }
+      h2 { font-size:18px; }
+      .muted { color:var(--muted); }
+      .toolbar { display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
+      .button,button,select,input { border:1px solid var(--border); border-radius:6px; background:#fff; color:var(--text); min-height:34px; padding:6px 10px; font:inherit; text-decoration:none; }
+      button,.button { cursor:pointer; display:inline-flex; align-items:center; }
+      button.primary { background:var(--action); border-color:var(--action); color:#fff; }
+      button.danger { color:var(--danger); }
+      .override-form { display:grid; gap:6px; min-width:220px; }
+      .override-row { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
+      .override-form input,.override-form select { width:100%; min-height:30px; padding:4px 7px; font-size:12px; }
+      .override-actions { display:flex; gap:6px; flex-wrap:wrap; }
+      .override-actions button { min-height:30px; padding:4px 8px; font-size:12px; }
+      .panel { background:var(--panel); border:1px solid var(--border); border-radius:8px; padding:16px; margin-bottom:14px; }
+      .summary { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:10px; }
+      .stat { border:1px solid var(--border); border-radius:8px; padding:11px; background:#fff; }
+      .stat strong { display:block; font-size:24px; line-height:1; }
+      .stat span { display:block; margin-top:5px; color:var(--muted); font-size:12px; font-weight:700; text-transform:uppercase; }
+      .message { min-height:22px; margin:8px 0; color:var(--muted); }
+      .message.error { color:var(--danger); }
+      table { width:100%; border-collapse:collapse; background:#fff; }
+      th,td { border-bottom:1px solid var(--border); padding:9px 8px; text-align:left; vertical-align:top; }
+      th { color:#334155; font-size:12px; text-transform:uppercase; letter-spacing:.03em; }
+      tr:hover td { background:#f8fafc; }
+      .track { font-weight:700; }
+      .small { color:var(--muted); font-size:12px; margin-top:3px; }
+      .tags { display:flex; flex-wrap:wrap; gap:4px; }
+      .tag { display:inline-flex; align-items:center; border:1px solid #cbd5e1; border-radius:999px; background:#f8fafc; color:#334155; padding:2px 7px; font-size:12px; white-space:nowrap; }
+      .confidence { font-weight:700; text-transform:uppercase; font-size:12px; }
+      .confidence.strong { color:#166534; }
+      .confidence.medium { color:#92400e; }
+      .confidence.low { color:#64748b; }
+      @media (max-width:900px) { main { padding:16px; } header { flex-direction:column; } table { display:block; overflow-x:auto; } }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <div>
+          <h1>Era Diagnostics</h1>
+          <div class="muted">Read-only review of remaster, reissue, anniversary, expanded, collector, mix, and deluxe era risks.</div>
+        </div>
+        <nav class="toolbar">
+          <a class="button" href="/admin.html">Admin Home</a><a class="button" href="/admin-playlist-seeds.html">Playlist Seeds</a>
+          <a class="button" href="/admin-unmatched-diagnostics.html">Unmatched Forensics</a>
+          <a class="button" href="/admin-learning.html">Learning Review</a>
+          <a class="button" href="/admin-artist-intelligence.html">Artist Intelligence</a>
+          <button class="primary" id="refreshButton" type="button">Refresh</button>
+        </nav>
+      </header>
+      <section class="panel"><div class="toolbar"><select id="eraFilter" aria-label="Filter by current era"><option value="">All eras</option></select><select id="signalFilter" aria-label="Filter by signal"><option value="">All signals</option></select><select id="playlistFilter" aria-label="Filter by playlist"><option value="">All playlists</option></select><select id="confidenceFilter" aria-label="Filter by confidence"><option value="">All confidence</option><option value="strong">Strong</option><option value="medium">Medium</option><option value="low">Low</option></select></div></section>
+      <section class="panel"><h2>Summary</h2><div class="summary" id="summary"></div></section>
+      <div class="message" id="message">Loading era diagnostics...</div>
+      <section class="panel"><table><thead><tr><th>Track</th><th>Artist</th><th>Album</th><th>Spotify Year</th><th>Current Era</th><th>Playlist</th><th>Signals</th><th>Confidence</th><th>Suggested Action</th><th>Era Override</th></tr></thead><tbody id="rows"><tr><td colspan="10" class="muted">Loading...</td></tr></tbody></table></section>
+    </main>
+    <script>
+      const eraFilter = document.getElementById('eraFilter');
+      const signalFilter = document.getElementById('signalFilter');
+      const playlistFilter = document.getElementById('playlistFilter');
+      const confidenceFilter = document.getElementById('confidenceFilter');
+      const refreshButton = document.getElementById('refreshButton');
+      const summary = document.getElementById('summary');
+      const message = document.getElementById('message');
+      const rows = document.getElementById('rows');
+      function escapeHtml(value) { return String(value ?? '').replace(/[&<>\"]/g, function(char) { return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[char]; }); }
+      function formatNumber(value) { return Number(value || 0).toLocaleString(); }
+      function setMessage(text, type) { message.textContent = text; message.className = 'message' + (type ? ' ' + type : ''); }
+      function tags(values) { values = values || []; return '<div class="tags">' + (values.length ? values.map(function(value) { return '<span class="tag">' + escapeHtml(value) + '</span>'; }).join('') : '<span class="muted">-</span>') + '</div>'; }
+      function optionRows(items, valueKey) { valueKey = valueKey || 'name'; return (items || []).map(function(item) { return '<option value="' + escapeHtml(item[valueKey]) + '">' + escapeHtml(item.name) + ' (' + formatNumber(item.count) + ')</option>'; }).join(''); }
+      async function requestJson(url, options) { const response = await fetch(url, Object.assign({ credentials:'include', headers:{ 'Content-Type':'application/json' } }, options || {})); const body = await response.json().catch(function() { return {}; }); if (!response.ok) throw new Error(body.message || body.error || 'Request failed: ' + response.status); return body; }
+      function syncFilterOptions(payload) { const current = { era: eraFilter.value, signal: signalFilter.value, playlist: playlistFilter.value, confidence: confidenceFilter.value }; eraFilter.innerHTML = '<option value="">All eras</option>' + optionRows(payload.summary?.by_current_era || []); signalFilter.innerHTML = '<option value="">All signals</option>' + optionRows(payload.summary?.by_signal || []); playlistFilter.innerHTML = '<option value="">All playlists</option>' + optionRows(payload.summary?.by_playlist || []); confidenceFilter.innerHTML = '<option value="">All confidence</option>' + optionRows(payload.summary?.by_confidence || []); eraFilter.value = current.era; signalFilter.value = current.signal; playlistFilter.value = current.playlist; confidenceFilter.value = current.confidence; }
+      function renderSummary(payload) { summary.innerHTML = [['Total suspects', payload.total_suspect_tracks], ['Filtered', payload.filtered_count], ['Strong Modern suspects', payload.strong_suspect_count], ['Deluxe-only low confidence', payload.low_confidence_deluxe_only_count]].map(function(pair) { return '<div class="stat"><strong>' + formatNumber(pair[1]) + '</strong><span>' + escapeHtml(pair[0]) + '</span></div>'; }).join(''); }
+      function renderOverrideControls(record) {
+        if (record.confidence_bucket !== 'strong' && !record.era_override) {
+          return '<span class="muted">Strong suspects only</span>';
+        }
+        const originalYear = record.era_override?.original_release_year || '';
+        const effectiveYear = record.era_override?.effective_release_year || originalYear || '';
+        const confidence = record.era_override?.confidence || 'high';
+        const reason = record.era_override?.reason || '';
+        return '<form class="override-form" data-track-id="' + escapeHtml(record.track_id) + '" data-spotify-year="' + escapeHtml(record.spotify_release_year || '') + '">' +
+          '<div class="override-row"><input name="original_year" inputmode="numeric" placeholder="Original year" value="' + escapeHtml(originalYear) + '"><input name="effective_year" inputmode="numeric" placeholder="Effective year" value="' + escapeHtml(effectiveYear) + '"></div>' +
+          '<div class="override-row"><select name="confidence"><option value="high"' + (confidence === 'high' ? ' selected' : '') + '>High</option><option value="medium"' + (confidence === 'medium' ? ' selected' : '') + '>Medium</option><option value="low"' + (confidence === 'low' ? ' selected' : '') + '>Low</option></select><input name="reason" placeholder="Reason/source" value="' + escapeHtml(reason) + '"></div>' +
+          '<div class="override-actions"><button type="submit" class="primary">Save</button>' + (record.era_override ? '<button type="button" class="danger" data-remove-override="' + escapeHtml(record.track_id) + '">Remove</button>' : '') + '</div>' +
+        '</form>';
+      }
+      function renderRows(records) { records = records || []; rows.innerHTML = records.length ? records.map(function(record) { return '<tr><td><div class="track">' + escapeHtml(record.track_name) + '</div><div class="small">' + escapeHtml(record.spotify_track_id || '') + '</div></td><td>' + escapeHtml((record.artist_names || []).join(', ')) + '</td><td>' + escapeHtml(record.album_name || '') + '<div class="small">ISRC: ' + escapeHtml(record.isrc || '-') + '</div></td><td>' + escapeHtml(record.spotify_release_year || '-') + '<div class="small">' + escapeHtml(record.spotify_release_date || '') + '</div></td><td>' + escapeHtml(record.current_era || '-') + '<div class="small">Effective: ' + escapeHtml(record.effective_release_year || '-') + '</div></td><td>' + escapeHtml(record.playlist_code || '-') + '</td><td>' + tags(record.detected_edition_signals) + '</td><td><span class="confidence ' + escapeHtml(record.confidence_bucket) + '">' + escapeHtml(record.confidence_bucket) + '</span></td><td>' + escapeHtml(record.suggested_action) + '</td><td>' + renderOverrideControls(record) + '</td></tr>'; }).join('') : '<tr><td colspan="10" class="muted">No era diagnostics match this filter.</td></tr>'; }
+      async function loadDiagnostics() { const params = new URLSearchParams({ limit:'500' }); if (eraFilter.value) params.set('era', eraFilter.value); if (signalFilter.value) params.set('signal', signalFilter.value); if (playlistFilter.value) params.set('playlist', playlistFilter.value); if (confidenceFilter.value) params.set('confidence', confidenceFilter.value); setMessage('Loading era diagnostics...'); try { const payload = await requestJson('/crate/admin/era-diagnostics?' + params.toString()); syncFilterOptions(payload); renderSummary(payload); renderRows(payload.suspect_tracks || []); setMessage('Loaded ' + formatNumber(payload.filtered_count) + ' era diagnostic rows.'); } catch (err) { rows.innerHTML = '<tr><td colspan="10" class="muted">Failed to load diagnostics.</td></tr>'; setMessage(err.message, 'error'); } }
+      [eraFilter, signalFilter, playlistFilter, confidenceFilter].forEach(function(control) { control.addEventListener('change', loadDiagnostics); });
+      rows.addEventListener('submit', async function(event) {
+        const form = event.target.closest('.override-form');
+        if (!form) return;
+        event.preventDefault();
+        const body = {
+          track_id: Number(form.dataset.trackId),
+          spotify_release_year: Number(form.dataset.spotifyYear) || null,
+          original_release_year: Number(form.elements.original_year.value),
+          effective_release_year: Number(form.elements.effective_year.value || form.elements.original_year.value),
+          confidence: form.elements.confidence.value,
+          source: 'manual_admin',
+          reason: form.elements.reason.value,
+        };
+        try {
+          await requestJson('/crate/admin/era-overrides', { method:'POST', body:JSON.stringify(body) });
+          setMessage('Era override saved. Run Resort All to update saved playlist assignments if needed.');
+          await loadDiagnostics();
+        } catch (err) {
+          setMessage(err.message, 'error');
+        }
+      });
+      rows.addEventListener('click', async function(event) {
+        const button = event.target.closest('[data-remove-override]');
+        if (!button) return;
+        if (!confirm('Remove this era override?')) return;
+        try {
+          await requestJson('/crate/admin/era-overrides/' + encodeURIComponent(button.dataset.removeOverride), { method:'DELETE' });
+          setMessage('Era override removed.');
+          await loadDiagnostics();
+        } catch (err) {
+          setMessage(err.message, 'error');
+        }
+      });
+      refreshButton.addEventListener('click', loadDiagnostics);
+      loadDiagnostics();
+    </script>
+  </body>
+</html>

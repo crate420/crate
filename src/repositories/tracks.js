@@ -169,10 +169,12 @@ function getUnsortedTracksForUser(userId) {
         tracks.explicit,
         tracks.duration_ms,
         tracks.raw_json,
-        track_overrides.override_playlist_code
+        track_overrides.override_playlist_code,
+        track_era_overrides.effective_release_year
       FROM user_tracks
       INNER JOIN tracks ON tracks.id = user_tracks.track_id
       LEFT JOIN track_overrides ON track_overrides.track_id = tracks.id
+      LEFT JOIN track_era_overrides ON track_era_overrides.track_id = tracks.id
       WHERE user_tracks.user_id = ?
         AND user_tracks.playlist_code IS NULL
       ORDER BY user_tracks.liked_at DESC, user_tracks.first_seen_at DESC
@@ -242,10 +244,12 @@ function getSortedTracksForPlaylistSync(userId) {
         tracks.name,
         tracks.artist_names,
         tracks.album_name,
-        tracks.raw_json
+        tracks.raw_json,
+        track_era_overrides.effective_release_year
       FROM user_tracks
       INNER JOIN tracks ON tracks.id = user_tracks.track_id
       LEFT JOIN track_overrides ON track_overrides.track_id = tracks.id
+      LEFT JOIN track_era_overrides ON track_era_overrides.track_id = tracks.id
       WHERE user_tracks.user_id = ?
         AND COALESCE(track_overrides.override_playlist_code, user_tracks.playlist_code) IS NOT NULL
         AND tracks.uri IS NOT NULL

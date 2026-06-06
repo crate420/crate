@@ -40,6 +40,13 @@ const PLAYLIST_DEFINITIONS = [
   definePlaylist("soundtrack", "Crate: Soundtrack", "Soundtrack", "Soundtracks, scores, cast recordings, and stage-and-screen music.", "collection", 260, "film"),
   definePlaylist("seasonal", "Crate: Seasonal", "Seasonal", "Holiday favorites and clearly seasonal songs.", "collection", 270, "calendar"),
   definePlaylist("christian", "Crate: Christian & Gospel", "Christian & Gospel", "Christian, worship, CCM, gospel, and faith-centered music.", "special_interest", 280, "heart"),
+  definePlaylist("specialty_southern_soul", "Crate: Southern Soul", "Southern Soul", "Evidence-backed Southern soul specialty playlist from your library.", "specialty", 300, "heart"),
+  definePlaylist("specialty_motown", "Crate: Motown", "Motown", "Evidence-backed Motown specialty playlist from your library.", "specialty", 310, "disc"),
+  definePlaylist("specialty_pop_punk", "Crate: Pop Punk Specialty", "Pop Punk", "Evidence-backed pop punk specialty playlist from your library.", "specialty", 320, "zap"),
+  definePlaylist("specialty_new_wave", "Crate: New Wave Specialty", "New Wave", "Evidence-backed new wave specialty playlist from your library.", "specialty", 330, "waves"),
+  definePlaylist("specialty_yacht_rock", "Crate: Yacht Rock", "Yacht Rock", "Evidence-backed yacht rock specialty playlist from your library.", "specialty", 340, "waves"),
+  definePlaylist("specialty_disco", "Crate: Disco", "Disco", "Evidence-backed disco specialty playlist from your library.", "specialty", 350, "disc"),
+  definePlaylist("specialty_beach_vibes", "Crate: Beach Vibes", "Beach Vibes", "Evidence-backed beach vibes specialty playlist from your library.", "specialty", 360, "sun"),
 ];
 
 const ACTIVE_PLAYLIST_DEFINITIONS = PLAYLIST_DEFINITIONS

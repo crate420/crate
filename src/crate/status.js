@@ -1,6 +1,8 @@
 const config = require("../config");
 const { openDatabase } = require("../db");
 const { ACTIVE_PLAYLIST_DEFINITIONS } = require("./playlistDefinitions");
+const { effectiveReleaseYearForRow, eraForYear } = require("./eraYears");
+const { getSpecialtySuggestionsForUser } = require("./specialtySuggestions");
 
 function tableExists(db, tableName) {
   const row = db.prepare(`
@@ -194,25 +196,7 @@ function emptyEraCounts() {
   };
 }
 
-function releaseYearFromRawJson(rawJson) {
-  try {
-    const raw = JSON.parse(rawJson || "{}");
-    const releaseDate = raw.album?.release_date || raw.release_date || "";
-    const year = Number.parseInt(String(releaseDate).slice(0, 4), 10);
 
-    return Number.isInteger(year) ? year : null;
-  } catch (err) {
-    return null;
-  }
-}
-
-function eraForYear(year) {
-  if (!year) return null;
-  if (year <= 1969) return "vintage";
-  if (year <= 1989) return "classic";
-  if (year <= 2009) return "retro";
-  return "modern";
-}
 
 function getSortedTrackRowsForStatus(db, userId = null) {
   if (!tableExists(db, "user_tracks") || !tableExists(db, "tracks")) {
@@ -223,6 +207,13 @@ function getSortedTrackRowsForStatus(db, userId = null) {
   const effectivePlaylistCode = hasTrackOverrides
     ? "COALESCE(track_overrides.override_playlist_code, user_tracks.playlist_code)"
     : "user_tracks.playlist_code";
+  const hasTrackEraOverrides = tableExists(db, "track_era_overrides");
+  const joinTrackEraOverrides = hasTrackEraOverrides
+    ? "LEFT JOIN track_era_overrides ON track_era_overrides.track_id = user_tracks.track_id"
+    : "";
+  const effectiveReleaseYearSelect = hasTrackEraOverrides
+    ? "track_era_overrides.effective_release_year"
+    : "NULL";
   const joinTrackOverrides = hasTrackOverrides
     ? "LEFT JOIN track_overrides ON track_overrides.track_id = user_tracks.track_id"
     : "";
@@ -231,10 +222,12 @@ function getSortedTrackRowsForStatus(db, userId = null) {
     return db.prepare(`
       SELECT
         ${effectivePlaylistCode} AS playlist_code,
-        tracks.raw_json
+        tracks.raw_json,
+        ${effectiveReleaseYearSelect} AS effective_release_year
       FROM user_tracks
       INNER JOIN tracks ON tracks.id = user_tracks.track_id
       ${joinTrackOverrides}
+      ${joinTrackEraOverrides}
       WHERE ${effectivePlaylistCode} IS NOT NULL
         ${userId ? "AND user_tracks.user_id = @userId" : ""}
     `).all(userId ? { userId } : {});
@@ -265,7 +258,7 @@ function getPlaylistCategoryCounts(sortedTrackRows) {
     const entry = countsByPlaylistCode.get(playlistCode);
     entry.count += 1;
 
-    const era = eraForYear(releaseYearFromRawJson(row.raw_json));
+    const era = eraForYear(effectiveReleaseYearForRow(row));
     if (era) {
       entry.era_counts[era] += 1;
     }
@@ -285,7 +278,7 @@ function getEraCounts(sortedTrackRows) {
   const counts = emptyEraCounts();
 
   for (const row of sortedTrackRows) {
-    const era = eraForYear(releaseYearFromRawJson(row.raw_json));
+    const era = eraForYear(effectiveReleaseYearForRow(row));
     if (era) {
       counts[era] += 1;
     }
@@ -355,6 +348,9 @@ function getEmptyUserStatus(userId = null) {
     matched_tracks_count: 0,
     playlist_category_counts: playlistCategoryCounts,
     playlist_registry: getPlaylistRegistry(),
+    specialty_suggestions_visible: false,
+    specialty_preview_enabled: false,
+    specialty_suggestions: [],
     era_counts: eraCounts,
     discovery: emptyDiscoverySummary(),
     last_sync_run: null,
@@ -364,7 +360,7 @@ function getEmptyUserStatus(userId = null) {
   };
 }
 
-function getUserCrateStatus(userId) {
+function getUserCrateStatus(userId, options = {}) {
   const db = openDatabase();
   const sortedTrackRows = getSortedTrackRowsForStatus(db, userId) || [];
   const playlistCategoryCounts = getPlaylistCategoryCounts(sortedTrackRows) || [];
@@ -375,6 +371,9 @@ function getUserCrateStatus(userId) {
   const userPlaylistCategoriesTotal = playlistCategoryCounts.length;
   const lastSortRun = getLastCrateRunByStep(db, "sortTracks", userId);
   const discovery = normalizeDiscoverySummary(lastSortRun?.summary?.discovery);
+  const specialtySuggestionsVisible = Boolean(options.specialtySuggestionsVisible);
+  const specialtyPreviewEnabled = Boolean(options.specialtyPreviewEnabled);
+  const specialtySuggestions = specialtySuggestionsVisible ? getSpecialtySuggestionsForUser(userId) : [];
 
   console.log("[Crate Status] user dashboard counts", {
     user_id: userId,
@@ -405,6 +404,9 @@ function getUserCrateStatus(userId) {
     matched_tracks_count: userTracksSorted,
     playlist_category_counts: playlistCategoryCounts,
     playlist_registry: getPlaylistRegistry(),
+    specialty_suggestions_visible: specialtySuggestionsVisible,
+    specialty_preview_enabled: specialtyPreviewEnabled,
+    specialty_suggestions: specialtySuggestions,
     era_counts: getEraCounts(sortedTrackRows),
     discovery,
     last_sync_run: getLastCrateRunByStep(db, "syncLikedSongs", userId),
@@ -433,6 +435,9 @@ function getGlobalCrateStatus() {
     matched_tracks_count: readCount(db, "user_tracks", "WHERE playlist_code IS NOT NULL"),
     playlist_category_counts: getPlaylistCategoryCounts(sortedTrackRows),
     playlist_registry: getPlaylistRegistry(),
+    specialty_suggestions_visible: false,
+    specialty_preview_enabled: false,
+    specialty_suggestions: [],
     era_counts: getEraCounts(sortedTrackRows),
     discovery: normalizeDiscoverySummary(lastSortRun?.summary?.discovery),
     last_sync_run: getLastCrateRunByStep(db, "syncLikedSongs"),
@@ -447,7 +452,7 @@ function getCrateStatus(options = {}) {
     return getEmptyUserStatus();
   }
 
-  return getUserCrateStatus(options.userId);
+  return getUserCrateStatus(options.userId, options);
 }
 
 module.exports = {

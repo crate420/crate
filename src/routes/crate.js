@@ -45,10 +45,16 @@ const {
   previewBulkRecommendations,
 } = require("../crate/artistIntelligenceRecommendations");
 const { getDatabaseDiagnostics } = require("../crate/dbDiagnostics");
+const { getAdminEraDiagnostics } = require("../crate/eraDiagnostics");
+const playlistSeedRegistry = require("../crate/playlistSeedRegistry");
+const { getSeedIntelligenceReport } = require("../crate/seedIntelligence");
+const { fetchAllPlaylistSeeds, fetchPlaylistSeed } = require("../crate/playlistSeedFetcher");
 const { getMissingArtistGenres } = require("../crate/missingArtistGenres");
 const { fetchAndCacheMusicBrainzArtistIntelligence } = require("../crate/musicbrainzArtistIntelligence");
 const { getCrateStatus, getGlobalCrateStatus } = require("../crate/status");
 const { getTopArtists } = require("../crate/topArtists");
+const { getSpecialtyPlaylistValidationReport } = require("../crate/specialtyPlaylistValidation");
+const { resolveSpecialtyTracksForUser } = require("../crate/specialtyTrackResolver");
 const { syncPlaylists } = require("../crate/syncPlaylists");
 const { syncLikedSongs } = require("../crate/syncLikedSongs");
 const { sortTracks } = require("../crate/sortTracks");
@@ -68,6 +74,8 @@ const artistIntelligenceRepo = require("../repositories/artistIntelligence");
 const betaAccessCodes = require("../repositories/betaAccessCodes");
 const runs = require("../repositories/runs");
 const trackRepo = require("../repositories/tracks");
+const trackEraOverrideRepo = require("../repositories/trackEraOverrides");
+const playlistSeedCacheRepo = require("../repositories/playlistSeedCache");
 const spotifyTracks = require("../spotify/tracks");
 const { getCurrentUser, requireCurrentUser } = require("../utils/authSession");
 
@@ -238,7 +246,17 @@ if (process.env.NODE_ENV !== "production") {
 router.get("/status", (req, res, next) => {
   try {
     const currentUser = getCurrentUser(req, res);
-    return res.json(getCrateStatus({ userId: currentUser?.id || null }));
+    const specialtyPreviewEnabled = Boolean(
+      currentUser && config.adminSpotifyUserId && currentUser.spotify_user_id === config.adminSpotifyUserId
+    );
+    const specialtySuggestionsVisible = Boolean(
+      currentUser && (config.specialtySuggestionsTestVisible || specialtyPreviewEnabled)
+    );
+    return res.json(getCrateStatus({
+      userId: currentUser?.id || null,
+      specialtySuggestionsVisible,
+      specialtyPreviewEnabled,
+    }));
   } catch (err) {
     return next(err);
   }
@@ -247,6 +265,70 @@ router.get("/status", (req, res, next) => {
 router.get("/admin/status", requireCurrentUser, requireAdminUser, (req, res, next) => {
   try {
     return res.json(getGlobalCrateStatus());
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.get("/admin/era-diagnostics", requireCurrentUser, requireAdminUser, (req, res, next) => {
+  try {
+    return res.json(getAdminEraDiagnostics(req.currentUser.id, req.query));
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.get("/admin/era-overrides", requireCurrentUser, requireAdminUser, (req, res, next) => {
+  try {
+    return res.json({
+      status: "ok",
+      overrides: trackEraOverrideRepo.listTrackEraOverrides({
+        limit: Number.parseInt(req.query.limit, 10) || 250,
+        offset: Number.parseInt(req.query.offset, 10) || 0,
+      }),
+    });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.post("/admin/era-overrides", requireCurrentUser, requireAdminUser, (req, res, next) => {
+  try {
+    const trackId = Number.parseInt(req.body?.track_id, 10);
+    const track = trackRepo.getTrackForUser(req.currentUser.id, trackId);
+    if (!track) {
+      return res.status(404).json({ error: "track_not_found", message: "Track was not found for this user." });
+    }
+
+    const override = trackEraOverrideRepo.upsertTrackEraOverride({
+      trackId,
+      spotifyReleaseYear: req.body?.spotify_release_year,
+      originalReleaseYear: req.body?.original_release_year,
+      effectiveReleaseYear: req.body?.effective_release_year,
+      source: req.body?.source || "manual_admin",
+      reason: req.body?.reason,
+      confidence: req.body?.confidence,
+    });
+
+    return res.json({ status: "ok", override });
+  } catch (err) {
+    if (err.statusCode) {
+      return res.status(err.statusCode).json({ error: err.code || "era_override_error", message: err.message });
+    }
+    return next(err);
+  }
+});
+
+router.delete("/admin/era-overrides/:trackId", requireCurrentUser, requireAdminUser, (req, res, next) => {
+  try {
+    const trackId = Number.parseInt(req.params.trackId, 10);
+    const track = trackRepo.getTrackForUser(req.currentUser.id, trackId);
+    if (!track) {
+      return res.status(404).json({ error: "track_not_found", message: "Track was not found for this user." });
+    }
+
+    const result = trackEraOverrideRepo.deleteTrackEraOverride(trackId);
+    return res.json({ status: "ok", deleted: result.changes });
   } catch (err) {
     return next(err);
   }
@@ -386,6 +468,110 @@ router.get("/spotify/liked-songs", requireCurrentUser, async (req, res, next) =>
         album: item.track?.album?.name || null,
       })),
     });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+function getPlaylistSeedCachePayload() {
+  const seeds = playlistSeedRegistry.getActivePlaylistSeeds();
+  const cacheSummary = playlistSeedCacheRepo.summarizeSeedCacheFreshness(seeds);
+  const cacheByCode = new Map(cacheSummary.rows.map((row) => [row.seed_code, row]));
+  const enrichedSeeds = seeds.map((seed) => ({
+    ...seed,
+    cache: cacheByCode.get(seed.seed_code) || null,
+  }));
+
+  return {
+    status: "ok",
+    total_seed_count: playlistSeedRegistry.PLAYLIST_SEEDS.length,
+    active_seed_count: seeds.length,
+    seeds: enrichedSeeds,
+    grouped_by_supported_playlist: playlistSeedRegistry.groupPlaylistSeedsBySupportedPlaylist(seeds),
+    quality_summary: playlistSeedRegistry.summarizePlaylistSeedQuality(seeds),
+    cache_summary: cacheSummary,
+    cached_metadata: playlistSeedCacheRepo.listCachedSeedMetadata(),
+  };
+}
+
+router.get("/admin/playlist-seeds", requireCurrentUser, requireAdminUser, (req, res, next) => {
+  try {
+    return res.json(getPlaylistSeedCachePayload());
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.get("/admin/seed-intelligence", requireCurrentUser, requireAdminUser, (req, res, next) => {
+  try {
+    const userId = req.query.user_id ? Number.parseInt(req.query.user_id, 10) : req.currentUser.id;
+    if (!Number.isInteger(userId) || userId <= 0) {
+      return res.status(400).json({ error: "invalid_user_id", message: "user_id must be a positive integer." });
+    }
+    return res.json(getSeedIntelligenceReport(userId));
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.get("/admin/specialty-validation", requireCurrentUser, requireAdminUser, (req, res, next) => {
+  try {
+    const userId = req.query.user_id ? Number.parseInt(req.query.user_id, 10) : req.currentUser.id;
+    const matchLimit = req.query.match_limit || 50;
+    if (!Number.isInteger(userId) || userId <= 0) {
+      return res.status(400).json({ error: "invalid_user_id", message: "user_id must be a positive integer." });
+    }
+    return res.json(getSpecialtyPlaylistValidationReport(userId, { matchLimit }));
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.get("/admin/specialty-track-preview", requireCurrentUser, requireAdminUser, (req, res, next) => {
+  try {
+    const seedCode = String(req.query.seed_code || "").trim();
+    if (!seedCode) {
+      return res.status(400).json({ error: "missing_seed_code", message: "seed_code is required." });
+    }
+    const userId = req.query.user_id ? Number.parseInt(req.query.user_id, 10) : req.currentUser.id;
+    if (!Number.isInteger(userId) || userId <= 0) {
+      return res.status(400).json({ error: "invalid_user_id", message: "user_id must be a positive integer." });
+    }
+    const limit = req.query.limit ? Number.parseInt(req.query.limit, 10) : 100;
+    return res.json(resolveSpecialtyTracksForUser(userId, seedCode, { limit }));
+  } catch (err) {
+    if (err.statusCode) {
+      return res.status(err.statusCode).json({ error: err.code || "specialty_track_preview_error", message: err.message });
+    }
+    return next(err);
+  }
+});
+
+router.get("/admin/playlist-seed-cache", requireCurrentUser, requireAdminUser, (req, res, next) => {
+  try {
+    return res.json(getPlaylistSeedCachePayload());
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.post("/admin/playlist-seed-cache/fetch/:seedCode", requireCurrentUser, requireAdminUser, async (req, res, next) => {
+  try {
+    return res.json(await fetchPlaylistSeed(req.currentUser.id, req.params.seedCode));
+  } catch (err) {
+    if (err.statusCode && err.statusCode < 500) {
+      return res.status(err.statusCode).json({
+        error: err.code || "playlist_seed_fetch_error",
+        message: err.message,
+      });
+    }
+    return next(err);
+  }
+});
+
+router.post("/admin/playlist-seed-cache/fetch-all", requireCurrentUser, requireAdminUser, async (req, res, next) => {
+  try {
+    return res.json(await fetchAllPlaylistSeeds(req.currentUser.id));
   } catch (err) {
     return next(err);
   }

@@ -1,4 +1,5 @@
 const { normalizeArtistName } = require("../repositories/artistGenres");
+const { releaseYearFromDate } = require("./eraYears");
 
 function parseRawTrack(rawJson) {
   if (!rawJson) {
@@ -32,6 +33,14 @@ function getArtistNames(row, rawTrack) {
 
 function getReleaseDate(rawTrack) {
   return rawTrack?.album?.release_date || null;
+}
+
+function getEffectiveReleaseYear(row, rawTrack) {
+  const manualYear = Number.parseInt(row?.effective_release_year, 10);
+  if (Number.isInteger(manualYear)) {
+    return manualYear;
+  }
+  return releaseYearFromDate(getReleaseDate(rawTrack));
 }
 
 function getGenresForTrack(
@@ -102,6 +111,7 @@ function getTrackContext(row, artistsById, fallbackGenresByArtistName = new Map(
     album: {
       name: row.album_name,
       releaseDate: getReleaseDate(rawTrack),
+      effectiveReleaseYear: getEffectiveReleaseYear(row, rawTrack),
     },
     artists,
     artistNames,

@@ -38,6 +38,10 @@ function readDatabasePath(value) {
     : path.resolve(rootDir, value);
 }
 
+function readBooleanFlag(value) {
+  return ["1", "true", "yes", "on"].includes(String(value || "").trim().toLowerCase());
+}
+
 const config = {
   env: process.env.NODE_ENV || "development",
   port: readPort(process.env.PORT || "3000"),
@@ -52,6 +56,7 @@ const config = {
     apiKey: process.env.LASTFM_API_KEY || "",
   },
   adminSpotifyUserId: process.env.ADMIN_SPOTIFY_USER_ID || "",
+  specialtySuggestionsTestVisible: readBooleanFlag(process.env.CRATE_SPECIALTY_SUGGESTIONS_VISIBLE),
   rootDir,
 };
 

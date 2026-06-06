@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Crate Specialty Playlist Validation</title>
+    <style>
+      :root { color-scheme: light; --bg:#f6f8fb; --panel:#fff; --border:#d7dde5; --muted:#64748b; --text:#17202a; --action:#1769aa; --danger:#a23a3a; --ok:#166534; --warn:#92400e; }
+      * { box-sizing:border-box; }
+      body { margin:0; background:var(--bg); color:var(--text); font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; font-size:14px; }
+      main { max-width:1480px; margin:0 auto; padding:24px; }
+      header { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:16px; }
+      h1,h2,h3 { margin:0; line-height:1.2; }
+      h1 { font-size:24px; }
+      h2 { font-size:18px; }
+      h3 { font-size:15px; margin-bottom:8px; }
+      .muted { color:var(--muted); }
+      .toolbar { display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
+      .button,button { border:1px solid var(--border); border-radius:6px; background:#fff; color:var(--text); min-height:34px; padding:6px 10px; font:inherit; text-decoration:none; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; }
+      button.primary { background:var(--action); border-color:var(--action); color:#fff; }
+      .panel { background:var(--panel); border:1px solid var(--border); border-radius:8px; padding:16px; margin-bottom:14px; }
+      .summary { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:10px; margin-top:12px; }
+      .stat { border:1px solid var(--border); border-radius:8px; padding:11px; background:#fff; }
+      .stat strong { display:block; font-size:24px; line-height:1; }
+      .stat span { display:block; margin-top:5px; color:var(--muted); font-size:12px; font-weight:700; text-transform:uppercase; }
+      .message { min-height:22px; margin:8px 0; color:var(--muted); }
+      .message.error { color:var(--danger); }
+      .seed-card { border:1px solid var(--border); border-radius:10px; background:#fff; margin-bottom:16px; overflow:hidden; }
+      .seed-head { display:grid; grid-template-columns:1.4fr repeat(5,.55fr); gap:10px; align-items:center; padding:14px 16px; border-bottom:1px solid var(--border); background:#f8fafc; }
+      .seed-title { font-weight:800; font-size:16px; }
+      .metric strong { display:block; font-size:18px; }
+      .metric span { color:var(--muted); font-size:11px; text-transform:uppercase; font-weight:700; }
+      .badge { display:inline-flex; align-items:center; border:1px solid #cbd5e1; border-radius:999px; background:#f8fafc; color:#334155; padding:2px 7px; font-size:12px; white-space:nowrap; text-transform:capitalize; }
+      .approved_for_recommendation { border-color:#86efac; color:#166534; background:#f0fdf4; }
+      .needs_review { border-color:#fde68a; color:#92400e; background:#fffbeb; }
+      .requires_refinement { border-color:#fecaca; color:#991b1b; background:#fef2f2; }
+      .insufficient_data { border-color:#cbd5e1; color:#475569; background:#f8fafc; }
+      .seed-body { display:grid; grid-template-columns:minmax(220px,.85fr) minmax(320px,1.35fr) minmax(280px,1fr); gap:14px; padding:14px 16px; }
+      table { width:100%; border-collapse:collapse; }
+      th,td { border-bottom:1px solid var(--border); padding:7px 6px; text-align:left; vertical-align:top; }
+      th { color:#334155; font-size:11px; text-transform:uppercase; letter-spacing:.03em; }
+      .small { color:var(--muted); font-size:12px; margin-top:3px; overflow-wrap:anywhere; }
+      .flag { margin:0 0 6px; padding:7px 8px; border-radius:7px; border:1px solid #fecaca; background:#fef2f2; color:#7f1d1d; }
+      .empty { color:var(--muted); font-style:italic; }
+      @media (max-width:1100px) { .seed-head { grid-template-columns:1fr 1fr 1fr; } .seed-body { grid-template-columns:1fr; } }
+      @media (max-width:760px) { main { padding:16px; } header { flex-direction:column; } .seed-head { grid-template-columns:1fr 1fr; } table { display:block; overflow-x:auto; } }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <div>
+          <h1>Specialty Playlist Validation</h1>
+          <div class="muted">Read-only quality check for seed overlap before specialty playlists become user-facing.</div>
+        </div>
+        <nav class="toolbar">
+          <a class="button" href="/admin.html">Admin Home</a>
+          <a class="button" href="/admin-playlist-seeds.html">Playlist Seeds</a>
+          <a class="button" href="/admin-artist-intelligence.html">Artist Intelligence</a>
+          <button class="primary" id="refreshButton" type="button">Refresh</button>
+        </nav>
+      </header>
+      <section class="panel">
+        <h2>Summary</h2>
+        <div class="summary" id="summary"></div>
+      </section>
+      <div class="message" id="message">Loading validation report...</div>
+      <section id="seedList"></section>
+    </main>
+    <script>
+      const summary = document.getElementById('summary');
+      const message = document.getElementById('message');
+      const seedList = document.getElementById('seedList');
+      const refreshButton = document.getElementById('refreshButton');
+      function escapeHtml(value) { return String(value ?? '').replace(/[&<>"]/g, function(char) { return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[char]; }); }
+      function formatNumber(value) { return Number(value || 0).toLocaleString(); }
+      function setMessage(text, type) { message.textContent = text; message.className = 'message' + (type ? ' ' + type : ''); }
+      async function requestJson(url) { const response = await fetch(url, { credentials:'include' }); const body = await response.json().catch(function() { return {}; }); if (!response.ok) throw new Error(body.message || body.error || 'Request failed: ' + response.status); return body; }
+      function renderSummary(payload) { const s = payload.summary || {}; const stats = [['Seeds', s.seed_count], ['Total overlap', s.total_overlap_count], ['Approved', s.approved_count], ['Needs review', s.needs_review_count], ['Refine', s.requires_refinement_count], ['Insufficient', s.insufficient_data_count]]; summary.innerHTML = stats.map(function(pair) { return '<div class="stat"><strong>' + formatNumber(pair[1]) + '</strong><span>' + escapeHtml(pair[0]) + '</span></div>'; }).join(''); }
+      function renderArtists(artists) { if (!artists || !artists.length) return '<div class="empty">No overlapping artists.</div>'; return '<table><thead><tr><th>Artist</th><th>Count</th></tr></thead><tbody>' + artists.slice(0, 10).map(function(row) { return '<tr><td>' + escapeHtml(row.artist) + '</td><td>' + formatNumber(row.count) + '</td></tr>'; }).join('') + '</tbody></table>'; }
+      function renderMatches(matches) { if (!matches || !matches.length) return '<div class="empty">No matched tracks.</div>'; return '<table><thead><tr><th>Track</th><th>Artist</th><th>Type</th><th>Crate</th></tr></thead><tbody>' + matches.map(function(row) { return '<tr><td>' + escapeHtml(row.track) + '<div class="small">' + escapeHtml(row.album || '') + '</div></td><td>' + escapeHtml(row.artist) + '</td><td><span class="badge">' + escapeHtml(row.match_type) + '</span></td><td>' + escapeHtml(row.current_playlist_code || '-') + '</td></tr>'; }).join('') + '</tbody></table>'; }
+      function renderFlags(flags) { if (!flags || !flags.length) return '<div class="empty">No likely false positives flagged.</div>'; return flags.map(function(row) { const firstFlag = row.flags && row.flags[0] ? row.flags[0] : {}; return '<div class="flag"><strong>' + escapeHtml(row.track) + '</strong><div>' + escapeHtml(row.artist) + '</div><div class="small">' + escapeHtml(firstFlag.type || 'flagged') + ': ' + escapeHtml(firstFlag.message || '') + '</div><div class="small">Current playlist: ' + escapeHtml(row.current_playlist_code || '-') + '</div></div>'; }).join(''); }
+      function renderSeed(seed) { const scores = seed.scores || {}; return '<article class="seed-card"><div class="seed-head"><div><div class="seed-title">' + escapeHtml(seed.playlist_name) + '</div><div class="small">' + escapeHtml(seed.seed_code) + ' supports ' + escapeHtml(seed.supports_playlist_code) + '</div><div><span class="badge ' + escapeHtml(seed.recommendation_status) + '">' + escapeHtml(seed.recommendation_status.replace(/_/g, ' ')) + '</span></div></div><div class="metric"><strong>' + formatNumber(seed.overlap_count) + '</strong><span>Overlap</span></div><div class="metric"><strong>' + formatNumber(seed.exact_match_count) + '</strong><span>Exact</span></div><div class="metric"><strong>' + formatNumber(seed.isrc_match_count) + '</strong><span>ISRC</span></div><div class="metric"><strong>' + formatNumber(seed.fallback_match_count) + '</strong><span>Fallback</span></div><div class="metric"><strong>' + formatNumber(scores.overall_confidence) + '</strong><span>Confidence</span></div></div><div class="seed-head"><div class="metric"><strong>' + formatNumber(scores.track_match_score) + '</strong><span>Track Score</span></div><div class="metric"><strong>' + formatNumber(scores.artist_match_score) + '</strong><span>Artist Score</span></div><div class="metric"><strong>' + formatNumber(scores.playlist_consistency_score) + '</strong><span>Consistency</span></div><div class="metric"><strong>' + formatNumber(seed.flagged_false_positive_count) + '</strong><span>Flags</span></div><div class="metric"><strong>' + formatNumber(seed.seed_track_count) + '</strong><span>Seed Tracks</span></div><div></div></div><div class="seed-body"><section><h3>Top Artists</h3>' + renderArtists(seed.top_artists) + '</section><section><h3>Matched Tracks</h3>' + renderMatches(seed.matches) + '</section><section><h3>Likely False Positives</h3>' + renderFlags(seed.flagged_false_positives) + '</section></div></article>'; }
+      function renderSeeds(seeds) { seedList.innerHTML = seeds && seeds.length ? seeds.map(renderSeed).join('') : '<section class="panel empty">No seed validation data available.</section>'; }
+      async function loadReport() { setMessage('Loading validation report...'); try { const payload = await requestJson('/crate/admin/specialty-validation?match_limit=50'); renderSummary(payload); renderSeeds(payload.seeds || []); setMessage('Loaded specialty playlist validation report.'); } catch (err) { seedList.innerHTML = ''; setMessage(err.message, 'error'); } }
+      refreshButton.addEventListener('click', loadReport);
+      loadReport();
+    </script>
+  </body>
+</html>
