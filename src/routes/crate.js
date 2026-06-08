@@ -52,6 +52,7 @@ const { fetchAllPlaylistSeeds, fetchPlaylistSeed } = require("../crate/playlistS
 const { getMissingArtistGenres } = require("../crate/missingArtistGenres");
 const { fetchAndCacheMusicBrainzArtistIntelligence } = require("../crate/musicbrainzArtistIntelligence");
 const { getCrateStatus, getGlobalCrateStatus } = require("../crate/status");
+const { getAdminUserDiagnostics } = require("../crate/userDiagnostics");
 const { getTopArtists } = require("../crate/topArtists");
 const { getSpecialtyPlaylistValidationReport } = require("../crate/specialtyPlaylistValidation");
 const { resolveSpecialtyTracksForUser } = require("../crate/specialtyTrackResolver");
@@ -258,6 +259,20 @@ router.get("/status", (req, res, next) => {
       specialtyPreviewEnabled,
     }));
   } catch (err) {
+    return next(err);
+  }
+});
+
+router.get("/admin/user-diagnostics", requireCurrentUser, requireAdminUser, async (req, res, next) => {
+  try {
+    return res.json(await getAdminUserDiagnostics({
+      userId: req.query.user_id,
+      detailLimit: req.query.limit,
+    }));
+  } catch (err) {
+    if (err.statusCode) {
+      return res.status(err.statusCode).json({ error: err.code || "user_diagnostics_error", message: err.message });
+    }
     return next(err);
   }
 });

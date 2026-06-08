@@ -191,6 +191,7 @@ async function getUnmatchedDiagnostics(userId) {
 }
 
 module.exports = {
+  buildDiagnosticsForUser,
   getAdminUnmatchedDiagnostic,
   getAdminUnmatchedDiagnostics,
   getUnmatchedDiagnostics,

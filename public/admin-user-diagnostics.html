@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Crate User Diagnostics</title>
+    <style>
+      :root{color-scheme:light;--bg:#f6f8fb;--panel:#fff;--border:#d7dde5;--muted:#657080;--text:#17202a;--action:#1769aa;--danger:#a23a3a;--good:#197653;--warn:#9a6500}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:14px}main{max-width:1280px;margin:0 auto;padding:24px}header,.toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}header{margin-bottom:16px}h1,h2{margin:0;line-height:1.2}h1{font-size:24px}h2{font-size:18px}.muted{color:var(--muted)}.button,button{border:1px solid var(--border);border-radius:6px;background:#fff;color:var(--text);cursor:pointer;display:inline-flex;align-items:center;min-height:34px;padding:6px 10px;font:inherit;text-decoration:none}.button.primary,button.primary{background:var(--action);border-color:var(--action);color:#fff}button:disabled{cursor:not-allowed;opacity:.55}.panel{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:14px}.message{min-height:22px;color:var(--muted);margin:8px 0}.message.error{color:var(--danger)}.summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}.stat{border:1px solid var(--border);border-radius:6px;padding:10px}.stat strong{display:block;font-size:20px}.stat span{display:block;color:var(--muted);font-size:12px;font-weight:700;text-transform:uppercase}table{width:100%;border-collapse:collapse}th,td{border-bottom:1px solid var(--border);padding:9px 8px;text-align:left;vertical-align:top}th{color:var(--muted);font-size:12px;text-transform:uppercase}tr.user-row{cursor:pointer}tr.user-row:hover{background:#f0f4f8}.pct{font-weight:700}.pct.good{color:var(--good)}.pct.warn{color:var(--warn)}.pct.bad{color:var(--danger)}.tags{display:flex;flex-wrap:wrap;gap:5px}.tag{border:1px solid var(--border);border-radius:999px;background:#f7f9fc;padding:3px 7px;font-size:12px}.detail-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.detail-list{border:1px solid var(--border);border-radius:6px;padding:10px;min-height:88px}.track-table{font-size:13px}.nowrap{white-space:nowrap}@media (max-width:900px){.detail-grid{grid-template-columns:1fr}table{display:block;overflow-x:auto;white-space:nowrap}}
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <div>
+          <h1>User Diagnostics</h1>
+          <div class="muted">Read-only sorting performance by Spotify user.</div>
+        </div>
+        <nav class="toolbar">
+          <a class="button" href="/admin.html">Admin Home</a>
+          <a class="button" href="/admin-unmatched-diagnostics.html">Unmatched Forensics</a>
+          <button class="primary" id="refreshButton" type="button">Refresh</button>
+        </nav>
+      </header>
+
+      <div class="message" id="message">Loading user diagnostics...</div>
+
+      <section class="panel">
+        <div class="summary" id="summaryCards"></div>
+      </section>
+
+      <section class="panel">
+        <h2>Users</h2>
+        <table aria-label="User sorting diagnostics">
+          <thead>
+            <tr>
+              <th>User</th>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Total liked</th>
+              <th>Matched</th>
+              <th>Unmatched</th>
+              <th>Match %</th>
+              <th>Playlists</th>
+              <th>Top unmatched artists</th>
+              <th>Top unmatched genres</th>
+              <th>Top reasons</th>
+            </tr>
+          </thead>
+          <tbody id="userRows"></tbody>
+        </table>
+      </section>
+
+      <section class="panel" id="detailPanel" hidden>
+        <h2 id="detailTitle">User detail</h2>
+        <p class="muted" id="detailMeta"></p>
+        <div class="detail-grid">
+          <div class="detail-list"><strong>Unmatched Artists</strong><div id="detailArtists" class="tags"></div></div>
+          <div class="detail-list"><strong>Unmatched Spotify Genres</strong><div id="detailGenres" class="tags"></div></div>
+          <div class="detail-list"><strong>Unmatched Reasons</strong><div id="detailReasons" class="tags"></div></div>
+        </div>
+        <h2 style="margin-top:16px">Unmatched Tracks</h2>
+        <table class="track-table" aria-label="Selected user unmatched tracks">
+          <thead><tr><th>Track</th><th>Artist</th><th>Album</th><th>Spotify Genres</th><th>Approved Fallbacks</th><th>Reason</th></tr></thead>
+          <tbody id="detailTracks"></tbody>
+        </table>
+      </section>
+    </main>
+    <script>
+      const message = document.getElementById('message');
+      const summaryCards = document.getElementById('summaryCards');
+      const userRows = document.getElementById('userRows');
+      const refreshButton = document.getElementById('refreshButton');
+      const detailPanel = document.getElementById('detailPanel');
+      const detailTitle = document.getElementById('detailTitle');
+      const detailMeta = document.getElementById('detailMeta');
+      const detailArtists = document.getElementById('detailArtists');
+      const detailGenres = document.getElementById('detailGenres');
+      const detailReasons = document.getElementById('detailReasons');
+      const detailTracks = document.getElementById('detailTracks');
+
+      function escapeHtml(value) { return String(value ?? '').replace(/[&<>"]/g, function(char) { return ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' })[char]; }); }
+      function formatNumber(value) { return Number(value || 0).toLocaleString(); }
+      function percentClass(value) { if (value >= 95) return 'good'; if (value >= 80) return 'warn'; return 'bad'; }
+      function setMessage(text, isError) { message.textContent = text; message.className = 'message' + (isError ? ' error' : ''); }
+      async function requestJson(url) { const response = await fetch(url, { credentials:'include' }); const body = await response.json().catch(function() { return {}; }); if (!response.ok) throw new Error(body.message || body.error || 'Request failed'); return body; }
+      function tags(rows, key) { const items = (rows || []).slice(0, 5); return '<div class="tags">' + (items.length ? items.map(function(row) { return '<span class="tag">' + escapeHtml(row[key]) + ' · ' + formatNumber(row.count) + '</span>'; }).join('') : '<span class="muted">None</span>') + '</div>'; }
+      function detailTags(rows, key) { return (rows || []).slice(0, 30).map(function(row) { return '<span class="tag">' + escapeHtml(row[key]) + ' · ' + formatNumber(row.count) + '</span>'; }).join('') || '<span class="muted">None</span>'; }
+      function renderSummary(users) { const total = users.reduce(function(sum, user) { return sum + user.total_liked_tracks; }, 0); const matched = users.reduce(function(sum, user) { return sum + user.matched_tracks; }, 0); const unmatched = users.reduce(function(sum, user) { return sum + user.unmatched_tracks; }, 0); const avg = total ? Math.round((matched / total) * 1000) / 10 : 0; summaryCards.innerHTML = [['Users', users.length], ['Liked tracks', total], ['Matched', matched], ['Unmatched', unmatched], ['Overall match %', avg + '%']].map(function(pair) { return '<div class="stat"><strong>' + escapeHtml(pair[1]) + '</strong><span>' + escapeHtml(pair[0]) + '</span></div>'; }).join(''); }
+      function renderUsers(users) { userRows.innerHTML = users.length ? users.map(function(user) { return '<tr class="user-row" data-user-id="' + user.user_id + '"><td class="nowrap">#' + user.user_id + '</td><td>' + escapeHtml(user.name || '') + '</td><td>' + escapeHtml(user.email || '') + '</td><td>' + formatNumber(user.total_liked_tracks) + '</td><td>' + formatNumber(user.matched_tracks) + '</td><td>' + formatNumber(user.unmatched_tracks) + '</td><td><span class="pct ' + percentClass(user.match_percent) + '">' + user.match_percent + '%</span></td><td>' + formatNumber(user.total_playlists_assigned) + '</td><td>' + tags(user.top_unmatched_artists, 'artist') + '</td><td>' + tags(user.top_unmatched_spotify_genres, 'genre') + '</td><td>' + tags(user.top_unmatched_reasons, 'reason') + (user.diagnostic_error ? '<div class="message error">' + escapeHtml(user.diagnostic_error) + '</div>' : '') + '</td></tr>'; }).join('') : '<tr><td colspan="11" class="muted">No users found.</td></tr>'; }
+      function renderDetail(selected) { detailPanel.hidden = false; detailTitle.textContent = 'User #' + selected.user_id + ' diagnostics'; detailMeta.textContent = [selected.name, selected.email, selected.total_unmatched_tracks + ' unmatched tracks'].filter(Boolean).join(' · '); detailArtists.innerHTML = detailTags(selected.unmatched_artists, 'artist'); detailGenres.innerHTML = detailTags(selected.unmatched_spotify_genres, 'genre'); detailReasons.innerHTML = detailTags(selected.unmatched_reasons, 'reason'); const tracks = selected.unmatched_tracks || []; detailTracks.innerHTML = tracks.length ? tracks.map(function(track) { return '<tr><td><strong>' + escapeHtml(track.track_name) + '</strong><div class="muted">' + escapeHtml(track.spotify_track_id || '') + '</div></td><td>' + escapeHtml((track.artist_names || []).join(', ')) + '</td><td>' + escapeHtml(track.album_name || '') + '</td><td>' + tags((track.spotify_artist_genres || []).map(function(genre) { return { genre:genre, count:1 }; }), 'genre') + '</td><td>' + tags((track.approved_artist_genres || []).map(function(genre) { return { genre:genre, count:1 }; }), 'genre') + '</td><td>' + escapeHtml(track.final_unmatched_reason) + '</td></tr>'; }).join('') : '<tr><td colspan="6" class="muted">No unmatched tracks for this user.</td></tr>'; detailPanel.scrollIntoView({ behavior:'smooth', block:'start' }); }
+      async function loadDiagnostics() { refreshButton.disabled = true; setMessage('Loading user diagnostics...'); try { const payload = await requestJson('/crate/admin/user-diagnostics'); renderSummary(payload.users || []); renderUsers(payload.users || []); setMessage('Loaded ' + formatNumber(payload.user_count) + ' user diagnostic row(s).'); } catch (error) { setMessage(error.message, true); } finally { refreshButton.disabled = false; } }
+      async function loadUserDetail(userId) { setMessage('Loading user #' + userId + ' detail...'); try { const payload = await requestJson('/crate/admin/user-diagnostics?user_id=' + encodeURIComponent(userId) + '&limit=250'); renderDetail(payload.selected_user); setMessage('Loaded user #' + userId + ' detail.'); } catch (error) { setMessage(error.message, true); } }
+      userRows.addEventListener('click', function(event) { const row = event.target.closest('[data-user-id]'); if (row) loadUserDetail(row.dataset.userId); });
+      refreshButton.addEventListener('click', loadDiagnostics);
+      loadDiagnostics();
+    </script>
+  </body>
+</html>

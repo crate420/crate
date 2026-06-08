@@ -60,6 +60,10 @@ function createApp() {
     res.sendFile(path.join(config.rootDir, "public/admin-unmatched-diagnostics.html"));
   });
 
+  app.get("/admin-user-diagnostics.html", requireAdminPage, (req, res) => {
+    res.sendFile(path.join(config.rootDir, "public/admin-user-diagnostics.html"));
+  });
+
   app.get("/admin-era-diagnostics.html", requireAdminPage, (req, res) => {
     res.sendFile(path.join(config.rootDir, "public/admin-era-diagnostics.html"));
   });
