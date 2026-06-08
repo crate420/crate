@@ -44,6 +44,7 @@ const {
   normalizeGenre,
   previewBulkRecommendations,
 } = require("../crate/artistIntelligenceRecommendations");
+const { getAdminArtistGapAnalysis } = require("../crate/artistGapAnalysis");
 const { getDatabaseDiagnostics } = require("../crate/dbDiagnostics");
 const { getAdminEraDiagnostics } = require("../crate/eraDiagnostics");
 const playlistSeedRegistry = require("../crate/playlistSeedRegistry");
@@ -257,6 +258,16 @@ router.get("/status", (req, res, next) => {
       userId: currentUser?.id || null,
       specialtySuggestionsVisible,
       specialtyPreviewEnabled,
+    }));
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.get("/admin/artist-gap-analysis", requireCurrentUser, requireAdminUser, async (req, res, next) => {
+  try {
+    return res.json(await getAdminArtistGapAnalysis({
+      limit: req.query.limit,
     }));
   } catch (err) {
     return next(err);

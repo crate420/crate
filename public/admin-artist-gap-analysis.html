@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Crate Artist Gap Analysis</title>
+    <style>
+      :root{color-scheme:light;--bg:#f6f8fb;--panel:#fff;--border:#d7dde5;--muted:#657080;--text:#17202a;--action:#1769aa;--danger:#a23a3a;--good:#197653;--warn:#9a6500}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:14px}main{max-width:1280px;margin:0 auto;padding:24px}header,.toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}header{margin-bottom:16px}h1,h2{margin:0;line-height:1.2}h1{font-size:24px}h2{font-size:18px}.muted{color:var(--muted)}.button,button{border:1px solid var(--border);border-radius:6px;background:#fff;color:var(--text);cursor:pointer;display:inline-flex;align-items:center;min-height:34px;padding:6px 10px;font:inherit;text-decoration:none}.button.primary,button.primary{background:var(--action);border-color:var(--action);color:#fff}button:disabled{cursor:not-allowed;opacity:.55}.panel{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:14px}.message{min-height:22px;color:var(--muted);margin:8px 0}.message.error{color:var(--danger)}.summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}.stat{border:1px solid var(--border);border-radius:6px;padding:10px}.stat strong{display:block;font-size:20px}.stat span{display:block;color:var(--muted);font-size:12px;font-weight:700;text-transform:uppercase}table{width:100%;border-collapse:collapse}th,td{border-bottom:1px solid var(--border);padding:9px 8px;text-align:left;vertical-align:top}th{color:var(--muted);font-size:12px;text-transform:uppercase}.tags{display:flex;flex-wrap:wrap;gap:5px}.tag{border:1px solid var(--border);border-radius:999px;background:#f7f9fc;padding:3px 7px;font-size:12px}.status{font-weight:700}.status.missing_artist_genres{color:var(--danger)}.status.spotify_genres_no_rule_match{color:var(--warn)}.status.approved_fallback_present{color:var(--good)}.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.nowrap{white-space:nowrap}@media(max-width:900px){.grid{grid-template-columns:1fr}table{display:block;overflow-x:auto;white-space:nowrap}}
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <div>
+          <h1>Artist Gap Analysis</h1>
+          <div class="muted">Cross-user read-only report of unmatched artists and genres.</div>
+        </div>
+        <nav class="toolbar">
+          <a class="button" href="/admin.html">Admin Home</a>
+          <a class="button" href="/admin-user-diagnostics.html">User Diagnostics</a>
+          <a class="button" href="/admin-unmatched-diagnostics.html">Unmatched Forensics</a>
+          <button class="primary" id="refreshButton" type="button">Refresh</button>
+        </nav>
+      </header>
+      <div class="message" id="message">Loading artist gap analysis...</div>
+      <section class="panel"><div class="summary" id="summaryCards"></div></section>
+      <div class="grid">
+        <section class="panel">
+          <h2>Top Missing Genres</h2>
+          <table><thead><tr><th>Genre</th><th>Occurrences</th></tr></thead><tbody id="genreRows"></tbody></table>
+        </section>
+        <section class="panel">
+          <h2>Estimated Match Gain</h2>
+          <p class="muted">Conservative estimate: tracks whose current reason is <code>no_artist_genres_found</code>.</p>
+          <div id="gainList" class="tags"></div>
+        </section>
+      </div>
+      <section class="panel">
+        <h2>Top Missing Artists</h2>
+        <table aria-label="Cross-user missing artist gaps">
+          <thead><tr><th>Artist</th><th>Users</th><th>Unmatched tracks</th><th>Total occurrences</th><th>Est. gain</th><th>Spotify artist ID</th><th>Spotify genres</th><th>Approved genres</th><th>Status</th><th>Reasons</th><th>Samples</th></tr></thead>
+          <tbody id="artistRows"></tbody>
+        </table>
+      </section>
+    </main>
+    <script>
+      const message = document.getElementById('message');
+      const refreshButton = document.getElementById('refreshButton');
+      const summaryCards = document.getElementById('summaryCards');
+      const genreRows = document.getElementById('genreRows');
+      const gainList = document.getElementById('gainList');
+      const artistRows = document.getElementById('artistRows');
+      function escapeHtml(value){return String(value ?? '').replace(/[&<>"]/g,function(char){return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[char];});}
+      function formatNumber(value){return Number(value || 0).toLocaleString();}
+      function setMessage(text,isError){message.textContent=text;message.className='message'+(isError?' error':'');}
+      async function requestJson(url){const response=await fetch(url,{credentials:'include'});const body=await response.json().catch(function(){return{};});if(!response.ok)throw new Error(body.message||body.error||'Request failed');return body;}
+      function tags(values){return '<div class="tags">'+((values||[]).length?(values||[]).slice(0,8).map(function(value){return '<span class="tag">'+escapeHtml(value)+'</span>';}).join(''):'<span class="muted">None</span>')+'</div>';}
+      function countTags(rows,key){return '<div class="tags">'+((rows||[]).length?(rows||[]).slice(0,5).map(function(row){return '<span class="tag">'+escapeHtml(row[key])+' · '+formatNumber(row.count)+'</span>';}).join(''):'<span class="muted">None</span>')+'</div>';}
+      function userTags(users){return '<div class="tags">'+((users||[]).length?(users||[]).map(function(user){return '<span class="tag">#'+user.user_id+(user.name?' '+escapeHtml(user.name):'')+'</span>';}).join(''):'<span class="muted">None</span>')+'</div>';}
+      function renderSummary(payload){const stats=[['Users',payload.user_count],['Unmatched tracks',payload.total_unmatched_tracks],['Artists',payload.artist_count],['Estimated gain',payload.estimated_match_gain_if_approved]];summaryCards.innerHTML=stats.map(function(pair){return '<div class="stat"><strong>'+escapeHtml(formatNumber(pair[1]))+'</strong><span>'+escapeHtml(pair[0])+'</span></div>';}).join('');}
+      function renderGenres(genres){genreRows.innerHTML=(genres||[]).length?(genres||[]).slice(0,25).map(function(row){return '<tr><td>'+escapeHtml(row.genre)+'</td><td>'+formatNumber(row.count)+'</td></tr>';}).join(''):'<tr><td colspan="2" class="muted">No unmatched Spotify genre evidence found.</td></tr>';}
+      function renderGains(artists){const rows=(artists||[]).filter(function(artist){return artist.estimated_match_gain_if_approved>0;}).slice(0,12);gainList.innerHTML=rows.length?rows.map(function(artist){return '<span class="tag">'+escapeHtml(artist.artist_name)+' · +'+formatNumber(artist.estimated_match_gain_if_approved)+'</span>';}).join(''):'<span class="muted">No missing-artist gain candidates.</span>';}
+      function renderArtists(artists){artistRows.innerHTML=(artists||[]).length?(artists||[]).map(function(artist){return '<tr><td><strong>'+escapeHtml(artist.artist_name)+'</strong><div class="muted">'+escapeHtml(artist.normalized_artist_name)+'</div></td><td>'+userTags(artist.affected_users)+'</td><td>'+formatNumber(artist.unmatched_track_count)+'</td><td>'+formatNumber(artist.total_occurrences)+'</td><td>'+formatNumber(artist.estimated_match_gain_if_approved)+'</td><td class="nowrap">'+escapeHtml(artist.spotify_artist_id||'')+'</td><td>'+tags(artist.spotify_genres)+'</td><td>'+tags(artist.approved_artist_genres)+'</td><td><span class="status '+escapeHtml(artist.current_learning_status)+'">'+escapeHtml(artist.current_learning_status)+'</span></td><td>'+countTags(artist.unmatched_reasons,'reason')+'</td><td>'+((artist.sample_tracks||[]).slice(0,3).map(function(track){return '<div><strong>'+escapeHtml(track.track_name)+'</strong><div class="muted">User #'+track.user_id+' · '+escapeHtml(track.reason)+'</div></div>';}).join('')||'<span class="muted">None</span>')+'</td></tr>';}).join(''):'<tr><td colspan="11" class="muted">No artist gaps found.</td></tr>';}
+      async function loadReport(){refreshButton.disabled=true;setMessage('Loading artist gap analysis...');try{const payload=await requestJson('/crate/admin/artist-gap-analysis?limit=100');renderSummary(payload);renderGenres(payload.top_missing_genres||[]);renderGains(payload.top_missing_artists||[]);renderArtists(payload.top_missing_artists||[]);setMessage('Loaded '+formatNumber(payload.artist_count)+' artist gap(s).');}catch(error){setMessage(error.message,true);}finally{refreshButton.disabled=false;}}
+      refreshButton.addEventListener('click',loadReport);
+      loadReport();
+    </script>
+  </body>
+</html>
