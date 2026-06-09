@@ -1,9 +1,11 @@
 const { openDatabase } = require("../db");
 const artistIntelligenceRepo = require("../repositories/artistIntelligence");
+const lastfmClient = require("../lastfm/client");
 const spotifyArtists = require("../spotify/artists");
 const { normalizeSpotifySignals } = require("./spotifyArtistIntelligence");
 
 const SPOTIFY_ARTIST_INTELLIGENCE_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+const LASTFM_ARTIST_INTELLIGENCE_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
 function normalizeArtistName(value) {
   return String(value || "").trim().toLowerCase();
@@ -80,7 +82,7 @@ function genreSignalsFromSource(source) {
     .filter(Boolean))];
 }
 
-function readCachedSpotifyIntelligence() {
+function readCachedSourceIntelligence(sourceName) {
   const db = openDatabase();
   if (!tableExists(db, "artist_intelligence") || !tableExists(db, "artist_intelligence_sources")) {
     return { byName: new Map(), bySpotifyId: new Map() };
@@ -105,34 +107,55 @@ function readCachedSpotifyIntelligence() {
     FROM artist_intelligence
     LEFT JOIN artist_intelligence_sources
       ON artist_intelligence_sources.artist_intelligence_id = artist_intelligence.id
-      AND artist_intelligence_sources.source = 'spotify'
-  `).all();
+      AND artist_intelligence_sources.source = @sourceName
+  `).all({ sourceName });
 
   const byName = new Map();
   const bySpotifyId = new Map();
   for (const row of rows) {
+    const signals = parseJson(row.normalized_signals_json, []);
     const cached = {
       artist_intelligence_id: row.id,
       normalized_artist_name: row.normalized_artist_name,
       display_artist_name: row.display_artist_name,
-      spotify_artist_id: row.spotify_artist_id || row.source_artist_id || null,
+      spotify_artist_id: row.spotify_artist_id || null,
       review_status: row.review_status,
       confidence_score: row.confidence_score,
       source_count: row.source_count,
-      spotify_source_artist_id: row.source_artist_id,
-      spotify_source_artist_name: row.source_artist_name,
-      spotify_genres: genreSignalsFromSource(row),
-      spotify_error_code: row.error_code,
-      spotify_error_message: row.error_message,
-      spotify_fetched_at: row.fetched_at,
-      spotify_expires_at: row.expires_at,
-      has_spotify_source: Boolean(row.fetched_at || row.error_code || row.source_artist_id),
+      source_artist_id: row.source_artist_id,
+      source_artist_name: row.source_artist_name,
+      normalized_signals: signals,
+      genre_signals: genreSignalsFromSource(row),
+      error_code: row.error_code,
+      error_message: row.error_message,
+      fetched_at: row.fetched_at,
+      expires_at: row.expires_at,
+      has_source: Boolean(row.fetched_at || row.error_code || row.source_artist_id),
     };
     if (cached.normalized_artist_name) byName.set(cached.normalized_artist_name, cached);
     if (cached.spotify_artist_id) bySpotifyId.set(cached.spotify_artist_id, cached);
   }
 
   return { byName, bySpotifyId };
+}
+
+function readCachedSpotifyIntelligence() {
+  const source = readCachedSourceIntelligence("spotify");
+  for (const cached of source.byName.values()) {
+    cached.spotify_source_artist_id = cached.source_artist_id;
+    cached.spotify_source_artist_name = cached.source_artist_name;
+    cached.spotify_genres = cached.genre_signals;
+    cached.spotify_error_code = cached.error_code;
+    cached.spotify_error_message = cached.error_message;
+    cached.spotify_fetched_at = cached.fetched_at;
+    cached.spotify_expires_at = cached.expires_at;
+    cached.has_spotify_source = cached.has_source;
+  }
+  return source;
+}
+
+function readCachedLastfmIntelligence() {
+  return readCachedSourceIntelligence("lastfm");
 }
 
 function extractArtists(row) {
@@ -385,6 +408,181 @@ async function refreshSpotifyArtistGenresForQueue(userId, options = {}) {
   return summary;
 }
 
+function normalizeLastfmSignals(tags) {
+  return [...new Set(tags
+    .map((tag) => String(tag.name || tag || "").trim().toLowerCase())
+    .filter(Boolean))];
+}
+
+function lastfmTagsFromResult(result) {
+  return (result.tags || [])
+    .slice(0, 20)
+    .map((tag) => ({ name: String(tag.name || "").trim(), count: Number.parseInt(tag.count, 10) || 0 }))
+    .filter((tag) => tag.name);
+}
+
+function cacheLastfmArtistSuccess(queueArtist, result, rawTags) {
+  const intelligence = artistIntelligenceRepo.getOrCreateArtistIntelligence({
+    artistName: queueArtist.artist_name,
+    spotifyArtistId: queueArtist.spotify_artist_id,
+  });
+  const fetchedAt = new Date();
+  const source = artistIntelligenceRepo.upsertArtistIntelligenceSource({
+    artistIntelligenceId: intelligence.id,
+    source: "lastfm",
+    sourceArtistName: result.sourceArtistName || queueArtist.artist_name,
+    rawPayload: result.rawPayload,
+    normalizedSignals: normalizeLastfmSignals(rawTags),
+    fetchedAt: fetchedAt.toISOString(),
+    expiresAt: new Date(fetchedAt.getTime() + LASTFM_ARTIST_INTELLIGENCE_TTL_MS).toISOString(),
+  });
+  const refreshed = artistIntelligenceRepo.getArtistIntelligenceById(intelligence.id);
+  return {
+    artist_intelligence_id: refreshed.id,
+    source_id: source.id,
+    source_count: refreshed.source_count,
+    confidence_score: refreshed.confidence_score,
+  };
+}
+
+function cacheLastfmArtistFailure(queueArtist, err) {
+  const intelligence = artistIntelligenceRepo.getOrCreateArtistIntelligence({
+    artistName: queueArtist.artist_name,
+    spotifyArtistId: queueArtist.spotify_artist_id,
+  });
+  const fetchedAt = new Date();
+  const source = artistIntelligenceRepo.upsertArtistIntelligenceSource({
+    artistIntelligenceId: intelligence.id,
+    source: "lastfm",
+    sourceArtistName: queueArtist.artist_name,
+    rawPayload: {
+      artist_name: queueArtist.artist_name,
+      spotify_artist_id: queueArtist.spotify_artist_id,
+      error: err.code || "lastfm_artist_refresh_error",
+    },
+    normalizedSignals: [],
+    errorCode: err.code || "lastfm_artist_refresh_error",
+    errorMessage: err.message,
+    fetchedAt: fetchedAt.toISOString(),
+    expiresAt: new Date(fetchedAt.getTime() + 24 * 60 * 60 * 1000).toISOString(),
+  });
+  const refreshed = artistIntelligenceRepo.getArtistIntelligenceById(intelligence.id);
+  return {
+    artist_intelligence_id: refreshed.id,
+    source_id: source.id,
+    source_count: refreshed.source_count,
+    confidence_score: refreshed.confidence_score,
+  };
+}
+
+function resolveCachedLastfm(record, cachedSources) {
+  return (record.spotify_artist_id && cachedSources.bySpotifyId.get(record.spotify_artist_id))
+    || cachedSources.byName.get(record.normalized_artist_name)
+    || null;
+}
+
+function lastfmNeedsRefresh(queueArtist, cachedLastfm) {
+  if (!cachedLastfm || !cachedLastfm.has_source) return true;
+  if (cachedLastfm.expires_at && Date.parse(cachedLastfm.expires_at) <= Date.now()) return true;
+  return false;
+}
+
+function summarizeTags(results) {
+  const counts = new Map();
+  for (const result of results) {
+    for (const tag of result.top_tags || []) {
+      counts.set(tag, (counts.get(tag) || 0) + 1);
+    }
+  }
+  return [...counts.entries()]
+    .map(([tag, count]) => ({ tag, count }))
+    .sort((left, right) => right.count - left.count || left.tag.localeCompare(right.tag));
+}
+
+async function refreshLastfmArtistTagsForQueue(options = {}) {
+  lastfmClient.requireLastfmConfig();
+
+  const limit = normalizeRefreshLimit(options.limit);
+  const filter = String(options.filter || "all").trim();
+  const queue = getAdminArtistEnrichmentQueue({ limit: 1000, filter });
+  const cachedLastfm = readCachedLastfmIntelligence();
+  const candidates = queue.artists
+    .filter((artist) => artist.approved_artist_genres.length === 0)
+    .filter((artist) => artist.current_spotify_genres.length === 0)
+    .filter((artist) => lastfmNeedsRefresh(artist, resolveCachedLastfm(artist, cachedLastfm)))
+    .slice(0, limit);
+  const results = [];
+  let updated = 0;
+  let empty = 0;
+  let failed = 0;
+  let skipped = Math.max(0, queue.filtered_count - candidates.length);
+
+  console.log("[Artist Enrichment Queue] Last.fm refresh started", {
+    filter,
+    limit,
+    candidates: candidates.length,
+  });
+
+  for (const artist of candidates) {
+    try {
+      const result = await lastfmClient.getArtistTopTags(artist.artist_name);
+      const rawTags = lastfmTagsFromResult(result);
+      const cacheResult = cacheLastfmArtistSuccess(artist, result, rawTags);
+      const topTags = rawTags.map((tag) => tag.name).slice(0, 10);
+      if (topTags.length > 0) updated += 1;
+      else empty += 1;
+      results.push({
+        artist_name: artist.artist_name,
+        spotify_artist_id: artist.spotify_artist_id || null,
+        status: topTags.length > 0 ? "updated" : "empty_tags",
+        tag_count: rawTags.length,
+        top_tags: topTags,
+        source_artist_name: result.sourceArtistName || null,
+        ...cacheResult,
+      });
+    } catch (err) {
+      failed += 1;
+      const cacheResult = cacheLastfmArtistFailure(artist, err);
+      results.push({
+        artist_name: artist.artist_name,
+        spotify_artist_id: artist.spotify_artist_id || null,
+        status: "failed",
+        tag_count: 0,
+        top_tags: [],
+        error_code: err.code || "lastfm_artist_refresh_error",
+        error_message: err.message,
+        ...cacheResult,
+      });
+    }
+  }
+
+  const summary = {
+    status: "ok",
+    generated_at: new Date().toISOString(),
+    filter,
+    requested_limit: limit,
+    queue_size: queue.total_artists_in_queue,
+    filtered_count: queue.filtered_count,
+    attempted: candidates.length,
+    updated,
+    empty,
+    failed,
+    skipped,
+    top_newly_discovered_lastfm_tags: summarizeTags(results).slice(0, 30),
+    results,
+  };
+
+  console.log("[Artist Enrichment Queue] Last.fm refresh complete", {
+    attempted: summary.attempted,
+    updated: summary.updated,
+    empty: summary.empty,
+    failed: summary.failed,
+    skipped: summary.skipped,
+  });
+
+  return summary;
+}
+
 function getAdminArtistEnrichmentQueue(options = {}) {
   const limit = normalizeLimit(options.limit);
   const filter = String(options.filter || "all").trim();
@@ -439,5 +637,6 @@ function getAdminArtistEnrichmentQueue(options = {}) {
 
 module.exports = {
   getAdminArtistEnrichmentQueue,
+  refreshLastfmArtistTagsForQueue,
   refreshSpotifyArtistGenresForQueue,
 };
