@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Crate Admin · Genre Recommendations</title>
+  <style>
+    :root { color-scheme: dark; --bg: #07112b; --panel: rgba(9, 20, 48, 0.9); --line: rgba(52, 211, 238, 0.35); --text: #f8fafc; --muted: #b8c0d4; --cyan: #21d4d4; --pink: #f02aa8; --orange: #ff8a4c; --green: #5ee08a; --blue: #4f8df7; --danger: #ff9da8; }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: radial-gradient(circle at top left, rgba(240, 42, 168, 0.18), transparent 34rem), #07112b; color: var(--text); }
+    main { width: min(1240px, calc(100% - 32px)); margin: 0 auto; padding: 32px 0 56px; }
+    h1 { margin: 0; font-size: clamp(2rem, 5vw, 4.5rem); line-height: 0.95; text-transform: uppercase; letter-spacing: 0; background: linear-gradient(90deg, var(--pink), var(--orange), var(--blue), var(--cyan)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    p { color: var(--muted); font-size: 1rem; line-height: 1.5; }
+    .header { display: grid; gap: 18px; margin-bottom: 26px; }
+    .toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+    .button { border: 1px solid var(--line); background: rgba(7, 17, 43, 0.72); color: var(--text); border-radius: 8px; padding: 10px 13px; font-weight: 800; text-decoration: none; cursor: pointer; }
+    .button:hover, .button.active { border-color: var(--cyan); color: var(--cyan); }
+    .button.safe { border-color: rgba(94, 224, 138, 0.65); }
+    .button.strong { border-color: rgba(79, 141, 247, 0.7); }
+    .button.approve { border-color: rgba(94, 224, 138, 0.65); color: var(--green); }
+    .button:disabled { cursor: not-allowed; opacity: 0.45; }
+    .message { min-height: 24px; color: var(--muted); }
+    .message.error { color: var(--danger); }
+    .cards { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px; margin: 20px 0 24px; }
+    .card, .panel, .modal-card { border: 2px solid transparent; background: linear-gradient(var(--panel), var(--panel)) padding-box, linear-gradient(100deg, var(--pink), var(--orange), var(--blue), var(--cyan)) border-box; border-radius: 14px; }
+    .card { padding: 16px; min-height: 98px; }
+    .card .label { color: var(--cyan); font-weight: 900; text-transform: uppercase; font-size: 0.78rem; letter-spacing: 0.08em; }
+    .card .value { font-size: clamp(1.8rem, 4vw, 3rem); font-weight: 900; line-height: 1.05; margin-top: 8px; }
+    .panel { padding: 18px; overflow: auto; }
+    table { width: 100%; border-collapse: collapse; min-width: 1120px; }
+    th, td { padding: 12px 10px; text-align: left; border-bottom: 1px solid rgba(184, 192, 212, 0.14); vertical-align: top; }
+    th { color: var(--cyan); font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.06em; }
+    td { color: var(--text); font-size: 0.94rem; }
+    input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--cyan); }
+    .muted { color: var(--muted); }
+    .pill { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; border: 1px solid rgba(184, 192, 212, 0.22); padding: 4px 8px; margin: 2px 4px 2px 0; color: var(--muted); background: rgba(255,255,255,0.04); font-size: 0.8rem; }
+    .tier { font-weight: 900; }
+    .tier.Safe { color: var(--green); }
+    .tier.Strong { color: var(--blue); }
+    .tier.Review { color: var(--orange); }
+    .tier.Manual { color: var(--danger); }
+    .playlist { color: var(--cyan); font-weight: 900; }
+    .artist { font-weight: 900; }
+    .modal { position: fixed; inset: 0; display: none; place-items: center; padding: 18px; background: rgba(3, 8, 22, 0.78); z-index: 20; }
+    .modal.open { display: grid; }
+    .modal-card { width: min(680px, 100%); padding: 22px; box-shadow: 0 30px 80px rgba(0, 0, 0, 0.45); }
+    .modal-card h2 { margin: 0 0 12px; font-size: 1.5rem; }
+    .modal-body { display: grid; gap: 12px; max-height: 58vh; overflow: auto; }
+    .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; }
+    pre { white-space: pre-wrap; word-break: break-word; padding: 12px; border-radius: 10px; background: rgba(0,0,0,0.25); color: var(--muted); }
+    @media (max-width: 900px) { .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); } main { width: min(100% - 20px, 1240px); } }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="header">
+      <div>
+        <h1>Genre Recommendations</h1>
+        <p>Crate playlist assignment suggestions from cached artist intelligence and unmatched track gaps. Approval saves artist fallback mappings only; it does not resort users.</p>
+      </div>
+      <nav class="toolbar">
+        <a class="button" href="/admin.html">Admin Home</a>
+        <a class="button" href="/admin-artist-gap-analysis.html">Artist Gaps</a>
+          <a class="button" href="/admin-genre-recommendation-rescan.html">Recommendation Rescan</a>
+        <a class="button" href="/admin-artist-enrichment-queue.html">Enrichment Queue</a>
+        <a class="button" href="/admin-user-diagnostics.html">User Diagnostics</a>
+        <a class="button" href="/admin-artist-intelligence.html">Artist Intelligence</a>
+      </nav>
+      <div class="toolbar" aria-label="Preview filters">
+        <button class="button" data-preview="all" type="button">Preview only</button>
+        <button class="button safe" data-preview="safe" type="button">Preview Safe</button>
+        <button class="button strong" data-preview="strong_plus" type="button">Preview Strong+</button>
+        <button class="button approve" id="approveSelectedButton" type="button" disabled>Approve Selected</button>
+      </div>
+      <div id="message" class="message">Loading recommendations...</div>
+    </section>
+
+    <section class="cards" id="summaryCards" aria-label="Recommendation summary"></section>
+
+    <section class="panel">
+      <table>
+        <thead>
+          <tr>
+            <th>Select</th>
+            <th>Artist</th>
+            <th>Users</th>
+            <th>Unmatched</th>
+            <th>Gain</th>
+            <th>Recommended Playlist</th>
+            <th>Confidence</th>
+            <th>Source Agreement</th>
+            <th>Evidence</th>
+            <th>Samples</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="recommendationsBody"></tbody>
+      </table>
+    </section>
+  </main>
+
+  <div class="modal" id="confirmModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-card">
+      <h2 id="modalTitle">Confirm Approval</h2>
+      <div class="modal-body" id="modalBody"></div>
+      <div class="modal-actions">
+        <button class="button" id="cancelModalButton" type="button">Cancel</button>
+        <button class="button approve" id="confirmModalButton" type="button">Approve</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const state = { preview: 'all', recommendations: [], selectedKeys: new Set(), pendingApproval: null };
+    const message = document.getElementById('message');
+    const summaryCards = document.getElementById('summaryCards');
+    const recommendationsBody = document.getElementById('recommendationsBody');
+    const previewButtons = Array.from(document.querySelectorAll('[data-preview]'));
+    const approveSelectedButton = document.getElementById('approveSelectedButton');
+    const confirmModal = document.getElementById('confirmModal');
+    const modalBody = document.getElementById('modalBody');
+    const cancelModalButton = document.getElementById('cancelModalButton');
+    const confirmModalButton = document.getElementById('confirmModalButton');
+
+    function formatNumber(value) { return Number(value || 0).toLocaleString(); }
+    function escapeHtml(value) { return String(value ?? '').replace(/[&<>"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[char])); }
+    function setMessage(text, isError = false) { message.textContent = text; message.classList.toggle('error', Boolean(isError)); }
+
+    async function requestJson(url, options = {}) {
+      const response = await fetch(url, { credentials: 'include', ...options });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.message || payload.error || 'Request failed');
+      return payload;
+    }
+
+    function renderSummary(payload) {
+      const counts = payload.counts_by_confidence_tier || {};
+      const cards = [
+        ['Recommendations', payload.recommendation_count],
+        ['Safe', counts.Safe || 0],
+        ['Strong', counts.Strong || 0],
+        ['Review', counts.Review || 0],
+        ['Manual', counts.Manual || 0],
+        ['Est. Gain', payload.preview_estimated_match_gain || payload.estimated_total_match_gain || 0],
+      ];
+      summaryCards.innerHTML = cards.map(([label, value]) => '<article class="card"><div class="label">' + escapeHtml(label) + '</div><div class="value">' + formatNumber(value) + '</div></article>').join('');
+    }
+
+    function renderEvidence(items) {
+      const evidence = Array.isArray(items) ? items.slice(0, 8) : [];
+      if (!evidence.length) return '<span class="muted">No evidence</span>';
+      const html = evidence.map((item) => '<span class="pill" title="' + escapeHtml(item.source + ': ' + item.signal + ' → ' + item.matched_signal) + '">' + escapeHtml(item.source) + ': ' + escapeHtml(item.signal) + '</span>').join('');
+      const more = items.length > evidence.length ? '<span class="pill">+' + formatNumber(items.length - evidence.length) + ' more</span>' : '';
+      return html + more;
+    }
+
+    function renderSamples(samples) {
+      const visible = Array.isArray(samples) ? samples.slice(0, 3) : [];
+      if (!visible.length) return '<span class="muted">-</span>';
+      return visible.map((track) => '<div class="muted">' + escapeHtml(track.track_name || track.name || track) + '</div>').join('');
+    }
+
+    function rowByKey(key) { return state.recommendations.find((row) => row.recommendation_key === key); }
+    function selectionPayload(row) { return { artist: row.artist, playlist_code: row.recommended_playlist_code }; }
+
+    function updateSelectedButton() {
+      approveSelectedButton.disabled = state.selectedKeys.size === 0;
+      approveSelectedButton.textContent = state.selectedKeys.size ? 'Approve Selected (' + formatNumber(state.selectedKeys.size) + ')' : 'Approve Selected';
+    }
+
+    function renderRows(rows) {
+      state.recommendations = rows;
+      state.selectedKeys = new Set([...state.selectedKeys].filter((key) => rows.some((row) => row.recommendation_key === key)));
+      updateSelectedButton();
+      recommendationsBody.innerHTML = rows.map((row) => '<tr>' +
+        '<td><input type="checkbox" data-select-key="' + escapeHtml(row.recommendation_key) + '" ' + (state.selectedKeys.has(row.recommendation_key) ? 'checked' : '') + ' aria-label="Select ' + escapeHtml(row.artist) + '"></td>' +
+        '<td><div class="artist">' + escapeHtml(row.artist) + '</div><div class="muted">' + escapeHtml(row.spotify_artist_id || 'no Spotify artist id') + '</div></td>' +
+        '<td>' + formatNumber(row.affected_user_count) + '</td>' +
+        '<td>' + formatNumber(row.unmatched_tracks) + '</td>' +
+        '<td>' + formatNumber(row.estimated_gain) + '</td>' +
+        '<td><span class="playlist">' + escapeHtml(row.recommended_crate_playlist) + '</span><div class="muted">writes: ' + escapeHtml(row.approved_genre) + '</div></td>' +
+        '<td><span class="tier ' + escapeHtml(row.confidence_tier) + '">' + formatNumber(row.confidence) + ' · ' + escapeHtml(row.confidence_tier) + '</span></td>' +
+        '<td>' + formatNumber(row.source_agreement) + '<div class="muted">' + escapeHtml((row.supporting_sources || []).join(', ') || '-') + '</div></td>' +
+        '<td>' + renderEvidence(row.supporting_evidence || []) + '</td>' +
+        '<td>' + renderSamples(row.sample_tracks || []) + '</td>' +
+        '<td><button class="button approve" data-approve-key="' + escapeHtml(row.recommendation_key) + '" type="button">Approve This</button></td>' +
+      '</tr>').join('') || '<tr><td colspan="11" class="muted">No recommendations match this preview filter.</td></tr>';
+    }
+
+    function updateButtons() {
+      previewButtons.forEach((button) => button.classList.toggle('active', button.dataset.preview === state.preview));
+    }
+
+    async function loadRecommendations() {
+      updateButtons();
+      setMessage('Loading recommendations...');
+      try {
+        const payload = await requestJson('/crate/admin/genre-recommendations?limit=50&preview=' + encodeURIComponent(state.preview));
+        renderSummary(payload);
+        renderRows(payload.recommendations || []);
+        setMessage('Loaded ' + formatNumber(payload.filtered_count) + ' recommendation(s). Preview mode: ' + payload.preview + '.');
+      } catch (error) {
+        setMessage(error.message, true);
+      }
+    }
+
+    function evidenceText(row) {
+      return (row.supporting_evidence || []).map((item) => item.source + ': ' + item.signal + ' → ' + item.matched_signal).join('\n') || 'No evidence';
+    }
+
+    function openApprovalModal(type, rows) {
+      state.pendingApproval = { type, rows };
+      const title = type === 'single' ? 'Approve Recommendation' : 'Approve Selected Recommendations';
+      document.getElementById('modalTitle').textContent = title;
+      if (type === 'single') {
+        const row = rows[0];
+        modalBody.innerHTML = '<p><strong>' + escapeHtml(row.artist) + '</strong> → <span class="playlist">' + escapeHtml(row.recommended_crate_playlist) + '</span></p>' +
+          '<p>Confidence: <span class="tier ' + escapeHtml(row.confidence_tier) + '">' + formatNumber(row.confidence) + ' · ' + escapeHtml(row.confidence_tier) + '</span></p>' +
+          '<p>Estimated gain after future sort/rescan: ' + formatNumber(row.estimated_gain) + ' track(s).</p>' +
+          '<p>Approved mapping to save: <strong>' + escapeHtml(row.artist) + '</strong> / <strong>' + escapeHtml(row.approved_genre) + '</strong></p>' +
+          '<pre>' + escapeHtml(evidenceText(row)) + '</pre>';
+      } else {
+        const gain = rows.reduce((sum, row) => sum + Number(row.estimated_gain || 0), 0);
+        modalBody.innerHTML = '<p>Approve ' + formatNumber(rows.length) + ' selected recommendation(s). Estimated gain after future sort/rescan: ' + formatNumber(gain) + ' track(s).</p>' +
+          rows.slice(0, 12).map((row) => '<p><strong>' + escapeHtml(row.artist) + '</strong> → ' + escapeHtml(row.recommended_crate_playlist) + ' <span class="tier ' + escapeHtml(row.confidence_tier) + '">(' + formatNumber(row.confidence) + ' · ' + escapeHtml(row.confidence_tier) + ')</span></p>').join('') +
+          (rows.length > 12 ? '<p class="muted">+' + formatNumber(rows.length - 12) + ' more</p>' : '');
+      }
+      confirmModal.classList.add('open');
+      confirmModalButton.focus();
+    }
+
+    function closeApprovalModal() {
+      confirmModal.classList.remove('open');
+      state.pendingApproval = null;
+      confirmModalButton.disabled = false;
+    }
+
+    async function confirmApproval() {
+      if (!state.pendingApproval) return;
+      confirmModalButton.disabled = true;
+      try {
+        let payload;
+        if (state.pendingApproval.type === 'single') {
+          payload = await requestJson('/crate/admin/genre-recommendations/apply', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(selectionPayload(state.pendingApproval.rows[0])),
+          });
+        } else {
+          payload = await requestJson('/crate/admin/genre-recommendations/apply-selected', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ selections: state.pendingApproval.rows.map(selectionPayload) }),
+          });
+        }
+        setMessage(payload.message || 'Approval saved. Run a separate future sort/rescan to apply estimated gain.');
+        closeApprovalModal();
+        state.selectedKeys.clear();
+        await loadRecommendations();
+      } catch (error) {
+        setMessage(error.message, true);
+        confirmModalButton.disabled = false;
+      }
+    }
+
+    previewButtons.forEach((button) => {
+      button.addEventListener('click', () => {
+        state.preview = button.dataset.preview || 'all';
+        state.selectedKeys.clear();
+        loadRecommendations();
+      });
+    });
+
+    recommendationsBody.addEventListener('change', (event) => {
+      const key = event.target?.dataset?.selectKey;
+      if (!key) return;
+      if (event.target.checked) state.selectedKeys.add(key); else state.selectedKeys.delete(key);
+      updateSelectedButton();
+    });
+
+    recommendationsBody.addEventListener('click', (event) => {
+      const key = event.target?.dataset?.approveKey;
+      if (!key) return;
+      const row = rowByKey(key);
+      if (row) openApprovalModal('single', [row]);
+    });
+
+    approveSelectedButton.addEventListener('click', () => {
+      const rows = [...state.selectedKeys].map(rowByKey).filter(Boolean);
+      if (rows.length) openApprovalModal('selected', rows);
+    });
+
+    cancelModalButton.addEventListener('click', closeApprovalModal);
+    confirmModal.addEventListener('click', (event) => { if (event.target === confirmModal) closeApprovalModal(); });
+    confirmModalButton.addEventListener('click', confirmApproval);
+
+    loadRecommendations();
+  </script>
+</body>
+</html>

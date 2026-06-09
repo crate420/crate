@@ -45,6 +45,8 @@ const {
   previewBulkRecommendations,
 } = require("../crate/artistIntelligenceRecommendations");
 const { getAdminArtistGapAnalysis } = require("../crate/artistGapAnalysis");
+const { approveGenreRecommendation, approveSelectedGenreRecommendations, getAdminGenreRecommendations } = require("../crate/genreRecommendations");
+const { getAdminGenreRecommendationRescanPlan, runAdminGenreRecommendationRescan } = require("../crate/genreRecommendationRescan");
 const { getAdminArtistEnrichmentQueue, refreshLastfmArtistTagsForQueue, refreshSpotifyArtistGenresForQueue } = require("../crate/artistEnrichmentQueue");
 const { getDatabaseDiagnostics } = require("../crate/dbDiagnostics");
 const { getAdminEraDiagnostics } = require("../crate/eraDiagnostics");
@@ -304,6 +306,68 @@ router.get("/admin/artist-gap-analysis", requireCurrentUser, requireAdminUser, a
       limit: req.query.limit,
     }));
   } catch (err) {
+    return next(err);
+  }
+});
+
+router.get("/admin/genre-recommendations", requireCurrentUser, requireAdminUser, async (req, res, next) => {
+  try {
+    return res.json(await getAdminGenreRecommendations({
+      limit: req.query.limit,
+      preview: req.query.preview,
+    }));
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.post("/admin/genre-recommendations/apply", requireCurrentUser, requireAdminUser, async (req, res, next) => {
+  try {
+    return res.json(await approveGenreRecommendation({
+      artist: req.body?.artist,
+      playlistCode: req.body?.playlist_code || req.body?.playlistCode,
+      adminUser: req.currentUser,
+    }));
+  } catch (err) {
+    if (err.statusCode) {
+      return res.status(err.statusCode).json({ error: err.code || "genre_recommendation_approval_error", message: err.message });
+    }
+    return next(err);
+  }
+});
+
+router.post("/admin/genre-recommendations/apply-selected", requireCurrentUser, requireAdminUser, async (req, res, next) => {
+  try {
+    return res.json(await approveSelectedGenreRecommendations({
+      selections: req.body?.selections,
+      adminUser: req.currentUser,
+    }));
+  } catch (err) {
+    if (err.statusCode) {
+      return res.status(err.statusCode).json({ error: err.code || "genre_recommendation_approval_error", message: err.message });
+    }
+    return next(err);
+  }
+});
+
+router.get("/admin/genre-recommendation-rescan", requireCurrentUser, requireAdminUser, (req, res, next) => {
+  try {
+    return res.json(getAdminGenreRecommendationRescanPlan());
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.post("/admin/genre-recommendation-rescan", requireCurrentUser, requireAdminUser, async (req, res, next) => {
+  try {
+    return res.json(await runAdminGenreRecommendationRescan({
+      userIds: req.body?.user_ids || req.body?.userIds,
+      adminUser: req.currentUser,
+    }));
+  } catch (err) {
+    if (err.statusCode) {
+      return res.status(err.statusCode).json({ error: err.code || "genre_recommendation_rescan_error", message: err.message });
+    }
     return next(err);
   }
 });

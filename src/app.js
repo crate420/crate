@@ -72,6 +72,14 @@ function createApp() {
     res.sendFile(path.join(config.rootDir, "public/admin-artist-enrichment-queue.html"));
   });
 
+  app.get("/admin-genre-recommendations.html", requireAdminPage, (req, res) => {
+    res.sendFile(path.join(config.rootDir, "public/admin-genre-recommendations.html"));
+  });
+
+  app.get("/admin-genre-recommendation-rescan.html", requireAdminPage, (req, res) => {
+    res.sendFile(path.join(config.rootDir, "public/admin-genre-recommendation-rescan.html"));
+  });
+
   app.get("/admin-era-diagnostics.html", requireAdminPage, (req, res) => {
     res.sendFile(path.join(config.rootDir, "public/admin-era-diagnostics.html"));
   });
