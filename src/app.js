@@ -68,6 +68,10 @@ function createApp() {
     res.sendFile(path.join(config.rootDir, "public/admin-artist-gap-analysis.html"));
   });
 
+  app.get("/admin-artist-enrichment-queue.html", requireAdminPage, (req, res) => {
+    res.sendFile(path.join(config.rootDir, "public/admin-artist-enrichment-queue.html"));
+  });
+
   app.get("/admin-era-diagnostics.html", requireAdminPage, (req, res) => {
     res.sendFile(path.join(config.rootDir, "public/admin-era-diagnostics.html"));
   });

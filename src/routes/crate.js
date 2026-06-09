@@ -45,6 +45,7 @@ const {
   previewBulkRecommendations,
 } = require("../crate/artistIntelligenceRecommendations");
 const { getAdminArtistGapAnalysis } = require("../crate/artistGapAnalysis");
+const { getAdminArtistEnrichmentQueue, refreshSpotifyArtistGenresForQueue } = require("../crate/artistEnrichmentQueue");
 const { getDatabaseDiagnostics } = require("../crate/dbDiagnostics");
 const { getAdminEraDiagnostics } = require("../crate/eraDiagnostics");
 const playlistSeedRegistry = require("../crate/playlistSeedRegistry");
@@ -258,6 +259,28 @@ router.get("/status", (req, res, next) => {
       userId: currentUser?.id || null,
       specialtySuggestionsVisible,
       specialtyPreviewEnabled,
+    }));
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.get("/admin/artist-enrichment-queue", requireCurrentUser, requireAdminUser, (req, res, next) => {
+  try {
+    return res.json(getAdminArtistEnrichmentQueue({
+      limit: req.query.limit,
+      filter: req.query.filter,
+    }));
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.post("/admin/artist-enrichment-queue/refresh-spotify", requireCurrentUser, requireAdminUser, async (req, res, next) => {
+  try {
+    return res.json(await refreshSpotifyArtistGenresForQueue(req.currentUser.id, {
+      limit: req.body?.limit,
+      filter: req.body?.filter,
     }));
   } catch (err) {
     return next(err);
