@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Crate DNA Evidence Quality</title>
+    <style>
+      :root{color-scheme:light;--bg:#f6f8fb;--panel:#fff;--border:#d7dde5;--muted:#657080;--text:#17202a;--action:#1769aa;--danger:#a23a3a;--good:#197653;--warn:#9a6500;--mid:#4863b8}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:14px}main{max-width:1480px;margin:0 auto;padding:24px}header,.toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}header{margin-bottom:16px}h1,h2{margin:0;line-height:1.2}h1{font-size:24px}h2{font-size:18px}.muted{color:var(--muted)}.button,button{border:1px solid var(--border);border-radius:6px;background:#fff;color:var(--text);cursor:pointer;display:inline-flex;align-items:center;min-height:34px;padding:6px 10px;font:inherit;text-decoration:none}.button.primary,button.primary{background:var(--action);border-color:var(--action);color:#fff}button:disabled{cursor:not-allowed;opacity:.55}.panel{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:14px}.message{min-height:22px;color:var(--muted);margin:8px 0}.message.error{color:var(--danger)}.summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:10px}.stat{border:1px solid var(--border);border-radius:6px;padding:10px}.stat strong{display:block;font-size:20px}.stat span{display:block;color:var(--muted);font-size:12px;font-weight:700;text-transform:uppercase}.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}table{width:100%;border-collapse:collapse}th,td{border-bottom:1px solid var(--border);padding:9px 8px;text-align:left;vertical-align:top}th{color:var(--muted);font-size:12px;text-transform:uppercase}.score{font-weight:800}.score.good{color:var(--good)}.score.warn{color:var(--warn)}.score.mid{color:var(--mid)}.score.bad{color:var(--danger)}.tier{display:inline-flex;border-radius:999px;padding:3px 8px;font-size:12px;font-weight:800}.tier.A{background:#dff5eb;color:#116245}.tier.B{background:#e7ecff;color:#344aa0}.tier.C{background:#fff3d8;color:#7a5000}.tier.D{background:#fde8e8;color:#8f2828}.tags{display:flex;flex-wrap:wrap;gap:5px}.tag{border:1px solid var(--border);border-radius:999px;background:#f7f9fc;padding:3px 7px;font-size:12px}.mini{font-size:12px;color:var(--muted);line-height:1.45}.nowrap{white-space:nowrap}.bars{display:grid;gap:5px;min-width:190px}.bar{display:grid;grid-template-columns:84px 1fr 42px;gap:6px;align-items:center}.bar-track{height:7px;border-radius:999px;background:#e9edf3;overflow:hidden}.bar-fill{height:100%;background:var(--action);border-radius:999px}@media(max-width:1000px){.grid{grid-template-columns:1fr}table{display:block;overflow-x:auto;white-space:nowrap}}
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <div>
+          <h1>DNA Evidence Quality</h1>
+          <div class="muted">Read-only readiness scoring for future playlist-by-playlist autonomy.</div>
+        </div>
+        <nav class="toolbar">
+          <a class="button" href="/admin.html">Admin Home</a>
+          <a class="button" href="/admin-playlist-dna-validation.html">Playlist DNA</a>
+          <a class="button" href="/admin-intelligence-coverage.html">Intelligence Coverage</a>
+          <a class="button" href="/admin-track-intelligence.html">Track Intelligence</a>
+          <button class="primary" id="refreshButton" type="button">Refresh</button>
+        </nav>
+      </header>
+      <div class="message" id="message">Loading DNA evidence quality...</div>
+      <section class="panel"><div class="summary" id="summaryCards"></div></section>
+      <div class="grid">
+        <section class="panel"><h2>Strongest Playlists</h2><table><thead><tr><th>Playlist</th><th>Readiness</th><th>Tier</th><th>Coverage</th></tr></thead><tbody id="strongRows"></tbody></table></section>
+        <section class="panel"><h2>Weakest Playlists</h2><table><thead><tr><th>Playlist</th><th>Readiness</th><th>Tier</th><th>Primary gaps</th></tr></thead><tbody id="weakRows"></tbody></table></section>
+      </div>
+      <div class="grid">
+        <section class="panel"><h2>Best Source Coverage</h2><table><thead><tr><th>Playlist</th><th>Readiness</th><th>Coverage</th></tr></thead><tbody id="bestCoverageRows"></tbody></table></section>
+        <section class="panel"><h2>Worst Source Coverage</h2><table><thead><tr><th>Playlist</th><th>Readiness</th><th>Coverage</th></tr></thead><tbody id="worstCoverageRows"></tbody></table></section>
+      </div>
+      <section class="panel"><h2>Gap Analysis</h2><table><thead><tr><th>Playlist</th><th>Readiness</th><th>Closest/Furthest</th><th>What would improve it most?</th></tr></thead><tbody id="gapRows"></tbody></table></section>
+      <section class="panel"><h2>All Playlist Readiness</h2><table><thead><tr><th>Playlist</th><th>Tracks</th><th>Artists</th><th>Albums</th><th>Validation</th><th>Coverage</th><th>Strong Signals</th><th>Weak / Conflicting Signals</th></tr></thead><tbody id="allRows"></tbody></table></section>
+    </main>
+    <script>
+      const message=document.getElementById('message');const refreshButton=document.getElementById('refreshButton');const summaryCards=document.getElementById('summaryCards');const strongRows=document.getElementById('strongRows');const weakRows=document.getElementById('weakRows');const bestCoverageRows=document.getElementById('bestCoverageRows');const worstCoverageRows=document.getElementById('worstCoverageRows');const gapRows=document.getElementById('gapRows');const allRows=document.getElementById('allRows');
+      function escapeHtml(value){return String(value??'').replace(/[&<>\"]/g,function(char){return({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'})[char];});}
+      function formatNumber(value){return Number(value||0).toLocaleString();}
+      function scoreClass(value){if(value>=85)return'good';if(value>=70)return'mid';if(value>=50)return'warn';return'bad';}
+      function setMessage(text,isError){message.textContent=text;message.className='message'+(isError?' error':'');}
+      async function requestJson(url){const response=await fetch(url,{credentials:'include'});const body=await response.json().catch(function(){return{};});if(!response.ok)throw new Error(body.message||body.error||'Request failed');return body;}
+      function tierBadge(row){return '<span class="tier '+escapeHtml(row.readiness_tier_key)+'">'+escapeHtml(row.readiness_tier_key)+'</span><div class="mini">'+escapeHtml(row.readiness_tier)+'</div>';}
+      function tags(items,key='signal',limit=6){const list=(items||[]).slice(0,limit);return '<div class="tags">'+(list.length?list.map(function(item){const label=typeof item==='string'?item:item[key];const detail=typeof item==='string'?'':(item.count?` · ${item.count}`:'');return '<span class="tag">'+escapeHtml(label)+escapeHtml(detail)+'</span>';}).join(''):'<span class="mini">None</span>')+'</div>';}
+      function coverageBars(row){const values=[['Approved',row.approved_artist_genre_coverage],['Spotify',row.spotify_genre_coverage],['LF artist',row.lastfm_artist_coverage],['LF track',row.lastfm_track_coverage],['MB',row.musicbrainz_coverage],['Multi',row.multiple_source_agreement]];return '<div class="bars">'+values.map(function(pair){const value=Number(pair[1]||0);return '<div class="bar"><span class="mini">'+escapeHtml(pair[0])+'</span><div class="bar-track"><div class="bar-fill" style="width:'+Math.max(0,Math.min(100,value))+'%"></div></div><span class="mini">'+escapeHtml(value)+'%</span></div>';}).join('')+'</div>';}
+      function renderSummary(summary){const coverage=summary.average_coverage||{};const stats=[['Playlists',summary.total_playlists_analyzed],['Tier A',summary.tier_a_count],['Tier B',summary.tier_b_count],['Tier C',summary.tier_c_count],['Tier D',summary.tier_d_count],['Avg Approved',`${coverage.approved_artist_genres||0}%`],['Avg LF Track',`${coverage.lastfm_track||0}%`],['Avg Multi-Source',`${coverage.multiple_source_agreement||0}%`]];summaryCards.innerHTML=stats.map(function(pair){return '<div class="stat"><strong>'+escapeHtml(pair[1])+'</strong><span>'+escapeHtml(pair[0])+'</span></div>';}).join('');}
+      function playlistCell(row){return '<strong>'+escapeHtml(row.playlist_label)+'</strong><div class="mini">'+escapeHtml(row.playlist_code)+' · '+escapeHtml(row.category)+'</div>';}
+      function readinessCell(row){return '<span class="score '+scoreClass(row.readiness_score)+'">'+escapeHtml(row.readiness_score)+'</span><div class="mini">Accuracy '+escapeHtml(row.dna_validation_accuracy)+'% · Precision '+escapeHtml(row.dna_precision)+'% · Recall '+escapeHtml(row.dna_recall)+'%</div>';}
+      function renderCompactRows(target,rows,mode){target.innerHTML=(rows||[]).length?(rows||[]).map(function(row){const third=mode==='gaps'?tags(row.missing_signals,'signal',4):coverageBars(row);return '<tr><td>'+playlistCell(row)+'</td><td>'+readinessCell(row)+'</td><td>'+tierBadge(row)+'</td><td>'+third+'</td></tr>';}).join(''):'<tr><td colspan="4" class="mini">No rows.</td></tr>';}
+      function renderCoverageRows(target,rows){target.innerHTML=(rows||[]).length?(rows||[]).map(function(row){return '<tr><td>'+playlistCell(row)+'</td><td>'+readinessCell(row)+'</td><td>'+coverageBars(row)+'</td></tr>';}).join(''):'<tr><td colspan="3" class="mini">No rows.</td></tr>';}
+      function renderGapRows(payload){const closest=(payload.closest_to_autonomy||[]).map(function(row){return {...row,group:'Closest to autonomy'};});const furthest=(payload.furthest_from_autonomy||[]).slice(0,8).map(function(row){return {...row,group:'Furthest from autonomy'};});const rows=[...closest,...furthest];gapRows.innerHTML=rows.length?rows.map(function(row){return '<tr><td>'+playlistCell(row)+'</td><td>'+readinessCell(row)+'</td><td>'+escapeHtml(row.group)+'</td><td>'+tags(row.missing_signals,'signal',5)+'</td></tr>';}).join(''):'<tr><td colspan="4" class="mini">No gaps.</td></tr>';}
+      function renderAll(rows){allRows.innerHTML=(rows||[]).length?(rows||[]).map(function(row){return '<tr><td>'+playlistCell(row)+'<div>'+tierBadge(row)+'</div></td><td>'+formatNumber(row.track_count)+'</td><td>'+formatNumber(row.unique_artist_count)+'</td><td>'+formatNumber(row.unique_album_count)+'</td><td>'+readinessCell(row)+'</td><td>'+coverageBars(row)+'</td><td>'+tags(row.strong_signals,'signal',7)+'</td><td><div class="mini"><strong>Weak:</strong> '+escapeHtml((row.weak_signals||[]).join(', ')||'None')+'</div><div class="mini"><strong>Conflicts:</strong> '+escapeHtml((row.conflicting_signals||[]).join(', ')||'None')+'</div></td></tr>';}).join(''):'<tr><td colspan="8" class="mini">No playlist readiness rows.</td></tr>';}
+      async function loadReport(){refreshButton.disabled=true;setMessage('Loading DNA evidence quality...');try{const payload=await requestJson('/crate/admin/dna-evidence-quality');renderSummary(payload.summary||{});renderCompactRows(strongRows,payload.strongest_playlists||[],'coverage');renderCompactRows(weakRows,payload.weakest_playlists||[],'gaps');renderCoverageRows(bestCoverageRows,payload.best_source_coverage||[]);renderCoverageRows(worstCoverageRows,payload.worst_source_coverage||[]);renderGapRows(payload);renderAll(payload.readiness_rankings||[]);setMessage('DNA evidence quality loaded. Read-only report: no approvals, rescans, assignments, overrides, or Spotify writes.');}catch(error){setMessage(error.message,true);}finally{refreshButton.disabled=false;}}
+      refreshButton.addEventListener('click',loadReport);loadReport();
+    </script>
+  </body>
+</html>

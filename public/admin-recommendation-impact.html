@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Crate Admin · Recommendation Impact</title>
+  <style>
+    :root{color-scheme:dark;--bg:#07112b;--panel:rgba(9,20,48,.92);--line:rgba(52,211,238,.35);--text:#f8fafc;--muted:#b8c0d4;--cyan:#21d4d4;--pink:#f02aa8;--orange:#ff8a4c;--green:#5ee08a;--blue:#4f8df7;--danger:#ff9da8}*{box-sizing:border-box}body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:radial-gradient(circle at top left,rgba(240,42,168,.18),transparent 34rem),#07112b;color:var(--text)}main{width:min(1240px,calc(100% - 32px));margin:0 auto;padding:32px 0 56px}h1{margin:0;font-size:clamp(2rem,5vw,4.2rem);line-height:.95;text-transform:uppercase;background:linear-gradient(90deg,var(--pink),var(--orange),var(--blue),var(--cyan));-webkit-background-clip:text;background-clip:text;color:transparent}h2{margin:0 0 14px}p{color:var(--muted);line-height:1.5}.toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:16px 0}.button{border:1px solid var(--line);background:rgba(7,17,43,.72);color:var(--text);border-radius:8px;padding:10px 13px;font-weight:800;text-decoration:none;cursor:pointer}.button:hover{border-color:var(--cyan);color:var(--cyan)}.message{min-height:24px;color:var(--muted)}.message.error{color:var(--danger)}.cards{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px;margin:20px 0}.card,.panel{border:2px solid transparent;background:linear-gradient(var(--panel),var(--panel)) padding-box,linear-gradient(100deg,var(--pink),var(--orange),var(--blue),var(--cyan)) border-box;border-radius:14px}.card{padding:16px;min-height:98px}.label{color:var(--cyan);font-weight:900;text-transform:uppercase;font-size:.78rem;letter-spacing:.08em}.value{font-size:clamp(1.6rem,3.4vw,2.7rem);font-weight:900;line-height:1.05;margin-top:8px}.panel{padding:18px;margin-top:16px;overflow:auto}table{width:100%;border-collapse:collapse;min-width:860px}th,td{padding:11px 10px;text-align:left;border-bottom:1px solid rgba(184,192,212,.14);vertical-align:top}th{color:var(--cyan);font-size:.8rem;text-transform:uppercase;letter-spacing:.06em}td{font-size:.93rem}.muted{color:var(--muted)}.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.pill{display:inline-flex;border:1px solid rgba(184,192,212,.22);border-radius:999px;padding:4px 8px;margin:2px 4px 2px 0;color:var(--muted);background:rgba(255,255,255,.04);font-size:.8rem}.good{color:var(--green);font-weight:900}.bad{color:var(--danger);font-weight:900}@media(max-width:960px){.cards{grid-template-columns:repeat(2,minmax(0,1fr))}.grid{grid-template-columns:1fr}main{width:min(100% - 20px,1240px)}}
+  </style>
+</head>
+<body>
+  <main>
+    <section>
+      <h1>Recommendation Impact</h1>
+      <p>Read-only intelligence showing which approvals, evidence sources, and playlist lanes actually recovered tracks after explicit admin rescans.</p>
+      <nav class="toolbar">
+        <a class="button" href="/admin.html">Admin Home</a>
+        <a class="button" href="/admin-genre-recommendations.html">Genre Recommendations</a>
+        <a class="button" href="/admin-genre-recommendation-rescan.html">Recommendation Rescan</a>
+        <a class="button" href="/admin-artist-gap-analysis.html">Artist Gaps</a>
+        <a class="button" href="/admin-track-intelligence.html">Track Intelligence</a>
+          <a class="button" href="/admin-playlist-dna-validation.html">Playlist DNA</a>
+        <button class="button" id="refreshButton" type="button">Refresh</button>
+      </nav>
+      <div id="message" class="message">Loading impact report...</div>
+    </section>
+    <section class="cards" id="summaryCards"></section>
+    <section class="panel"><h2>Top Approved Artists By Actual Gain</h2><table><thead><tr><th>Artist</th><th>Actual</th><th>Estimated</th><th>Accuracy</th><th>Approvals</th><th>Genres</th><th>Lanes</th></tr></thead><tbody id="artistsBody"></tbody></table></section>
+    <section class="grid">
+      <section class="panel"><h2>Source Performance</h2><table><thead><tr><th>Source</th><th>Actual</th><th>Estimated</th><th>Accuracy</th><th>Approvals</th><th>Zero Gain</th></tr></thead><tbody id="sourcesBody"></tbody></table></section>
+      <section class="panel"><h2>Playlist Lane Performance</h2><table><thead><tr><th>Lane</th><th>Actual</th><th>Estimated</th><th>Accuracy</th><th>Approvals</th><th>Zero Gain</th></tr></thead><tbody id="lanesBody"></tbody></table></section>
+    </section>
+    <section class="panel"><h2>Estimated Gain But Zero Actual Gain</h2><table><thead><tr><th>Artist</th><th>Playlist</th><th>Estimated</th><th>Actual</th><th>Confidence</th><th>Sources</th><th>Approved</th></tr></thead><tbody id="zeroBody"></tbody></table></section>
+    <section class="panel"><h2>Remaining Pending Recommendations Ranked By Impact</h2><table><thead><tr><th>Artist</th><th>Estimated</th><th>Confidence</th><th>Users</th><th>Playlist</th><th>Sources</th></tr></thead><tbody id="pendingBody"></tbody></table></section>
+    <section class="panel"><h2>Recent Rescans</h2><table><thead><tr><th>Run</th><th>Status</th><th>Users</th><th>Approvals</th><th>Estimated</th><th>Actual</th><th>Finished</th></tr></thead><tbody id="rescansBody"></tbody></table><p class="muted" id="attributionNote"></p></section>
+  </main>
+  <script>
+    const message=document.getElementById('message');const refreshButton=document.getElementById('refreshButton');
+    function formatNumber(value){return Number(value||0).toLocaleString(undefined,{maximumFractionDigits:1})}function formatPercent(value){return value===null||value===undefined?'n/a':formatNumber(value)+'%'}function escapeHtml(value){return String(value??'').replace(/[&<>"]/g,(char)=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[char]))}function setMessage(text,isError=false){message.textContent=text;message.classList.toggle('error',Boolean(isError))}
+    async function requestJson(url){const response=await fetch(url,{credentials:'include'});const payload=await response.json().catch(()=>({}));if(!response.ok)throw new Error(payload.message||payload.error||'Request failed');return payload}
+    function renderSummary(summary){const cards=[['Approvals',summary.total_approvals],['Recovered',summary.total_recovered_tracks],['Accuracy',formatPercent(summary.estimate_accuracy_percent)],['Zero Gain',summary.zero_gain_approval_count],['Pending',summary.pending_recommendation_count],['Pending Gain',summary.pending_estimated_gain]];document.getElementById('summaryCards').innerHTML=cards.map(([label,value])=>'<article class="card"><div class="label">'+escapeHtml(label)+'</div><div class="value">'+escapeHtml(value)+'</div></article>').join('')}
+    function emptyRow(cols,text='No data yet.'){return '<tr><td class="muted" colspan="'+cols+'">'+escapeHtml(text)+'</td></tr>'}
+    function renderArtists(rows){document.getElementById('artistsBody').innerHTML=(rows||[]).map(row=>'<tr><td><strong>'+escapeHtml(row.artist||row.key)+'</strong></td><td class="good">'+formatNumber(row.actual_gain)+'</td><td>'+formatNumber(row.estimated_gain)+'</td><td>'+formatPercent(row.accuracy_percent)+'</td><td>'+formatNumber(row.approvals)+'</td><td>'+escapeHtml((row.approved_genres||[]).join(', '))+'</td><td>'+escapeHtml((row.playlist_codes||[]).join(', '))+'</td></tr>').join('')||emptyRow(7)}
+    function renderMetricRows(id,rows,label){document.getElementById(id).innerHTML=(rows||[]).map(row=>'<tr><td><strong>'+escapeHtml(row.key)+'</strong></td><td class="good">'+formatNumber(row.actual_gain)+'</td><td>'+formatNumber(row.estimated_gain)+'</td><td>'+formatPercent(row.accuracy_percent)+'</td><td>'+formatNumber(row.approvals)+'</td><td class="bad">'+formatNumber(row.zero_gain_approvals)+'</td></tr>').join('')||emptyRow(6,'No '+label+' performance yet.')}
+    function renderZero(rows){document.getElementById('zeroBody').innerHTML=(rows||[]).map(row=>'<tr><td><strong>'+escapeHtml(row.artist)+'</strong></td><td>'+escapeHtml(row.playlist_code)+'</td><td>'+formatNumber(row.estimated_gain)+'</td><td class="bad">'+formatNumber(row.actual_gain)+'</td><td>'+formatNumber(row.confidence)+' · '+escapeHtml(row.confidence_tier)+'</td><td>'+escapeHtml((row.sources||[]).join(', ')||'unknown')+'</td><td>'+escapeHtml(row.created_at)+'</td></tr>').join('')||emptyRow(7,'No zero-gain approvals found.')}
+    function renderPending(rows){document.getElementById('pendingBody').innerHTML=(rows||[]).map(row=>'<tr><td><strong>'+escapeHtml(row.artist)+'</strong></td><td>'+formatNumber(row.estimated_gain)+'</td><td>'+formatNumber(row.confidence)+' · '+escapeHtml(row.confidence_tier)+'</td><td>'+formatNumber(row.affected_user_count)+'</td><td>'+escapeHtml(row.recommended_crate_playlist)+'</td><td>'+escapeHtml((row.supporting_sources||[]).join(', ')||'unknown')+'</td></tr>').join('')||emptyRow(6,'No pending recommendations.')}
+    function renderRescans(rows){document.getElementById('rescansBody').innerHTML=(rows||[]).map(row=>'<tr><td>#'+escapeHtml(row.id)+'</td><td>'+escapeHtml(row.status)+'</td><td>'+formatNumber((row.selected_user_ids||[]).length)+'</td><td>'+formatNumber((row.approval_ids||[]).length)+'</td><td>'+formatNumber(row.estimated_gain)+'</td><td>'+formatNumber(row.actual_gain)+'</td><td>'+escapeHtml(row.finished_at||'')+'</td></tr>').join('')||emptyRow(7,'No rescans logged yet.')}
+    async function loadImpact(){refreshButton.disabled=true;setMessage('Loading impact report...');try{const payload=await requestJson('/crate/admin/recommendation-impact');renderSummary(payload.summary||{});renderArtists(payload.top_approved_artists_by_actual_gain||[]);renderMetricRows('sourcesBody',payload.source_performance||[],'source');renderMetricRows('lanesBody',payload.playlist_lane_performance||[],'playlist lane');renderZero(payload.zero_gain_approvals||[]);renderPending(payload.remaining_pending_recommendations||[]);renderRescans(payload.recent_rescans||[]);document.getElementById('attributionNote').textContent=payload.attribution_note||'';setMessage('Impact report loaded.')}catch(error){setMessage(error.message,true)}finally{refreshButton.disabled=false}}
+    refreshButton.addEventListener('click',loadImpact);loadImpact();
+  </script>
+</body>
+</html>

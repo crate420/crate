@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Crate Intelligence Coverage</title>
+    <style>
+      :root{color-scheme:light;--bg:#f6f8fb;--panel:#fff;--border:#d7dde5;--muted:#657080;--text:#17202a;--action:#1769aa;--danger:#a23a3a;--good:#197653;--warn:#9a6500;--mid:#4863b8}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:14px}main{max-width:1480px;margin:0 auto;padding:24px}header,.toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}header{margin-bottom:16px}h1,h2,h3{margin:0;line-height:1.2}h1{font-size:24px}h2{font-size:18px}h3{font-size:15px;margin-bottom:8px}.muted{color:var(--muted)}.button,button,input,select{border:1px solid var(--border);border-radius:6px;background:#fff;color:var(--text);cursor:pointer;display:inline-flex;align-items:center;min-height:34px;padding:6px 10px;font:inherit;text-decoration:none}.button.primary,button.primary{background:var(--action);border-color:var(--action);color:#fff}button:disabled{cursor:not-allowed;opacity:.55}.panel{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:14px}.message{min-height:22px;color:var(--muted);margin:8px 0}.message.error{color:var(--danger)}.summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:10px}.stat{border:1px solid var(--border);border-radius:6px;padding:10px}.stat strong{display:block;font-size:20px}.stat span{display:block;color:var(--muted);font-size:12px;font-weight:700;text-transform:uppercase}.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}table{width:100%;border-collapse:collapse}th,td{border-bottom:1px solid var(--border);padding:9px 8px;text-align:left;vertical-align:top}th{color:var(--muted);font-size:12px;text-transform:uppercase}.score{font-weight:800}.good{color:var(--good)}.warn{color:var(--warn)}.bad{color:var(--danger)}.mid{color:var(--mid)}.pill{display:inline-flex;border:1px solid var(--border);border-radius:999px;background:#f7f9fc;padding:3px 7px;font-size:12px;margin:2px}.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.result{white-space:pre-wrap;background:#111827;color:#e5e7eb;border-radius:8px;padding:10px;max-height:280px;overflow:auto;font-size:12px}.bars{display:grid;gap:5px;min-width:190px}.bar{display:grid;grid-template-columns:88px 1fr 44px;gap:6px;align-items:center}.bar-track{height:7px;border-radius:999px;background:#e9edf3;overflow:hidden}.bar-fill{height:100%;background:var(--action);border-radius:999px}.mini{font-size:12px;color:var(--muted);line-height:1.45}@media(max-width:1000px){.grid{grid-template-columns:1fr}table{display:block;overflow-x:auto;white-space:nowrap}}
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <div>
+          <h1>Intelligence Coverage</h1>
+          <div class="muted">Admin-only cache expansion and coverage diagnostics. No sorting, approvals, rescans, assignments, overrides, or Spotify writes.</div>
+        </div>
+        <nav class="toolbar">
+          <a class="button" href="/admin.html">Admin Home</a>
+          <a class="button" href="/admin-dna-evidence-quality.html">DNA Evidence Quality</a>
+          <a class="button" href="/admin-track-intelligence.html">Track Intelligence</a>
+          <button class="primary" id="refreshButton" type="button">Refresh</button>
+        </nav>
+      </header>
+      <div class="message" id="message">Loading intelligence coverage...</div>
+      <section class="panel"><div class="summary" id="summaryCards"></div></section>
+      <section class="panel">
+        <h2>Bulk Intelligence Expansion</h2>
+        <p class="muted">Runs bounded cache refresh batches only. Missing uses missing source rows; stale uses expired rows. Track refresh currently uses Last.fm track data.</p>
+        <div class="controls">
+          <label>Limit <input id="limitInput" type="number" min="1" max="50" value="10"></label>
+          <label>Artist sources <select id="sourceSelect" multiple size="3"><option value="spotify" selected>Spotify</option><option value="lastfm" selected>Last.fm</option><option value="musicbrainz" selected>MusicBrainz</option></select></label>
+          <button id="refreshMissingArtists" type="button">Refresh Missing Artist Intelligence</button>
+          <button id="refreshStaleArtists" type="button">Refresh Stale Artist Intelligence</button>
+          <button id="refreshMissingTracks" type="button">Refresh Missing Track Intelligence</button>
+          <button id="refreshStaleTracks" type="button">Refresh Stale Track Intelligence</button>
+        </div>
+        <div class="message" id="operationMessage"></div>
+        <pre class="result" id="operationResult">No operation run yet.</pre>
+      </section>
+      <div class="grid">
+        <section class="panel"><h2>Artist Coverage</h2><div class="summary" id="artistCoverage"></div></section>
+        <section class="panel"><h2>Track Coverage</h2><div class="summary" id="trackCoverage"></div></section>
+      </div>
+      <section class="panel"><h2>Coverage by Playlist</h2><table><thead><tr><th>Playlist</th><th>Tracks</th><th>Artist Coverage</th><th>Track Coverage</th><th>Multi-source</th><th>DNA</th></tr></thead><tbody id="playlistRows"></tbody></table></section>
+      <div class="grid">
+        <section class="panel"><h2>Top Missing Artists</h2><table><thead><tr><th>Artist</th><th>Users</th><th>Unmatched</th><th>Impact</th><th>Reason</th></tr></thead><tbody id="artistRows"></tbody></table></section>
+        <section class="panel"><h2>Top Missing Tracks</h2><table><thead><tr><th>Track</th><th>Artist</th><th>Users</th><th>Impact</th><th>Reason</th></tr></thead><tbody id="trackRows"></tbody></table></section>
+      </div>
+      <div class="grid">
+        <section class="panel"><h2>Source Quality</h2><table><thead><tr><th>Source</th><th>Coverage</th><th>Agreement</th><th>Approvals</th><th>Recovered</th></tr></thead><tbody id="sourceRows"></tbody></table></section>
+        <section class="panel"><h2>Readiness Progress</h2><div id="readinessProgress"></div></section>
+      </div>
+    </main>
+    <script>
+      const message=document.getElementById('message');const refreshButton=document.getElementById('refreshButton');const summaryCards=document.getElementById('summaryCards');const artistCoverage=document.getElementById('artistCoverage');const trackCoverage=document.getElementById('trackCoverage');const playlistRows=document.getElementById('playlistRows');const artistRows=document.getElementById('artistRows');const trackRows=document.getElementById('trackRows');const sourceRows=document.getElementById('sourceRows');const readinessProgress=document.getElementById('readinessProgress');const limitInput=document.getElementById('limitInput');const sourceSelect=document.getElementById('sourceSelect');const operationMessage=document.getElementById('operationMessage');const operationResult=document.getElementById('operationResult');const operationButtons=[document.getElementById('refreshMissingArtists'),document.getElementById('refreshStaleArtists'),document.getElementById('refreshMissingTracks'),document.getElementById('refreshStaleTracks')];
+      function escapeHtml(value){return String(value??'').replace(/[&<>\"]/g,function(char){return({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'})[char];});}
+      function formatNumber(value){return Number(value||0).toLocaleString();}
+      function setMessage(text,isError){message.textContent=text;message.className='message'+(isError?' error':'');}
+      function selectedSources(){return [...sourceSelect.selectedOptions].map(function(option){return option.value;});}
+      async function requestJson(url,options){const response=await fetch(url,{credentials:'include',...(options||{})});const body=await response.json().catch(function(){return{};});if(!response.ok)throw new Error(body.message||body.error||'Request failed');return body;}
+      function stat(label,value){return '<div class="stat"><strong>'+escapeHtml(value)+'</strong><span>'+escapeHtml(label)+'</span></div>';}
+      function coverageBars(values){return '<div class="bars">'+values.map(function(pair){const value=Number(pair[1]||0);return '<div class="bar"><span class="mini">'+escapeHtml(pair[0])+'</span><div class="bar-track"><div class="bar-fill" style="width:'+Math.max(0,Math.min(100,value))+'%"></div></div><span class="mini">'+escapeHtml(value)+'%</span></div>';}).join('')+'</div>';}
+      function renderSummary(payload){const s=payload.summary||{};summaryCards.innerHTML=[stat('Total artists',s.total_artists),stat('Total tracks',s.total_tracks),stat('Potential gain',s.estimated_recoverable_tracks),stat('Affected users',s.affected_users)].join('');}
+      function renderCoverage(payload){const a=payload.overall_coverage||{};const t=payload.track_coverage||{};artistCoverage.innerHTML=[stat('Artists',a.total_artists),stat('Last.fm',`${a.lastfm_coverage_percent||0}%`),stat('MusicBrainz',`${a.musicbrainz_coverage_percent||0}%`),stat('Spotify genres',`${a.spotify_genre_coverage_percent||0}%`),stat('Multi-source',`${a.multi_source_artist_agreement_percent||0}%`)].join('');trackCoverage.innerHTML=[stat('Tracks',t.total_tracks),stat('Last.fm tags',`${t.lastfm_track_coverage_percent||0}%`),stat('Metadata only',`${t.metadata_only_percent||0}%`),stat('No intelligence',`${t.no_intelligence_percent||0}%`),stat('Multi-source',`${t.multi_source_track_agreement_percent||0}%`)].join('');}
+      function renderPlaylistRows(rows){playlistRows.innerHTML=(rows||[]).length?(rows||[]).map(function(row){return '<tr><td><strong>'+escapeHtml(row.playlist_label)+'</strong><div class="mini">'+escapeHtml(row.playlist_code)+'</div></td><td>'+formatNumber(row.track_count)+'</td><td>'+coverageBars([['Artist',row.artist_coverage_percent]])+'</td><td>'+coverageBars([['Track',row.track_coverage_percent]])+'</td><td>'+coverageBars([['Multi',row.multi_source_coverage_percent]])+'</td><td><strong>'+escapeHtml(row.dna_readiness_score)+'</strong><div class="mini">Tier '+escapeHtml(row.dna_readiness_tier)+' · contribution '+escapeHtml(row.dna_readiness_contribution)+'</div></td></tr>';}).join(''):'<tr><td colspan="6" class="muted">No playlist coverage rows.</td></tr>';}
+      function renderMissingArtists(rows){artistRows.innerHTML=(rows||[]).length?(rows||[]).slice(0,50).map(function(row){return '<tr><td><strong>'+escapeHtml(row.artist_name)+'</strong><div class="mini">'+escapeHtml(row.spotify_artist_id||'no Spotify artist id')+'</div></td><td>'+formatNumber(row.affected_users)+'</td><td>'+formatNumber(row.unmatched_tracks)+'</td><td>'+formatNumber(row.estimated_impact)+'</td><td>'+escapeHtml(row.reason)+'</td></tr>';}).join(''):'<tr><td colspan="5" class="muted">No missing artists.</td></tr>';}
+      function renderMissingTracks(rows){trackRows.innerHTML=(rows||[]).length?(rows||[]).slice(0,50).map(function(row){return '<tr><td><strong>'+escapeHtml(row.track_name)+'</strong><div class="mini">'+escapeHtml(row.album_name||'')+'</div></td><td>'+escapeHtml(row.artist)+'</td><td>'+formatNumber(row.affected_users)+'</td><td>'+formatNumber(row.estimated_impact)+'</td><td>'+escapeHtml(row.reason)+'</td></tr>';}).join(''):'<tr><td colspan="5" class="muted">No missing tracks.</td></tr>';}
+      function renderSources(rows){sourceRows.innerHTML=(rows||[]).length?(rows||[]).map(function(row){return '<tr><td><strong>'+escapeHtml(row.source)+'</strong></td><td>'+escapeHtml(row.coverage_percent)+'%</td><td>'+escapeHtml(row.agreement_percent)+'%</td><td>'+formatNumber(row.recommendation_contribution)+'</td><td>'+formatNumber(row.recovered_track_contribution)+'</td></tr>';}).join(''):'<tr><td colspan="5" class="muted">No source quality rows.</td></tr>';}
+      function renderReadiness(progress){const current=progress.current||{};const projected=progress.projected_after_full_coverage||{};readinessProgress.innerHTML='<div class="summary">'+[stat('Current A',current.A),stat('Current B',current.B),stat('Current C',current.C),stat('Current D',current.D),stat('Projected A',projected.A),stat('Projected B',projected.B),stat('Projected C',projected.C),stat('Projected D',projected.D),stat('Est. boost',progress.estimated_score_boost)].join('')+'</div><p class="muted">'+escapeHtml(progress.note||'')+'</p>';}
+      async function loadReport(){refreshButton.disabled=true;setMessage('Loading intelligence coverage...');try{const payload=await requestJson('/crate/admin/intelligence-coverage');renderSummary(payload);renderCoverage(payload);renderPlaylistRows(payload.coverage_by_playlist||[]);renderMissingArtists(payload.top_missing_artists||[]);renderMissingTracks(payload.top_missing_tracks||[]);renderSources(payload.source_quality||[]);renderReadiness(payload.readiness_progress||{});setMessage('Intelligence coverage loaded. Read-only dashboard.');}catch(error){setMessage(error.message,true);}finally{refreshButton.disabled=false;}}
+      async function runOperation(kind,mode){operationButtons.forEach(function(button){button.disabled=true;});operationMessage.textContent='Running '+kind+' '+mode+' batch...';try{const body={mode,limit:Number(limitInput.value)||10};let endpoint='/crate/admin/intelligence-coverage/refresh-tracks';if(kind==='artist'){endpoint='/crate/admin/intelligence-coverage/refresh-artists';body.sources=selectedSources();}const payload=await requestJson(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});operationResult.textContent=JSON.stringify(payload,null,2);operationMessage.textContent='Batch complete.';await loadReport();}catch(error){operationMessage.textContent=error.message;operationResult.textContent=error.stack||error.message;}finally{operationButtons.forEach(function(button){button.disabled=false;});}}
+      document.getElementById('refreshMissingArtists').addEventListener('click',function(){runOperation('artist','missing');});
+      document.getElementById('refreshStaleArtists').addEventListener('click',function(){runOperation('artist','stale');});
+      document.getElementById('refreshMissingTracks').addEventListener('click',function(){runOperation('track','missing');});
+      document.getElementById('refreshStaleTracks').addEventListener('click',function(){runOperation('track','stale');});
+      refreshButton.addEventListener('click',loadReport);loadReport();
+    </script>
+  </body>
+</html>

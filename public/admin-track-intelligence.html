@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Crate Track Intelligence</title>
+    <style>
+      :root{color-scheme:light;--bg:#f6f8fb;--panel:#fff;--border:#d7dde5;--muted:#657080;--text:#17202a;--action:#1769aa;--danger:#a23a3a;--good:#197653;--warn:#9a6500;--manual:#5d6470}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:14px}main{max-width:1440px;margin:0 auto;padding:24px}header,.toolbar,.filters{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}header{margin-bottom:16px}h1,h2{margin:0;line-height:1.2}h1{font-size:24px}h2{font-size:18px}.muted{color:var(--muted)}.button,button,select,input{border:1px solid var(--border);border-radius:6px;background:#fff;color:var(--text);display:inline-flex;align-items:center;min-height:34px;padding:6px 10px;font:inherit;text-decoration:none}.button,button{cursor:pointer}.button.primary,button.primary{background:var(--action);border-color:var(--action);color:#fff}button:disabled{cursor:not-allowed;opacity:.55}.panel{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:14px}.message{min-height:22px;color:var(--muted);margin:8px 0}.message.error{color:var(--danger)}.summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px}.stat{border:1px solid var(--border);border-radius:6px;padding:10px}.stat strong{display:block;font-size:20px}.stat span{display:block;color:var(--muted);font-size:12px;font-weight:700;text-transform:uppercase}table{width:100%;border-collapse:collapse}th,td{border-bottom:1px solid var(--border);padding:9px 8px;text-align:left;vertical-align:top}th{color:var(--muted);font-size:12px;text-transform:uppercase}.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.tags{display:flex;flex-wrap:wrap;gap:5px}.tag{border:1px solid var(--border);border-radius:999px;background:#f7f9fc;padding:3px 7px;font-size:12px}.tier{border-radius:999px;padding:3px 8px;font-size:12px;font-weight:700}.tier.Safe{background:#dcf7eb;color:var(--good)}.tier.Strong{background:#e5f1ff;color:var(--action)}.tier.Review{background:#fff1d4;color:var(--warn)}.tier.Manual{background:#eef1f5;color:var(--manual)}.track-title{font-weight:700}.candidate{display:grid;grid-template-columns:auto 1fr;gap:4px 8px;align-items:start;margin-bottom:6px}.evidence{color:var(--muted);font-size:12px}.nowrap{white-space:nowrap}.filters label{display:grid;gap:4px;color:var(--muted);font-size:12px;font-weight:700;text-transform:uppercase}.filters input,.filters select{min-width:170px;text-transform:none;font-weight:400;color:var(--text)}@media(max-width:1000px){.grid{grid-template-columns:1fr}table{display:block;overflow-x:auto;white-space:nowrap}.filters{align-items:stretch}.filters label,.filters input,.filters select{width:100%}}
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <div>
+          <h1>Track Intelligence</h1>
+          <div class="muted">Read-only diagnostics for where unmatched songs may belong.</div>
+        </div>
+        <nav class="toolbar">
+          <a class="button" href="/admin.html">Admin Home</a>
+          <a class="button" href="/admin-playlist-dna-validation.html">Playlist DNA</a>
+          <a class="button" href="/admin-dna-evidence-quality.html">DNA Evidence Quality</a>
+          <a class="button" href="/admin-intelligence-coverage.html">Intelligence Coverage</a>
+          <a class="button" href="/admin-user-diagnostics.html">User Diagnostics</a>
+          <a class="button" href="/admin-artist-gap-analysis.html">Artist Gaps</a>
+          <a class="button" href="/admin-genre-recommendations.html">Genre Recommendations</a>
+          <a class="button" href="/admin-recommendation-impact.html">Recommendation Impact</a>
+          <a class="button" href="/admin-unmatched-diagnostics.html">Unmatched Forensics</a>
+          <button class="primary" id="refreshButton" type="button">Refresh</button>
+        </nav>
+      </header>
+
+      <section class="panel">
+        <form class="filters" id="filtersForm">
+          <label>Artist <input id="artistFilter" name="artist" placeholder="Everlast"></label>
+          <label>Playlist candidate <select id="playlistFilter" name="playlist_candidate"><option value="">All</option></select></label>
+          <label>Confidence <select id="tierFilter" name="confidence_tier"><option value="">All</option><option>Safe</option><option>Strong</option><option>Review</option><option>Manual</option></select></label>
+          <label>Min affected users <input id="affectedUsersFilter" name="affected_users" type="number" min="0" step="1" value="0"></label>
+          <label>Limit <input id="limitFilter" name="limit" type="number" min="25" max="500" step="25" value="100"></label>
+          <div class="toolbar">
+            <button class="primary" type="submit">Apply Filters</button>
+            <button id="resetButton" type="button">Reset</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="panel">
+        <h2>Last.fm Track Intelligence</h2>
+        <p class="muted">Refreshes cache only. No approvals, rescans, sorting changes, or playlist writes.</p>
+        <div class="toolbar">
+          <label class="muted">Refresh limit <input id="refreshLimit" type="number" min="1" max="50" step="1" value="10"></label>
+          <button id="refreshMissingButton" type="button">Refresh Missing</button>
+          <button id="refreshStaleButton" type="button">Refresh Stale</button>
+          <button id="refreshSelectedButton" type="button">Refresh Selected Tracks</button>
+        </div>
+        <pre class="message" id="refreshResult"></pre>
+      </section>
+
+      <div class="message" id="message">Loading track intelligence...</div>
+      <section class="panel"><div class="summary" id="summaryCards"></div></section>
+
+      <div class="grid">
+        <section class="panel">
+          <h2>Top Unmatched Artists</h2>
+          <table><thead><tr><th>Artist</th><th>Users</th><th>Tracks</th><th>Impact</th><th>Samples</th></tr></thead><tbody id="artistRows"></tbody></table>
+        </section>
+        <section class="panel">
+          <h2>Top Unmatched Albums</h2>
+          <table><thead><tr><th>Album</th><th>Artists</th><th>Users</th><th>Tracks</th><th>Impact</th></tr></thead><tbody id="albumRows"></tbody></table>
+        </section>
+      </div>
+
+      <section class="panel">
+        <h2>Highest-Impact Unmatched Tracks</h2>
+        <table aria-label="Highest impact unmatched tracks">
+          <thead><tr><th>Select</th><th>Track</th><th>Artist</th><th>Album</th><th>Users</th><th>Confidence</th><th>Evidence</th><th>Reason</th></tr></thead>
+          <tbody id="trackRows"></tbody>
+        </table>
+      </section>
+
+      <section class="panel">
+        <h2>Playlist Candidate Recommendations</h2>
+        <table aria-label="Playlist candidate recommendations">
+          <thead><tr><th>Track</th><th>Artist</th><th>Candidate</th><th>Confidence</th><th>Evidence</th></tr></thead>
+          <tbody id="candidateRows"></tbody>
+        </table>
+      </section>
+    </main>
+    <script>
+      const message = document.getElementById('message');
+      const refreshButton = document.getElementById('refreshButton');
+      const filtersForm = document.getElementById('filtersForm');
+      const resetButton = document.getElementById('resetButton');
+      const refreshMissingButton = document.getElementById('refreshMissingButton');
+      const refreshStaleButton = document.getElementById('refreshStaleButton');
+      const refreshSelectedButton = document.getElementById('refreshSelectedButton');
+      const refreshLimit = document.getElementById('refreshLimit');
+      const refreshResult = document.getElementById('refreshResult');
+      const summaryCards = document.getElementById('summaryCards');
+      const artistRows = document.getElementById('artistRows');
+      const albumRows = document.getElementById('albumRows');
+      const trackRows = document.getElementById('trackRows');
+      const candidateRows = document.getElementById('candidateRows');
+      const playlistFilter = document.getElementById('playlistFilter');
+      const artistFilter = document.getElementById('artistFilter');
+      const tierFilter = document.getElementById('tierFilter');
+      const affectedUsersFilter = document.getElementById('affectedUsersFilter');
+      const limitFilter = document.getElementById('limitFilter');
+      let lastPlaylistOptions = [];
+
+      function escapeHtml(value){return String(value ?? '').replace(/[&<>\"]/g,function(char){return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[char];});}
+      function formatNumber(value){return Number(value || 0).toLocaleString();}
+      function setMessage(text,isError){message.textContent=text;message.className='message'+(isError?' error':'');}
+      async function requestJson(url, options){const response=await fetch(url,Object.assign({credentials:'include'},options||{}));const body=await response.json().catch(function(){return{};});if(!response.ok)throw new Error(body.message||body.error||'Request failed');return body;}
+      function tags(values){const items=(values||[]).slice(0,8);return '<div class="tags">'+(items.length?items.map(function(value){return '<span class="tag">'+escapeHtml(value)+'</span>';}).join(''):'<span class="muted">None</span>')+'</div>';}
+      function userTags(users){return '<div class="tags">'+((users||[]).length?(users||[]).map(function(user){return '<span class="tag">#'+user.user_id+(user.name?' '+escapeHtml(user.name):'')+'</span>';}).join(''):'<span class="muted">None</span>')+'</div>';}
+      function tierBadge(tier){return '<span class="tier '+escapeHtml(tier||'Manual')+'">'+escapeHtml(tier||'Manual')+'</span>';}
+      function evidenceSummary(evidence){const items=(evidence||[]).map(function(item){return item.reason||item.matched||item.genre;}).filter(Boolean).slice(0,3);return items.length?items.map(escapeHtml).join(', '):'<span class="muted">No score evidence</span>';}
+      function renderSummary(summary){const stats=[['Total unmatched',summary.total_unmatched_tracks],['Filtered tracks',summary.filtered_unmatched_tracks],['Artists',summary.unique_unmatched_artists],['Albums',summary.unique_unmatched_albums],['With candidates',summary.tracks_with_playlist_candidates],['No useful evidence',summary.tracks_with_no_useful_evidence]];summaryCards.innerHTML=stats.map(function(pair){return '<div class="stat"><strong>'+escapeHtml(formatNumber(pair[1]))+'</strong><span>'+escapeHtml(pair[0])+'</span></div>';}).join('');}
+      function renderPlaylistOptions(options){const selected=playlistFilter.value;lastPlaylistOptions=options||[];playlistFilter.innerHTML='<option value="">All</option>'+lastPlaylistOptions.map(function(option){return '<option value="'+escapeHtml(option.playlist_code)+'">'+escapeHtml(option.playlist_label)+'</option>';}).join('');playlistFilter.value=selected;}
+      function renderArtists(rows){artistRows.innerHTML=(rows||[]).length?(rows||[]).slice(0,25).map(function(row){return '<tr><td><strong>'+escapeHtml(row.artist)+'</strong></td><td>'+formatNumber(row.affected_user_count)+'</td><td>'+formatNumber(row.unmatched_track_count)+'</td><td>'+formatNumber(row.impact_score)+'</td><td>'+tags(row.sample_tracks)+'</td></tr>';}).join(''):'<tr><td colspan="5" class="muted">No unmatched artists.</td></tr>';}
+      function renderAlbums(rows){albumRows.innerHTML=(rows||[]).length?(rows||[]).slice(0,25).map(function(row){return '<tr><td><strong>'+escapeHtml(row.album)+'</strong></td><td>'+tags(row.artists)+'</td><td>'+formatNumber(row.affected_user_count)+'</td><td>'+formatNumber(row.unmatched_track_count)+'</td><td>'+formatNumber(row.impact_score)+'</td></tr>';}).join(''):'<tr><td colspan="5" class="muted">No unmatched albums.</td></tr>';}
+      function renderTrackCandidates(record){return (record.playlist_candidates||[]).length?(record.playlist_candidates||[]).map(function(candidate){return '<div class="candidate"><div>'+tierBadge(candidate.confidence_tier)+'</div><div><strong>'+escapeHtml(candidate.playlist_label)+'</strong> · '+formatNumber(candidate.confidence)+'<div class="evidence">'+evidenceSummary(candidate.evidence)+'</div></div></div>';}).join(''):'<span class="muted">No playlist candidates</span>';}
+      function renderEvidence(record){const parts=[];if((record.approved_artist_genres||[]).length)parts.push('<strong>Approved</strong> '+escapeHtml(record.approved_artist_genres.join(', ')));if((record.spotify_artist_genres||[]).length)parts.push('<strong>Spotify</strong> '+escapeHtml(record.spotify_artist_genres.join(', ')));if((record.lastfm_artist_tags||[]).length)parts.push('<strong>Last.fm</strong> '+escapeHtml(record.lastfm_artist_tags.slice(0,6).join(', ')));if((record.musicbrainz_tags||[]).length)parts.push('<strong>MusicBrainz</strong> '+escapeHtml(record.musicbrainz_tags.slice(0,6).join(', ')));if((record.lastfm_track_tags||[]).length)parts.push('<strong>Last.fm track</strong> '+escapeHtml(record.lastfm_track_tags.slice(0,8).join(', ')));if(record.track_intelligence_source_count)parts.push('<strong>Track sources</strong> '+escapeHtml(record.track_intelligence_source_count)+' · confidence '+escapeHtml(record.track_intelligence_confidence||0));return parts.length?parts.join('<br>'):'<span class="muted">No cached evidence</span>';}
+      function renderTracks(rows){trackRows.innerHTML=(rows||[]).length?(rows||[]).map(function(row){return '<tr><td><input class="track-select" type="checkbox" value="'+escapeHtml(row.track_id)+'" aria-label="Select '+escapeHtml(row.track_name)+'"></td><td><div class="track-title">'+escapeHtml(row.track_name)+'</div><div class="muted">'+escapeHtml(row.spotify_track_id||'')+'</div></td><td>'+escapeHtml(row.artist)+'</td><td>'+escapeHtml(row.album_name||'')+'<div class="muted">'+escapeHtml(row.release_year||'')+'</div></td><td>'+userTags(row.affected_users)+'</td><td>'+renderTrackCandidates(row)+'</td><td>'+renderEvidence(row)+'</td><td>'+escapeHtml(row.final_unmatched_reason)+'</td></tr>';}).join(''):'<tr><td colspan="8" class="muted">No unmatched tracks match these filters.</td></tr>';}
+      function renderCandidates(rows){candidateRows.innerHTML=(rows||[]).length?(rows||[]).map(function(row){return '<tr><td><strong>'+escapeHtml(row.track_name)+'</strong></td><td>'+escapeHtml(row.artist)+'</td><td>'+escapeHtml(row.playlist_label)+'</td><td>'+tierBadge(row.confidence_tier)+' '+formatNumber(row.confidence)+'</td><td>'+evidenceSummary(row.evidence)+'</td></tr>';}).join(''):'<tr><td colspan="5" class="muted">No playlist candidate recommendations.</td></tr>';}
+      function buildUrl(){const params=new URLSearchParams();if(artistFilter.value.trim())params.set('artist',artistFilter.value.trim());if(playlistFilter.value)params.set('playlist_candidate',playlistFilter.value);if(tierFilter.value)params.set('confidence_tier',tierFilter.value);if(affectedUsersFilter.value)params.set('affected_users',affectedUsersFilter.value);if(limitFilter.value)params.set('limit',limitFilter.value);return '/crate/admin/track-intelligence?'+params.toString();}
+      async function loadReport(){refreshButton.disabled=true;setMessage('Loading track intelligence...');try{const payload=await requestJson(buildUrl());renderPlaylistOptions(payload.playlist_candidates_available||[]);renderSummary(payload.summary||{});renderArtists(payload.top_unmatched_artists||[]);renderAlbums(payload.top_unmatched_albums||[]);renderTracks(payload.top_unmatched_tracks||[]);renderCandidates(payload.playlist_candidate_recommendations||[]);setMessage('Loaded '+formatNumber(payload.summary?.filtered_unmatched_tracks)+' unmatched track diagnostic row(s).');}catch(error){setMessage(error.message,true);}finally{refreshButton.disabled=false;}}
+      function selectedTrackIds(){return [...document.querySelectorAll('.track-select:checked')].map(function(input){return Number(input.value);}).filter(Boolean);}
+      async function refreshLastfm(mode){const buttons=[refreshMissingButton,refreshStaleButton,refreshSelectedButton];buttons.forEach(function(button){button.disabled=true;});refreshResult.textContent='Refreshing Last.fm track intelligence...';try{const body={mode:mode,limit:Number(refreshLimit.value)||10};if(mode==='selected')body.track_ids=selectedTrackIds();if(mode==='selected'&&body.track_ids.length===0)throw new Error('Select at least one track first.');const payload=await requestJson('/crate/admin/track-intelligence/refresh-lastfm',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});refreshResult.textContent=JSON.stringify(payload,null,2);await loadReport();}catch(error){refreshResult.textContent=error.message;}finally{buttons.forEach(function(button){button.disabled=false;});}}
+      filtersForm.addEventListener('submit',function(event){event.preventDefault();loadReport();});
+      resetButton.addEventListener('click',function(){artistFilter.value='';playlistFilter.value='';tierFilter.value='';affectedUsersFilter.value='0';limitFilter.value='100';loadReport();});
+      refreshButton.addEventListener('click',loadReport);
+      refreshMissingButton.addEventListener('click',function(){refreshLastfm('missing');});
+      refreshStaleButton.addEventListener('click',function(){refreshLastfm('stale');});
+      refreshSelectedButton.addEventListener('click',function(){refreshLastfm('selected');});
+      loadReport();
+    </script>
+  </body>
+</html>

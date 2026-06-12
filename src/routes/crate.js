@@ -47,6 +47,12 @@ const {
 const { getAdminArtistGapAnalysis } = require("../crate/artistGapAnalysis");
 const { approveGenreRecommendation, approveSelectedGenreRecommendations, getAdminGenreRecommendations } = require("../crate/genreRecommendations");
 const { getAdminGenreRecommendationRescanPlan, runAdminGenreRecommendationRescan } = require("../crate/genreRecommendationRescan");
+const { getAdminRecommendationImpact } = require("../crate/recommendationImpact");
+const { getAdminTrackIntelligence } = require("../crate/trackIntelligence");
+const { refreshLastfmTrackIntelligence } = require("../crate/lastfmTrackIntelligence");
+const { getAdminPlaylistDnaValidation } = require("../crate/playlistDnaValidation");
+const { getAdminDnaEvidenceQuality } = require("../crate/dnaEvidenceQuality");
+const { getAdminIntelligenceCoverage, refreshArtistCoverage, refreshTrackCoverage } = require("../crate/intelligenceCoverage");
 const { getAdminArtistEnrichmentQueue, refreshLastfmArtistTagsForQueue, refreshSpotifyArtistGenresForQueue } = require("../crate/artistEnrichmentQueue");
 const { getDatabaseDiagnostics } = require("../crate/dbDiagnostics");
 const { getAdminEraDiagnostics } = require("../crate/eraDiagnostics");
@@ -367,6 +373,98 @@ router.post("/admin/genre-recommendation-rescan", requireCurrentUser, requireAdm
   } catch (err) {
     if (err.statusCode) {
       return res.status(err.statusCode).json({ error: err.code || "genre_recommendation_rescan_error", message: err.message });
+    }
+    return next(err);
+  }
+});
+
+router.get("/admin/recommendation-impact", requireCurrentUser, requireAdminUser, async (req, res, next) => {
+  try {
+    return res.json(await getAdminRecommendationImpact());
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.get("/admin/track-intelligence", requireCurrentUser, requireAdminUser, (req, res, next) => {
+  try {
+    return res.json(getAdminTrackIntelligence({
+      artist: req.query.artist,
+      playlistCandidate: req.query.playlist_candidate,
+      confidenceTier: req.query.confidence_tier,
+      affectedUsers: req.query.affected_users,
+      limit: req.query.limit,
+    }));
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.get("/admin/playlist-dna-validation", requireCurrentUser, requireAdminUser, (req, res, next) => {
+  try {
+    return res.json(getAdminPlaylistDnaValidation({
+      limit: req.query.limit,
+    }));
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.get("/admin/dna-evidence-quality", requireCurrentUser, requireAdminUser, (req, res, next) => {
+  try {
+    return res.json(getAdminDnaEvidenceQuality());
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.get("/admin/intelligence-coverage", requireCurrentUser, requireAdminUser, async (req, res, next) => {
+  try {
+    return res.json(await getAdminIntelligenceCoverage());
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.post("/admin/intelligence-coverage/refresh-artists", requireCurrentUser, requireAdminUser, async (req, res, next) => {
+  try {
+    return res.json(await refreshArtistCoverage(req.currentUser.id, {
+      mode: req.body?.mode,
+      sources: req.body?.sources,
+      limit: req.body?.limit,
+    }));
+  } catch (err) {
+    if (err.statusCode) {
+      return res.status(err.statusCode).json({ error: err.code || "artist_intelligence_coverage_refresh_error", message: err.message });
+    }
+    return next(err);
+  }
+});
+
+router.post("/admin/intelligence-coverage/refresh-tracks", requireCurrentUser, requireAdminUser, async (req, res, next) => {
+  try {
+    return res.json(await refreshTrackCoverage({
+      mode: req.body?.mode,
+      limit: req.body?.limit,
+    }));
+  } catch (err) {
+    if (err.statusCode) {
+      return res.status(err.statusCode).json({ error: err.code || "track_intelligence_coverage_refresh_error", message: err.message });
+    }
+    return next(err);
+  }
+});
+
+router.post("/admin/track-intelligence/refresh-lastfm", requireCurrentUser, requireAdminUser, async (req, res, next) => {
+  try {
+    return res.json(await refreshLastfmTrackIntelligence({
+      mode: req.body?.mode,
+      limit: req.body?.limit,
+      trackIds: req.body?.track_ids || req.body?.trackIds,
+    }));
+  } catch (err) {
+    if (err.statusCode) {
+      return res.status(err.statusCode).json({ error: err.code || "lastfm_track_intelligence_error", message: err.message });
     }
     return next(err);
   }

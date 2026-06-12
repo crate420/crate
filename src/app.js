@@ -80,6 +80,26 @@ function createApp() {
     res.sendFile(path.join(config.rootDir, "public/admin-genre-recommendation-rescan.html"));
   });
 
+  app.get("/admin-recommendation-impact.html", requireAdminPage, (req, res) => {
+    res.sendFile(path.join(config.rootDir, "public/admin-recommendation-impact.html"));
+  });
+
+  app.get("/admin-track-intelligence.html", requireAdminPage, (req, res) => {
+    res.sendFile(path.join(config.rootDir, "public/admin-track-intelligence.html"));
+  });
+
+  app.get("/admin-playlist-dna-validation.html", requireAdminPage, (req, res) => {
+    res.sendFile(path.join(config.rootDir, "public/admin-playlist-dna-validation.html"));
+  });
+
+  app.get("/admin-dna-evidence-quality.html", requireAdminPage, (req, res) => {
+    res.sendFile(path.join(config.rootDir, "public/admin-dna-evidence-quality.html"));
+  });
+
+  app.get("/admin-intelligence-coverage.html", requireAdminPage, (req, res) => {
+    res.sendFile(path.join(config.rootDir, "public/admin-intelligence-coverage.html"));
+  });
+
   app.get("/admin-era-diagnostics.html", requireAdminPage, (req, res) => {
     res.sendFile(path.join(config.rootDir, "public/admin-era-diagnostics.html"));
   });
