@@ -88,6 +88,10 @@ function createApp() {
     res.sendFile(path.join(config.rootDir, "public/admin-track-intelligence.html"));
   });
 
+  app.get("/admin-track-learning.html", requireAdminPage, (req, res) => {
+    res.sendFile(path.join(config.rootDir, "public/admin-track-learning.html"));
+  });
+
   app.get("/admin-playlist-dna-validation.html", requireAdminPage, (req, res) => {
     res.sendFile(path.join(config.rootDir, "public/admin-playlist-dna-validation.html"));
   });

@@ -49,6 +49,7 @@ const { approveGenreRecommendation, approveSelectedGenreRecommendations, getAdmi
 const { getAdminGenreRecommendationRescanPlan, runAdminGenreRecommendationRescan } = require("../crate/genreRecommendationRescan");
 const { getAdminRecommendationImpact } = require("../crate/recommendationImpact");
 const { getAdminTrackIntelligence } = require("../crate/trackIntelligence");
+const { generateTrackLearningProfiles, getAdminTrackLearningProfiles } = require("../crate/trackLearningProfiles");
 const { refreshLastfmTrackIntelligence } = require("../crate/lastfmTrackIntelligence");
 const { getAdminPlaylistDnaValidation } = require("../crate/playlistDnaValidation");
 const { getAdminDnaEvidenceQuality } = require("../crate/dnaEvidenceQuality");
@@ -394,6 +395,32 @@ router.get("/admin/track-intelligence", requireCurrentUser, requireAdminUser, (r
       confidenceTier: req.query.confidence_tier,
       affectedUsers: req.query.affected_users,
       limit: req.query.limit,
+    }));
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.get("/admin/track-learning-profiles", requireCurrentUser, requireAdminUser, (req, res, next) => {
+  try {
+    return res.json(getAdminTrackLearningProfiles({
+      confidence_tier: req.query.confidence_tier,
+      playlist_code: req.query.playlist_code,
+      unmatched_only: req.query.unmatched_only === "1" || req.query.unmatched_only === "true",
+      limit: req.query.limit,
+      offset: req.query.offset,
+    }));
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.post("/admin/track-learning/generate", requireCurrentUser, requireAdminUser, (req, res, next) => {
+  try {
+    return res.json(generateTrackLearningProfiles({
+      limit: req.body?.limit,
+      playlist_code: req.body?.playlist_code || req.body?.playlistCode,
+      unmatched_only: req.body?.unmatched_only || req.body?.unmatchedOnly,
     }));
   } catch (err) {
     return next(err);

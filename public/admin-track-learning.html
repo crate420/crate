@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Crate Track Learning</title>
+    <style>
+      :root{color-scheme:light;--bg:#f6f8fb;--panel:#fff;--border:#d7dde5;--muted:#657080;--text:#17202a;--action:#1769aa;--danger:#a23a3a;--good:#197653;--warn:#9a6500;--manual:#5d6470}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:14px}main{max-width:1440px;margin:0 auto;padding:24px}header,.toolbar,.filters{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}header{margin-bottom:16px}h1,h2{margin:0;line-height:1.2}h1{font-size:24px}h2{font-size:18px}.muted,.mini{color:var(--muted)}.mini{font-size:12px}.button,button,select,input{border:1px solid var(--border);border-radius:6px;background:#fff;color:var(--text);display:inline-flex;align-items:center;min-height:34px;padding:6px 10px;font:inherit;text-decoration:none}.button,button{cursor:pointer}.button.primary,button.primary{background:var(--action);border-color:var(--action);color:#fff}button:disabled{cursor:not-allowed;opacity:.55}.panel{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:14px}.message{min-height:22px;color:var(--muted);margin:8px 0;white-space:pre-wrap}.message.error{color:var(--danger)}.summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px}.stat{border:1px solid var(--border);border-radius:6px;padding:10px}.stat strong{display:block;font-size:20px}.stat span{display:block;color:var(--muted);font-size:12px;font-weight:700;text-transform:uppercase}table{width:100%;border-collapse:collapse}th,td{border-bottom:1px solid var(--border);padding:9px 8px;text-align:left;vertical-align:top}th{color:var(--muted);font-size:12px;text-transform:uppercase}.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.tags{display:flex;flex-wrap:wrap;gap:5px}.tag{border:1px solid var(--border);border-radius:999px;background:#f7f9fc;padding:3px 7px;font-size:12px}.tier{border-radius:999px;padding:3px 8px;font-size:12px;font-weight:700}.tier.high{background:#dcf7eb;color:var(--good)}.tier.strong{background:#e5f1ff;color:var(--action)}.tier.review{background:#fff1d4;color:var(--warn)}.tier.weak,.tier.none{background:#eef1f5;color:var(--manual)}.track-title{font-weight:700}.filters label{display:grid;gap:4px;color:var(--muted);font-size:12px;font-weight:700;text-transform:uppercase}.filters input,.filters select{min-width:170px;text-transform:none;font-weight:400;color:var(--text)}pre{margin:0;white-space:pre-wrap;word-break:break-word}.nowrap{white-space:nowrap}@media(max-width:1000px){.grid{grid-template-columns:1fr}table{display:block;overflow-x:auto;white-space:nowrap}.filters{align-items:stretch}.filters label,.filters input,.filters select{width:100%}}
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <div>
+          <h1>Track Learning</h1>
+          <div class="muted">Backend-only derived profiles. Informational only; disconnected from sorting, sending, and user UI.</div>
+        </div>
+        <nav class="toolbar">
+          <a class="button" href="/admin.html">Admin Home</a>
+          <a class="button" href="/admin-track-intelligence.html">Track Intelligence</a>
+          <a class="button" href="/admin-playlist-dna-validation.html">Playlist DNA</a>
+          <a class="button" href="/admin-dna-evidence-quality.html">DNA Evidence Quality</a>
+          <a class="button" href="/admin-intelligence-coverage.html">Intelligence Coverage</a>
+          <button class="primary" id="refreshButton" type="button">Refresh</button>
+        </nav>
+      </header>
+
+      <section class="panel">
+        <h2>Generate Profiles</h2>
+        <p class="muted">Stores derived internal profiles only. No approvals, rescans, assignments, Spotify calls, or Spotify writes.</p>
+        <form class="filters" id="generateForm">
+          <label>Limit <input id="generateLimit" type="number" min="1" max="500" step="25" value="100"></label>
+          <label>Playlist code <input id="generatePlaylist" placeholder="optional"></label>
+          <label>Unmatched only <select id="generateUnmatched"><option value="0">No</option><option value="1">Yes</option></select></label>
+          <button class="primary" type="submit">Generate Track Profiles</button>
+        </form>
+        <pre class="message" id="generateResult">No generation run yet.</pre>
+      </section>
+
+      <section class="panel">
+        <form class="filters" id="filtersForm">
+          <label>Confidence <select id="tierFilter"><option value="">All</option><option value="high">High</option><option value="strong">Strong</option><option value="review">Review</option><option value="weak">Weak</option><option value="none">None</option></select></label>
+          <label>Playlist code <input id="playlistFilter" placeholder="current or candidate"></label>
+          <label>Unmatched only <select id="unmatchedFilter"><option value="0">No</option><option value="1">Yes</option></select></label>
+          <label>Limit <input id="limitFilter" type="number" min="25" max="500" step="25" value="100"></label>
+          <div class="toolbar">
+            <button class="primary" type="submit">Apply Filters</button>
+            <button id="resetButton" type="button">Reset</button>
+          </div>
+        </form>
+      </section>
+
+      <div class="message" id="message">Loading track learning profiles...</div>
+      <section class="panel"><div class="summary" id="summaryCards"></div></section>
+
+      <div class="grid">
+        <section class="panel">
+          <h2>Current Assignment vs Derived Candidate</h2>
+          <table><thead><tr><th>Track</th><th>Current</th><th>Derived</th><th>Confidence</th></tr></thead><tbody id="changeRows"></tbody></table>
+        </section>
+        <section class="panel">
+          <h2>Specialty Matches</h2>
+          <table><thead><tr><th>Track</th><th>Seed</th><th>Match</th><th>Confidence</th></tr></thead><tbody id="specialtyRows"></tbody></table>
+        </section>
+      </div>
+
+      <section class="panel">
+        <h2>Conflicts</h2>
+        <table><thead><tr><th>Track</th><th>Conflict</th><th>Details</th></tr></thead><tbody id="conflictRows"></tbody></table>
+      </section>
+
+      <section class="panel">
+        <h2>Generated Profiles</h2>
+        <table><thead><tr><th>Track</th><th>Artist</th><th>Current</th><th>Top Candidate</th><th>Confidence</th><th>Evidence</th></tr></thead><tbody id="profileRows"></tbody></table>
+      </section>
+    </main>
+    <script>
+      const message = document.getElementById('message');
+      const refreshButton = document.getElementById('refreshButton');
+      const generateForm = document.getElementById('generateForm');
+      const generateResult = document.getElementById('generateResult');
+      const filtersForm = document.getElementById('filtersForm');
+      const resetButton = document.getElementById('resetButton');
+      const summaryCards = document.getElementById('summaryCards');
+      const changeRows = document.getElementById('changeRows');
+      const specialtyRows = document.getElementById('specialtyRows');
+      const conflictRows = document.getElementById('conflictRows');
+      const profileRows = document.getElementById('profileRows');
+      const tierFilter = document.getElementById('tierFilter');
+      const playlistFilter = document.getElementById('playlistFilter');
+      const unmatchedFilter = document.getElementById('unmatchedFilter');
+      const limitFilter = document.getElementById('limitFilter');
+      const generateLimit = document.getElementById('generateLimit');
+      const generatePlaylist = document.getElementById('generatePlaylist');
+      const generateUnmatched = document.getElementById('generateUnmatched');
+
+      function escapeHtml(value){return String(value ?? '').replace(/[&<>\"]/g,function(char){return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[char];});}
+      function formatNumber(value){return Number(value || 0).toLocaleString();}
+      function setMessage(text,isError){message.textContent=text;message.className='message'+(isError?' error':'');}
+      async function requestJson(url, options){const response=await fetch(url,Object.assign({credentials:'include'},options||{}));const body=await response.json().catch(function(){return{};});if(!response.ok)throw new Error(body.message||body.error||'Request failed');return body;}
+      function tierBadge(tier){return '<span class="tier '+escapeHtml(tier||'none')+'">'+escapeHtml(tier||'none')+'</span>';}
+      function tags(values, limit){const items=(values||[]).slice(0,limit||8);return '<div class="tags">'+(items.length?items.map(function(value){return '<span class="tag">'+escapeHtml(value)+'</span>';}).join(''):'<span class="muted">None</span>')+'</div>';}
+      function trackCell(profile){const track=profile.derived_profile?.track||{};const artists=profile.derived_profile?.artists||[];return '<div class="track-title">'+escapeHtml(track.name||'Unknown track')+'</div><div class="mini">'+escapeHtml(artists.map(function(artist){return artist.name;}).join(', '))+'</div>';}
+      function topCandidate(profile){return (profile.playlist_candidates||[])[0]||{};}
+      function evidenceSummary(profile){const e=profile.evidence_summary||{};const values=[];if(e.approved_artist_genre_count)values.push('approved '+e.approved_artist_genre_count);if(e.spotify_artist_genre_count)values.push('spotify '+e.spotify_artist_genre_count);if(e.lastfm_artist_tag_count)values.push('LF artist '+e.lastfm_artist_tag_count);if(e.musicbrainz_tag_count)values.push('MB '+e.musicbrainz_tag_count);if(e.lastfm_track_tag_count)values.push('LF track '+e.lastfm_track_tag_count);if(e.specialty_match_count)values.push('specialty '+e.specialty_match_count);return values.length?tags(values,8):'<span class="muted">No evidence</span>';}
+      function renderSummary(summary){const tiers=summary.confidence_tiers||{};const stats=[['Profiles',summary.total_profiles],['High',tiers.high],['Strong',tiers.strong],['Review',tiers.review],['Weak',tiers.weak],['Unmatched evidence',summary.unmatched_with_derived_evidence],['Would change',summary.would_change_if_learning_active],['Specialty matches',summary.profiles_with_specialty_matches],['Conflicts',summary.profiles_with_conflicts]];summaryCards.innerHTML=stats.map(function(pair){return '<div class="stat"><strong>'+escapeHtml(formatNumber(pair[1]))+'</strong><span>'+escapeHtml(pair[0])+'</span></div>';}).join('');}
+      function renderProfiles(rows){profileRows.innerHTML=(rows||[]).length?(rows||[]).map(function(profile){const candidate=topCandidate(profile);return '<tr><td>'+trackCell(profile)+'</td><td>'+escapeHtml((profile.derived_profile?.artists||[]).map(function(artist){return artist.name;}).join(', '))+'</td><td>'+escapeHtml(profile.current_playlist_code||'unmatched')+'</td><td>'+escapeHtml(candidate.playlist_label||candidate.playlist_code||'none')+'</td><td>'+tierBadge(profile.confidence_tier)+' '+formatNumber(profile.confidence_score)+'</td><td>'+evidenceSummary(profile)+'</td></tr>';}).join(''):'<tr><td colspan="6" class="muted">No generated profiles yet.</td></tr>';}
+      function renderChanges(rows){changeRows.innerHTML=(rows||[]).length?(rows||[]).slice(0,50).map(function(profile){const candidate=topCandidate(profile);return '<tr><td>'+trackCell(profile)+'</td><td>'+escapeHtml(profile.current_playlist_code||'unmatched')+'</td><td>'+escapeHtml(candidate.playlist_label||candidate.playlist_code||'none')+'</td><td>'+tierBadge(profile.confidence_tier)+' '+formatNumber(profile.confidence_score)+'</td></tr>';}).join(''):'<tr><td colspan="4" class="muted">No current-vs-derived changes in this view.</td></tr>';}
+      function renderSpecialty(rows){const expanded=[];(rows||[]).forEach(function(profile){(profile.specialty_matches||[]).slice(0,3).forEach(function(match){expanded.push({profile,match});});});specialtyRows.innerHTML=expanded.length?expanded.slice(0,50).map(function(row){return '<tr><td>'+trackCell(row.profile)+'</td><td>'+escapeHtml(row.match.seed_code)+'</td><td>'+escapeHtml(row.match.match_type||row.match.match_source||'')+'</td><td>'+formatNumber(row.match.confidence)+'</td></tr>';}).join(''):'<tr><td colspan="4" class="muted">No specialty matches in this view.</td></tr>';}
+      function renderConflicts(rows){const expanded=[];(rows||[]).forEach(function(profile){(profile.derived_profile?.conflicts||[]).forEach(function(conflict){expanded.push({profile,conflict});});});conflictRows.innerHTML=expanded.length?expanded.slice(0,50).map(function(row){return '<tr><td>'+trackCell(row.profile)+'</td><td>'+escapeHtml(row.conflict.type||'conflict')+'</td><td><pre>'+escapeHtml(JSON.stringify(row.conflict,null,2))+'</pre></td></tr>';}).join(''):'<tr><td colspan="3" class="muted">No conflicts in this view.</td></tr>';}
+      function buildUrl(){const params=new URLSearchParams();if(tierFilter.value)params.set('confidence_tier',tierFilter.value);if(playlistFilter.value.trim())params.set('playlist_code',playlistFilter.value.trim());if(unmatchedFilter.value==='1')params.set('unmatched_only','1');if(limitFilter.value)params.set('limit',limitFilter.value);return '/crate/admin/track-learning-profiles?'+params.toString();}
+      async function loadReport(){refreshButton.disabled=true;setMessage('Loading track learning profiles...');try{const payload=await requestJson(buildUrl());renderSummary(payload.summary||{});renderChanges(payload.current_assignment_vs_derived_candidates||[]);renderSpecialty(payload.specialty_matches||[]);renderConflicts(payload.conflicts||[]);renderProfiles(payload.profiles||[]);setMessage('Loaded '+formatNumber((payload.profiles||[]).length)+' profile row(s). Backend-only report.');}catch(error){setMessage(error.message,true);}finally{refreshButton.disabled=false;}}
+      generateForm.addEventListener('submit',async function(event){event.preventDefault();generateResult.textContent='Generating profiles...';try{const payload=await requestJson('/crate/admin/track-learning/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({limit:Number(generateLimit.value)||100,playlist_code:generatePlaylist.value.trim(),unmatched_only:generateUnmatched.value==='1'})});generateResult.textContent=JSON.stringify(payload,null,2);await loadReport();}catch(error){generateResult.textContent=error.message;}});
+      filtersForm.addEventListener('submit',function(event){event.preventDefault();loadReport();});
+      resetButton.addEventListener('click',function(){tierFilter.value='';playlistFilter.value='';unmatchedFilter.value='0';limitFilter.value='100';loadReport();});
+      refreshButton.addEventListener('click',loadReport);
+      loadReport();
+    </script>
+  </body>
+</html>
