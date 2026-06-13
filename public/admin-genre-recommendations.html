@@ -56,12 +56,13 @@
     <section class="header">
       <div>
         <h1>Genre Recommendations</h1>
-        <p>Crate playlist assignment suggestions from cached artist intelligence and unmatched track gaps. Approval saves artist fallback mappings only; it does not resort users.</p>
+        <p>Crate playlist assignment suggestions from cached artist intelligence and unmatched track gaps. Showing pending recommendations only. Approval saves artist fallback mappings only; it does not resort users.</p>
       </div>
       <nav class="toolbar">
         <a class="button" href="/admin.html">Admin Home</a>
         <a class="button" href="/admin-artist-gap-analysis.html">Artist Gaps</a>
           <a class="button" href="/admin-genre-recommendation-rescan.html">Recommendation Rescan</a>
+          <a class="button" href="/admin-recommendation-impact.html">Recommendation Impact</a>
         <a class="button" href="/admin-artist-enrichment-queue.html">Enrichment Queue</a>
         <a class="button" href="/admin-user-diagnostics.html">User Diagnostics</a>
         <a class="button" href="/admin-artist-intelligence.html">Artist Intelligence</a>
@@ -71,6 +72,7 @@
         <button class="button safe" data-preview="safe" type="button">Preview Safe</button>
         <button class="button strong" data-preview="strong_plus" type="button">Preview Strong+</button>
         <button class="button approve" id="approveSelectedButton" type="button" disabled>Approve Selected</button>
+        <button class="button" id="exportRecommendationsCsvButton" type="button" disabled>Export CSV</button>
       </div>
       <div id="message" class="message">Loading recommendations...</div>
     </section>
@@ -110,6 +112,7 @@
     </div>
   </div>
 
+  <script src="/adminCsv.js"></script>
   <script>
     const state = { preview: 'all', recommendations: [], selectedKeys: new Set(), pendingApproval: null };
     const message = document.getElementById('message');
@@ -117,6 +120,7 @@
     const recommendationsBody = document.getElementById('recommendationsBody');
     const previewButtons = Array.from(document.querySelectorAll('[data-preview]'));
     const approveSelectedButton = document.getElementById('approveSelectedButton');
+    const exportRecommendationsCsvButton = document.getElementById('exportRecommendationsCsvButton');
     const confirmModal = document.getElementById('confirmModal');
     const modalBody = document.getElementById('modalBody');
     const cancelModalButton = document.getElementById('cancelModalButton');
@@ -131,6 +135,29 @@
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(payload.message || payload.error || 'Request failed');
       return payload;
+    }
+
+
+    function evidenceSignals(row, source) {
+      return (row.supporting_evidence || []).filter((item) => String(item.source || '').toLowerCase() === source).map((item) => item.signal || item.matched_signal || '').filter(Boolean);
+    }
+
+    function evidenceSummaryForCsv(row) {
+      return (row.supporting_evidence || []).map((item) => [item.source, item.signal, item.matched_signal].filter(Boolean).join(':')).filter(Boolean);
+    }
+
+    function exportRecommendationsCsv() {
+      if (!window.CrateAdminCsv) return;
+      const columns = [
+        { header: 'artist_name', value: (row) => row.artist || row.artist_name || '' },
+        { header: 'recommended_playlist', value: (row) => row.recommended_crate_playlist || row.recommended_playlist_code || '' },
+        { header: 'confidence', value: 'confidence' },
+        { header: 'spotify_genres', value: (row) => evidenceSignals(row, 'spotify') },
+        { header: 'lastfm_tags', value: (row) => evidenceSignals(row, 'lastfm') },
+        { header: 'musicbrainz_tags', value: (row) => evidenceSignals(row, 'musicbrainz') },
+        { header: 'evidence_summary', value: evidenceSummaryForCsv }
+      ];
+      window.CrateAdminCsv.downloadCsv('crate-genre-recommendations.csv', columns, state.recommendations || []);
     }
 
     function renderSummary(payload) {
@@ -284,6 +311,8 @@
       const row = rowByKey(key);
       if (row) openApprovalModal('single', [row]);
     });
+
+    exportRecommendationsCsvButton.addEventListener('click', exportRecommendationsCsv);
 
     approveSelectedButton.addEventListener('click', () => {
       const rows = [...state.selectedKeys].map(rowByKey).filter(Boolean);

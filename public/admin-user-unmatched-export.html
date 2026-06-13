@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Crate Admin · User Unmatched Export</title>
+    <style>
+      :root{color-scheme:dark;--bg:#030d2c;--panel:#08132f;--line:rgba(255,255,255,.16);--text:#f7f8ff;--muted:rgba(247,248,255,.68);--teal:#20d4c7;--pink:#ee168f;--orange:#ff7c55;--blue:#1685e8;--grad:linear-gradient(90deg,var(--pink),var(--orange),var(--blue),var(--teal))}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.wrap{width:min(1180px,calc(100% - 32px));margin:0 auto;padding:28px 0 54px}header{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin-bottom:22px}h1,h2,h3{margin:0}h1{font-size:clamp(28px,4vw,44px);line-height:1;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}p{color:var(--muted);line-height:1.45}.nav{display:flex;flex-wrap:wrap;gap:8px}.button,button,select,input{border:1px solid var(--line);border-radius:999px;background:rgba(255,255,255,.08);color:var(--text);font:inherit;padding:9px 12px}.button,button{cursor:pointer;text-decoration:none;font-weight:700}.button:hover,button:hover{border-color:rgba(32,212,199,.58)}button:disabled{opacity:.5;cursor:not-allowed}.controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:18px 0}.card{border:1px solid var(--line);border-radius:16px;background:rgba(255,255,255,.055);padding:16px;margin:14px 0}.summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.metric{border:1px solid var(--line);border-radius:14px;padding:14px;background:rgba(255,255,255,.05)}.metric strong{display:block;font-size:28px}.metric span{display:block;color:var(--muted);font-size:13px;margin-top:4px}.grid{display:grid;grid-template-columns:1fr;gap:14px}table{width:100%;border-collapse:collapse;font-size:13px}th,td{border-bottom:1px solid rgba(255,255,255,.1);padding:9px 8px;text-align:left;vertical-align:top}th{color:var(--teal);font-size:12px;text-transform:uppercase;letter-spacing:.06em}.pill{display:inline-block;border:1px solid rgba(255,255,255,.14);border-radius:999px;background:rgba(255,255,255,.08);padding:3px 7px;margin:2px;color:#fff;font-size:12px}.muted{color:var(--muted)}pre{max-height:420px;overflow:auto;border:1px solid var(--line);border-radius:14px;background:#02091f;padding:12px;color:#dbeafe}.message{min-height:22px;color:var(--teal);font-weight:700}.error{color:var(--orange)}@media(max-width:820px){header{display:block}.summary{grid-template-columns:1fr 1fr}table{font-size:12px}.wide{overflow:auto}}
+    </style>
+  </head>
+  <body>
+    <main class="wrap">
+      <header>
+        <div>
+          <h1>User Unmatched Export</h1>
+          <p>Read-only evidence report for understanding a user's unmatched tracks and modern listening identities.</p>
+        </div>
+        <nav class="nav">
+          <a class="button" href="/admin.html">Admin Home</a>
+          <a class="button" href="/admin-user-diagnostics.html">User Diagnostics</a>
+          <a class="button" href="/admin-artist-gap-analysis.html">Artist Gaps</a>
+          <a class="button" href="/admin-track-intelligence.html">Track Intelligence</a>
+        </nav>
+      </header>
+
+      <section class="card">
+        <h2>Export Controls</h2>
+        <div class="controls">
+          <label>User <select id="userSelect"></select></label>
+          <label>Limit <input id="limitInput" type="number" min="1" max="1000" value="250"></label>
+          <button id="loadButton" type="button">Export Unmatched Report</button>
+          <button id="copyButton" type="button" disabled>Copy JSON</button>
+          <button id="csvButton" type="button" disabled>Export CSV</button>
+        </div>
+        <div class="message" id="message">Loading users...</div>
+      </section>
+
+      <section class="summary" id="summary"></section>
+
+      <section class="card">
+        <h2>Identity Clusters</h2>
+        <div class="wide"><table><thead><tr><th>Cluster</th><th>Tracks</th></tr></thead><tbody id="clusterRows"></tbody></table></div>
+      </section>
+
+      <section class="card">
+        <h2>Top Unmatched Artists</h2>
+        <div class="wide"><table><thead><tr><th>Artist</th><th>Unmatched</th><th>Approved Genres</th><th>Spotify Genres</th><th>Intelligence</th><th>Opportunity</th></tr></thead><tbody id="artistRows"></tbody></table></div>
+      </section>
+
+      <section class="card">
+        <h2>Top Unmatched Tracks</h2>
+        <div class="wide"><table><thead><tr><th>Track</th><th>Artist</th><th>Year</th><th>Evidence</th><th>Reason</th><th>Identity</th><th>Likely Destination</th></tr></thead><tbody id="trackRows"></tbody></table></div>
+      </section>
+
+      <section class="card">
+        <h2>Top Genre / Tag Evidence</h2>
+        <div class="wide"><table><thead><tr><th>Genre / Tag</th><th>Occurrences</th></tr></thead><tbody id="tagRows"></tbody></table></div>
+      </section>
+
+      <section class="card">
+        <h2>Raw JSON</h2>
+        <pre id="rawJson">No export loaded.</pre>
+      </section>
+    </main>
+
+    <script src="/adminCsv.js"></script>
+    <script>
+      const userSelect = document.getElementById('userSelect');
+      const limitInput = document.getElementById('limitInput');
+      const loadButton = document.getElementById('loadButton');
+      const copyButton = document.getElementById('copyButton');
+      const csvButton = document.getElementById('csvButton');
+      const message = document.getElementById('message');
+      const summary = document.getElementById('summary');
+      const clusterRows = document.getElementById('clusterRows');
+      const artistRows = document.getElementById('artistRows');
+      const trackRows = document.getElementById('trackRows');
+      const tagRows = document.getElementById('tagRows');
+      const rawJson = document.getElementById('rawJson');
+      let latestPayload = null;
+
+      function formatNumber(value){return Number(value||0).toLocaleString();}
+      function escapeHtml(value){return String(value??'').replace(/[&<>"']/g,function(char){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char];});}
+      function pillList(values){return (values||[]).slice(0,8).map(function(value){return '<span class="pill">'+escapeHtml(value)+'</span>';}).join('') || '<span class="muted">-</span>';}
+      async function requestJson(url){const response=await fetch(url,{credentials:'same-origin'});const body=await response.json().catch(function(){return {};});if(!response.ok)throw new Error(body.message||body.error||('Request failed: '+response.status));return body;}
+      function setMessage(text,isError){message.textContent=text;message.classList.toggle('error',Boolean(isError));}
+      function renderSummary(payload){const stats=payload.user_stats||{};summary.innerHTML=[
+        ['Source Tracks',stats.total_tracks],['Matched',stats.matched_tracks],['Unmatched',stats.unmatched_tracks],['Match %',(stats.match_percent||0)+'%']
+      ].map(function(item){return '<article class="metric"><strong>'+escapeHtml(formatNumber(item[1]))+'</strong><span>'+escapeHtml(item[0])+'</span></article>';}).join('');}
+      function renderClusters(payload){clusterRows.innerHTML=(payload.identity_cluster_counts||[]).map(function(row){return '<tr><td>'+escapeHtml(row.identity_cluster)+'</td><td>'+formatNumber(row.count)+'</td></tr>';}).join('') || '<tr><td colspan="2" class="muted">No clusters.</td></tr>';}
+      function renderArtists(payload){artistRows.innerHTML=(payload.top_unmatched_artists||[]).slice(0,50).map(function(row){return '<tr><td><strong>'+escapeHtml(row.artist)+'</strong></td><td>'+formatNumber(row.unmatched_track_count)+'</td><td>'+pillList(row.approved_artist_genres)+'</td><td>'+pillList(row.spotify_genres)+'</td><td>'+pillList(row.artist_intelligence_sources_present)+'</td><td>'+escapeHtml(row.estimated_recovery_opportunity||'-')+'</td></tr>';}).join('') || '<tr><td colspan="6" class="muted">No unmatched artists.</td></tr>';}
+      function renderTracks(payload){trackRows.innerHTML=(payload.top_unmatched_tracks||[]).slice(0,250).map(function(row){const labels=(row.candidate_identity_labels||[]).map(function(item){return item.label;});return '<tr><td><strong>'+escapeHtml(row.track)+'</strong></td><td>'+escapeHtml(row.artist)+'</td><td>'+escapeHtml(row.release_year||'-')+'</td><td>'+pillList(row.current_evidence)+'</td><td>'+escapeHtml(row.unmatched_reason||'-')+'</td><td>'+pillList(labels)+'</td><td>'+escapeHtml(row.likely_crate_destination||'-')+'</td></tr>';}).join('') || '<tr><td colspan="7" class="muted">No unmatched tracks.</td></tr>';}
+      function renderTags(payload){tagRows.innerHTML=(payload.top_unmatched_genre_tag_evidence||[]).slice(0,100).map(function(row){return '<tr><td>'+escapeHtml(row.genre_or_tag)+'</td><td>'+formatNumber(row.count)+'</td></tr>';}).join('') || '<tr><td colspan="2" class="muted">No genre/tag evidence.</td></tr>';}
+      async function loadUsers(){const payload=await requestJson('/crate/admin/user-diagnostics');userSelect.innerHTML=(payload.users||[]).map(function(user){const label='#'+user.user_id+' · '+(user.name||user.email||user.spotify_user_id||'Unknown')+' · '+formatNumber(user.total_liked_tracks)+' tracks · '+formatNumber(user.unmatched_tracks)+' unmatched';return '<option value="'+escapeHtml(user.user_id)+'">'+escapeHtml(label)+'</option>';}).join('');setMessage('Choose a user and export the unmatched report.');}
+      async function loadExport(){const userId=userSelect.value;const limit=limitInput.value||250;if(!userId){setMessage('Choose a user first.',true);return;}loadButton.disabled=true;copyButton.disabled=true;csvButton.disabled=true;setMessage('Loading unmatched export...');try{const payload=await requestJson('/crate/admin/user-unmatched-export?user_id='+encodeURIComponent(userId)+'&limit='+encodeURIComponent(limit));latestPayload=payload;renderSummary(payload);renderClusters(payload);renderArtists(payload);renderTracks(payload);renderTags(payload);rawJson.textContent=JSON.stringify(payload,null,2);copyButton.disabled=false;csvButton.disabled=!(payload.top_unmatched_tracks||[]).length;setMessage('Loaded '+formatNumber(payload.total_unmatched_tracks)+' unmatched track(s).');}catch(error){setMessage(error.message,true);rawJson.textContent=JSON.stringify({error:error.message},null,2);}finally{loadButton.disabled=false;}}
+
+      function exportUnmatchedCsv(){if(!latestPayload||!window.CrateAdminCsv)return;const columns=[{header:'track_name',value:(row)=>row.track||row.track_name||''},{header:'artist_name',value:(row)=>row.artist||row.artist_name||''},{header:'release_year',value:'release_year'},{header:'spotify_track_id',value:'spotify_track_id'},{header:'playlist_code',value:(row)=>(row.matched_playlist_candidates&&row.matched_playlist_candidates[0]&&row.matched_playlist_candidates[0].playlist_code)||row.likely_crate_destination||row.playlist_code||''},{header:'unmatched_reason',value:'unmatched_reason'},{header:'spotify_genres',value:'spotify_genres'},{header:'approved_artist_genres',value:(row)=>row.approved_genres||row.approved_artist_genres||[]},{header:'artist_intelligence_sources',value:(row)=>row.artist_intelligence_sources_present||row.artist_intelligence_sources||[]},{header:'identity_cluster',value:(row)=>(row.candidate_identity_labels||[]).map((item)=>item.label||item)},{header:'estimated_recovery_opportunity',value:'estimated_recovery_opportunity'}];const userId=userSelect.value||userIdInput.value||'user';window.CrateAdminCsv.downloadCsv('crate-user-unmatched-export-'+userId+'.csv',columns,latestPayload.top_unmatched_tracks||[]);}
+      copyButton.addEventListener('click',async function(){if(!latestPayload)return;await navigator.clipboard.writeText(JSON.stringify(latestPayload,null,2));setMessage('Copied export JSON.');});
+      csvButton.addEventListener('click',exportUnmatchedCsv);
+      loadButton.addEventListener('click',loadExport);
+      loadUsers().catch(function(error){setMessage(error.message,true);});
+    </script>
+  </body>
+</html>

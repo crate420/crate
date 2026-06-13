@@ -46,6 +46,7 @@
           <div class="toolbar">
             <button class="primary" type="submit">Apply Filters</button>
             <button id="resetButton" type="button">Reset</button>
+            <button id="exportTrackLearningCsvButton" type="button" disabled>Export CSV</button>
           </div>
         </form>
       </section>
@@ -74,6 +75,7 @@
         <table><thead><tr><th>Track</th><th>Artist</th><th>Current</th><th>Top Candidate</th><th>Confidence</th><th>Evidence</th></tr></thead><tbody id="profileRows"></tbody></table>
       </section>
     </main>
+    <script src="/adminCsv.js"></script>
     <script>
       const message = document.getElementById('message');
       const refreshButton = document.getElementById('refreshButton');
@@ -81,6 +83,7 @@
       const generateResult = document.getElementById('generateResult');
       const filtersForm = document.getElementById('filtersForm');
       const resetButton = document.getElementById('resetButton');
+      const exportTrackLearningCsvButton = document.getElementById('exportTrackLearningCsvButton');
       const summaryCards = document.getElementById('summaryCards');
       const changeRows = document.getElementById('changeRows');
       const specialtyRows = document.getElementById('specialtyRows');
@@ -93,6 +96,7 @@
       const generateLimit = document.getElementById('generateLimit');
       const generatePlaylist = document.getElementById('generatePlaylist');
       const generateUnmatched = document.getElementById('generateUnmatched');
+      let latestTrackLearningPayload = null;
 
       function escapeHtml(value){return String(value ?? '').replace(/[&<>\"]/g,function(char){return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[char];});}
       function formatNumber(value){return Number(value || 0).toLocaleString();}
@@ -109,11 +113,14 @@
       function renderSpecialty(rows){const expanded=[];(rows||[]).forEach(function(profile){(profile.specialty_matches||[]).slice(0,3).forEach(function(match){expanded.push({profile,match});});});specialtyRows.innerHTML=expanded.length?expanded.slice(0,50).map(function(row){return '<tr><td>'+trackCell(row.profile)+'</td><td>'+escapeHtml(row.match.seed_code)+'</td><td>'+escapeHtml(row.match.match_type||row.match.match_source||'')+'</td><td>'+formatNumber(row.match.confidence)+'</td></tr>';}).join(''):'<tr><td colspan="4" class="muted">No specialty matches in this view.</td></tr>';}
       function renderConflicts(rows){const expanded=[];(rows||[]).forEach(function(profile){(profile.derived_profile?.conflicts||[]).forEach(function(conflict){expanded.push({profile,conflict});});});conflictRows.innerHTML=expanded.length?expanded.slice(0,50).map(function(row){return '<tr><td>'+trackCell(row.profile)+'</td><td>'+escapeHtml(row.conflict.type||'conflict')+'</td><td><pre>'+escapeHtml(JSON.stringify(row.conflict,null,2))+'</pre></td></tr>';}).join(''):'<tr><td colspan="3" class="muted">No conflicts in this view.</td></tr>';}
       function buildUrl(){const params=new URLSearchParams();if(tierFilter.value)params.set('confidence_tier',tierFilter.value);if(playlistFilter.value.trim())params.set('playlist_code',playlistFilter.value.trim());if(unmatchedFilter.value==='1')params.set('unmatched_only','1');if(limitFilter.value)params.set('limit',limitFilter.value);return '/crate/admin/track-learning-profiles?'+params.toString();}
-      async function loadReport(){refreshButton.disabled=true;setMessage('Loading track learning profiles...');try{const payload=await requestJson(buildUrl());renderSummary(payload.summary||{});renderChanges(payload.current_assignment_vs_derived_candidates||[]);renderSpecialty(payload.specialty_matches||[]);renderConflicts(payload.conflicts||[]);renderProfiles(payload.profiles||[]);setMessage('Loaded '+formatNumber((payload.profiles||[]).length)+' profile row(s). Backend-only report.');}catch(error){setMessage(error.message,true);}finally{refreshButton.disabled=false;}}
+
+      function exportTrackLearningCsv(){if(!latestTrackLearningPayload||!window.CrateAdminCsv)return;const columns=[{header:'track_name',value:(row)=>row.derived_profile?.track?.name||row.track_name||''},{header:'artist_name',value:(row)=>(row.derived_profile?.artists||[]).map((artist)=>artist.name||artist)||row.artist_name||''},{header:'confidence_score',value:'confidence_score'},{header:'confidence_tier',value:'confidence_tier'},{header:'derived_lanes',value:(row)=>row.derived_profile?.derived_lanes||row.derived_lanes||[]},{header:'playlist_candidates',value:'playlist_candidates'},{header:'specialty_matches',value:'specialty_matches'},{header:'conflicts',value:(row)=>row.derived_profile?.conflicts||row.conflicts||[]},{header:'evidence_summary',value:'evidence_summary'}];window.CrateAdminCsv.downloadCsv('crate-track-learning-profiles.csv',columns,latestTrackLearningPayload.profiles||[]);}
+      async function loadReport(){refreshButton.disabled=true;setMessage('Loading track learning profiles...');try{const payload=await requestJson(buildUrl());latestTrackLearningPayload=payload;renderSummary(payload.summary||{});renderChanges(payload.current_assignment_vs_derived_candidates||[]);renderSpecialty(payload.specialty_matches||[]);renderConflicts(payload.conflicts||[]);renderProfiles(payload.profiles||[]);exportTrackLearningCsvButton.disabled=!(payload.profiles||[]).length;setMessage('Loaded '+formatNumber((payload.profiles||[]).length)+' profile row(s). Backend-only report.');}catch(error){setMessage(error.message,true);}finally{refreshButton.disabled=false;}}
       generateForm.addEventListener('submit',async function(event){event.preventDefault();generateResult.textContent='Generating profiles...';try{const payload=await requestJson('/crate/admin/track-learning/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({limit:Number(generateLimit.value)||100,playlist_code:generatePlaylist.value.trim(),unmatched_only:generateUnmatched.value==='1'})});generateResult.textContent=JSON.stringify(payload,null,2);await loadReport();}catch(error){generateResult.textContent=error.message;}});
       filtersForm.addEventListener('submit',function(event){event.preventDefault();loadReport();});
       resetButton.addEventListener('click',function(){tierFilter.value='';playlistFilter.value='';unmatchedFilter.value='0';limitFilter.value='100';loadReport();});
       refreshButton.addEventListener('click',loadReport);
+      exportTrackLearningCsvButton.addEventListener('click',exportTrackLearningCsv);
       loadReport();
     </script>
   </body>
