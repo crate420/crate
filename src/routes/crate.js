@@ -64,6 +64,7 @@ const { getMissingArtistGenres } = require("../crate/missingArtistGenres");
 const { fetchAndCacheMusicBrainzArtistIntelligence } = require("../crate/musicbrainzArtistIntelligence");
 const { getCrateStatus, getGlobalCrateStatus } = require("../crate/status");
 const { getAdminUserDiagnostics } = require("../crate/userDiagnostics");
+const { getAdminUserUnmatchedExport } = require("../crate/userUnmatchedExport");
 const { getTopArtists } = require("../crate/topArtists");
 const { getSpecialtyPlaylistValidationReport } = require("../crate/specialtyPlaylistValidation");
 const { resolveSpecialtyTracksForUser } = require("../crate/specialtyTrackResolver");
@@ -493,6 +494,17 @@ router.post("/admin/track-intelligence/refresh-lastfm", requireCurrentUser, requ
     if (err.statusCode) {
       return res.status(err.statusCode).json({ error: err.code || "lastfm_track_intelligence_error", message: err.message });
     }
+    return next(err);
+  }
+});
+
+router.get("/admin/user-unmatched-export", requireCurrentUser, requireAdminUser, async (req, res, next) => {
+  try {
+    return res.json(await getAdminUserUnmatchedExport({
+      userId: req.query.user_id,
+      limit: req.query.limit,
+    }));
+  } catch (err) {
     return next(err);
   }
 });

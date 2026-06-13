@@ -64,6 +64,10 @@ function createApp() {
     res.sendFile(path.join(config.rootDir, "public/admin-user-diagnostics.html"));
   });
 
+  app.get("/admin-user-unmatched-export.html", requireAdminPage, (req, res) => {
+    res.sendFile(path.join(config.rootDir, "public/admin-user-unmatched-export.html"));
+  });
+
   app.get("/admin-artist-gap-analysis.html", requireAdminPage, (req, res) => {
     res.sendFile(path.join(config.rootDir, "public/admin-artist-gap-analysis.html"));
   });
