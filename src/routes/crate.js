@@ -64,7 +64,7 @@ const { getMissingArtistGenres } = require("../crate/missingArtistGenres");
 const { fetchAndCacheMusicBrainzArtistIntelligence } = require("../crate/musicbrainzArtistIntelligence");
 const { getCrateStatus, getGlobalCrateStatus } = require("../crate/status");
 const { getAdminUserDiagnostics } = require("../crate/userDiagnostics");
-const { getAdminUserUnmatchedExport } = require("../crate/userUnmatchedExport");
+const { getAdminUserUnmatchedExport, refreshUserUnmatchedArtistIntelligence } = require("../crate/userUnmatchedExport");
 const { getTopArtists } = require("../crate/topArtists");
 const { getSpecialtyPlaylistValidationReport } = require("../crate/specialtyPlaylistValidation");
 const { resolveSpecialtyTracksForUser } = require("../crate/specialtyTrackResolver");
@@ -505,6 +505,22 @@ router.get("/admin/user-unmatched-export", requireCurrentUser, requireAdminUser,
       limit: req.query.limit,
     }));
   } catch (err) {
+    return next(err);
+  }
+});
+
+router.post("/admin/user-unmatched-export/refresh-artist-intelligence", requireCurrentUser, requireAdminUser, async (req, res, next) => {
+  try {
+    return res.json(await refreshUserUnmatchedArtistIntelligence({
+      userId: req.body?.user_id || req.body?.userId,
+      adminUserId: req.currentUser.id,
+      limit: req.body?.limit,
+      sources: req.body?.sources,
+    }));
+  } catch (err) {
+    if (err.statusCode) {
+      return res.status(err.statusCode).json({ error: err.code || "user_unmatched_artist_intelligence_refresh_error", message: err.message });
+    }
     return next(err);
   }
 });

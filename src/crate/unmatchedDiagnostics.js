@@ -2,6 +2,7 @@ const { openDatabase } = require("../db");
 const artistGenreRepo = require("../repositories/artistGenres");
 const spotifyArtists = require("../spotify/artists");
 const { formatScoreDebug, scorePlaylistCode } = require("./sortRules");
+const { findArtistEvidence, readArtistEvidenceMaps, summarizeArtistEvidence } = require("./artistEvidence");
 const {
   getArtistIds,
   getArtistNames,
@@ -52,7 +53,13 @@ function compactCandidates(candidates = []) {
   }));
 }
 
-function getUnmatchedReason(context, decision, rawTrack) {
+function hasConflictingEvidence(context) {
+  if (!context.spotifyGenres.length || !context.fallbackGenres.length) return false;
+  const spotify = new Set(context.spotifyGenres.map((genre) => String(genre || "").trim().toLowerCase()));
+  return context.fallbackGenres.every((genre) => !spotify.has(String(genre || "").trim().toLowerCase()));
+}
+
+function getUnmatchedReason(context, decision, rawTrack, artistEvidenceSummary = {}) {
   if (!rawTrack || !context.track?.name || context.artistNames.length === 0) {
     return "missing_track_metadata";
   }
@@ -61,24 +68,35 @@ function getUnmatchedReason(context, decision, rawTrack) {
     return "unknown";
   }
 
-  if (context.spotifyGenres.length === 0 && context.fallbackGenres.length === 0) {
-    return "no_artist_genres_found";
+  if (hasConflictingEvidence(context)) {
+    return "conflicting_artist_evidence";
   }
 
   if (context.fallbackGenres.length > 0) {
-    return "artist_genres_found_but_no_rule_match";
+    return "approved_genres_exist_no_rule_match";
   }
 
   if (context.spotifyGenres.length > 0) {
-    return "spotify_genres_found_but_no_rule_match";
+    return "spotify_genres_exist_no_rule_match";
   }
 
-  return "no_playlist_rule_match";
+  if (artistEvidenceSummary.has_usable_signals) {
+    return "artist_intelligence_exists_not_approved";
+  }
+
+  if (artistEvidenceSummary.has_cached_intelligence) {
+    return "artist_intelligence_exists_without_usable_signals";
+  }
+
+  return "no_artist_evidence_anywhere";
 }
 
-function buildDiagnostic(row, artistsById, fallbackGenresByArtistName) {
+function buildDiagnostic(row, artistsById, fallbackGenresByArtistName, artistEvidenceMaps) {
   const rawTrack = parseRawTrack(row.raw_json);
   const context = getTrackContext(row, artistsById, fallbackGenresByArtistName, rawTrack);
+  const spotifyArtistIds = getArtistIds(rawTrack);
+  const artistEvidence = findArtistEvidence({ artistNames: context.artistNames, spotifyArtistIds }, artistEvidenceMaps);
+  const artistEvidenceSummary = summarizeArtistEvidence(artistEvidence);
   const decision = scorePlaylistCode(context);
 
   return {
@@ -87,14 +105,17 @@ function buildDiagnostic(row, artistsById, fallbackGenresByArtistName) {
     track_name: row.name,
     artist_names: context.artistNames,
     album_name: row.album_name,
-    spotify_artist_ids: getArtistIds(rawTrack),
+    spotify_artist_ids: spotifyArtistIds,
     spotify_artist_genres: context.spotifyGenres,
     approved_artist_genres: context.fallbackGenres,
     merged_genre_context: context.genres,
+    cached_artist_intelligence_sources: artistEvidenceSummary.source_names,
+    cached_artist_intelligence_signals: artistEvidenceSummary.signals.slice(0, 30),
+    cached_artist_intelligence_confidence: artistEvidenceSummary.max_confidence_score,
     matched_playlist_candidates: compactCandidates(decision.candidates),
     rejected_playlist_candidates: compactCandidates(decision.suppressedCandidates),
     phrase_blocked_matches: decision.phraseBlockedMatches || [],
-    final_unmatched_reason: getUnmatchedReason(context, decision, rawTrack),
+    final_unmatched_reason: getUnmatchedReason(context, decision, rawTrack, artistEvidenceSummary),
     score_debug: formatScoreDebug(context, decision),
   };
 }
@@ -109,7 +130,9 @@ async function buildDiagnosticsForUser(userId) {
     Promise.resolve(artistGenreRepo.findGenresByArtistNames(artistNames)),
   ]);
 
-  return rows.map((row) => buildDiagnostic(row, artistsById, fallbackGenresByArtistName));
+  const artistEvidenceMaps = readArtistEvidenceMaps();
+
+  return rows.map((row) => buildDiagnostic(row, artistsById, fallbackGenresByArtistName, artistEvidenceMaps));
 }
 
 function countReasons(records) {
@@ -178,7 +201,7 @@ async function getUnmatchedDiagnostics(userId) {
     for (const genre of record.spotify_artist_genres) {
       genreCounts.set(genre, (genreCounts.get(genre) || 0) + 1);
     }
-    if (record.spotify_artist_genres.length === 0) noGenreTracks.push(record);
+    if (record.spotify_artist_genres.length === 0 && record.approved_artist_genres.length === 0 && record.cached_artist_intelligence_signals.length === 0) noGenreTracks.push(record);
   }
 
   return {

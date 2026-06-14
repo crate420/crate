@@ -4,6 +4,11 @@ const { buildDiagnosticsForUser } = require("./unmatchedDiagnostics");
 const { releaseYearFromDate } = require("./eraYears");
 const { parseRawTrack } = require("./trackContext");
 const { normalizeArtistName } = require("../repositories/artistGenres");
+const artistIntelligenceRepo = require("../repositories/artistIntelligence");
+const { fetchAndCacheSpotifyArtistIntelligence } = require("./spotifyArtistIntelligence");
+const { fetchAndCacheLastfmArtistIntelligence } = require("./lastfmGenreSuggestions");
+const { fetchAndCacheMusicBrainzArtistIntelligence } = require("./musicbrainzArtistIntelligence");
+const { buildRecommendations } = require("./genreRecommendations");
 
 const IDENTITY_RULES = [
   {
@@ -280,10 +285,10 @@ function evidenceSummary(record, intelligence = []) {
 }
 
 function recoveryOpportunity(record, intelligence = []) {
-  if ((record.approved_artist_genres || []).length && record.final_unmatched_reason === "artist_genres_found_but_no_rule_match") {
+  if ((record.approved_artist_genres || []).length && ["approved_genres_exist_no_rule_match", "artist_genres_found_but_no_rule_match"].includes(record.final_unmatched_reason)) {
     return "rule_or_alias_review";
   }
-  if ((record.spotify_artist_genres || []).length && record.final_unmatched_reason === "spotify_genres_found_but_no_rule_match") {
+  if ((record.spotify_artist_genres || []).length && ["spotify_genres_exist_no_rule_match", "spotify_genres_found_but_no_rule_match"].includes(record.final_unmatched_reason)) {
     return "genre_alias_review";
   }
   if (intelligence.some((entry) => (entry.signals || []).length)) {
@@ -295,7 +300,7 @@ function recoveryOpportunity(record, intelligence = []) {
   return "missing_intelligence";
 }
 
-function summarizeArtists(records, intelligenceMaps, limit) {
+function summarizeArtists(records, intelligenceMaps, limit, recommendationsByArtist = new Map()) {
   const byArtist = new Map();
 
   for (const record of records) {
@@ -322,6 +327,8 @@ function summarizeArtists(records, intelligenceMaps, limit) {
       }
       item.reasons.set(record.final_unmatched_reason, (item.reasons.get(record.final_unmatched_reason) || 0) + 1);
       const opportunity = recoveryOpportunity(record, intelligence);
+      const recommendation = recommendationsByArtist.get(key);
+      if (recommendation) item.recommendation = recommendation;
       item.opportunities.set(opportunity, (item.opportunities.get(opportunity) || 0) + 1);
       for (const signal of allSignals.slice(0, 20)) item.artist_intelligence_signals.add(signal);
       byArtist.set(key, item);
@@ -338,6 +345,12 @@ function summarizeArtists(records, intelligenceMaps, limit) {
       artist_intelligence_signals: [...item.artist_intelligence_signals].sort().slice(0, 20),
       reason_unmatched: [...item.reasons.entries()].sort((a, b) => b[1] - a[1]).map(([reason, count]) => ({ reason, count })),
       estimated_recovery_opportunity: [...item.opportunities.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] || "unknown",
+      recommended_playlist_code: item.recommendation?.recommended_playlist_code || null,
+      recommended_playlist: item.recommendation?.recommended_crate_playlist || null,
+      recommended_genre_fallback: item.recommendation?.approved_genre || null,
+      recommendation_confidence: item.recommendation?.confidence || null,
+      recommendation_confidence_tier: item.recommendation?.confidence_tier || null,
+      recommendation_evidence: item.recommendation?.supporting_evidence || [],
     }))
     .sort((left, right) => right.unmatched_track_count - left.unmatched_track_count || left.artist.localeCompare(right.artist))
     .slice(0, limit);
@@ -368,10 +381,13 @@ async function getAdminUserUnmatchedExport(options = {}) {
   const diagnostics = await buildDiagnosticsForUser(userId);
   const metadataByTrackId = readTrackMetadata(diagnostics.map((record) => record.track_id));
   const intelligenceMaps = readArtistIntelligence();
+  const recommendationsByArtist = new Map(buildRecommendations({ includeApproved: true }).map((row) => [row.normalized_artist_name, row]));
 
   const topUnmatchedTracks = diagnostics.map((record) => {
     const intelligence = intelligenceForRecord(record, intelligenceMaps);
     const identityLabels = classifyIdentity(record, intelligence);
+    const primaryArtistKey = normalizeArtistName((record.artist_names || [])[0] || "");
+    const recommendation = recommendationsByArtist.get(primaryArtistKey);
     return {
       track_id: record.track_id,
       spotify_track_id: record.spotify_track_id,
@@ -387,6 +403,13 @@ async function getAdminUserUnmatchedExport(options = {}) {
       artist_intelligence_evidence: unique(intelligence.flatMap((entry) => entry.signals || [])).sort().slice(0, 30),
       matched_playlist_candidates: record.matched_playlist_candidates || [],
       unmatched_reason: record.final_unmatched_reason,
+      cached_artist_intelligence_sources: record.cached_artist_intelligence_sources || [],
+      cached_artist_intelligence_signals: record.cached_artist_intelligence_signals || [],
+      recommended_playlist_code: recommendation?.recommended_playlist_code || null,
+      recommended_playlist: recommendation?.recommended_crate_playlist || null,
+      recommended_genre_fallback: recommendation?.approved_genre || null,
+      recommendation_confidence: recommendation?.confidence || null,
+      recommendation_confidence_tier: recommendation?.confidence_tier || null,
       candidate_identity_labels: identityLabels,
       likely_crate_destination: likelyDestinationFromCandidates(record, identityLabels),
       estimated_recovery_opportunity: recoveryOpportunity(record, intelligence),
@@ -395,6 +418,13 @@ async function getAdminUserUnmatchedExport(options = {}) {
 
   const identityClusterCounts = countBy(topUnmatchedTracks.flatMap((track) => track.candidate_identity_labels.map((item) => item.label)), "identity_cluster");
   const opportunityCounts = countBy(topUnmatchedTracks.map((track) => track.estimated_recovery_opportunity), "opportunity");
+  const unmatchedReasonCounts = countBy(topUnmatchedTracks.map((track) => track.unmatched_reason), "reason");
+  const cachedEvidenceNoApproval = summarizeArtists(
+    diagnostics.filter((record) => record.final_unmatched_reason === "artist_intelligence_exists_not_approved"),
+    intelligenceMaps,
+    limit,
+    recommendationsByArtist,
+  );
 
   return {
     status: "ok",
@@ -402,7 +432,9 @@ async function getAdminUserUnmatchedExport(options = {}) {
     user,
     user_stats: readUserStats(userId),
     total_unmatched_tracks: diagnostics.length,
-    top_unmatched_artists: summarizeArtists(diagnostics, intelligenceMaps, limit),
+    unmatched_reason_counts: unmatchedReasonCounts,
+    top_unmatched_artists: summarizeArtists(diagnostics, intelligenceMaps, limit, recommendationsByArtist),
+    cached_evidence_without_approval_artists: cachedEvidenceNoApproval,
     top_unmatched_tracks: topUnmatchedTracks.slice(0, limit),
     top_unmatched_genre_tag_evidence: summarizeGenreEvidence(topUnmatchedTracks).slice(0, limit),
     identity_cluster_counts: identityClusterCounts,
@@ -414,6 +446,122 @@ async function getAdminUserUnmatchedExport(options = {}) {
   };
 }
 
+const REFRESH_SOURCES = ["spotify", "lastfm", "musicbrainz"];
+const REFRESH_MAX_LIMIT = 50;
+const REFRESH_TTL_GRACE_MS = 0;
+
+function normalizeRefreshSources(value) {
+  const input = Array.isArray(value) ? value : REFRESH_SOURCES;
+  return [...new Set(input.map((source) => String(source || "").trim().toLowerCase()))]
+    .filter((source) => REFRESH_SOURCES.includes(source));
+}
+
+function sourceNeedsRefresh(sourceRow, nowMs) {
+  if (!sourceRow) return true;
+  if (sourceRow.error_code) return false;
+  if (!sourceRow.expires_at) return false;
+  const expiresAt = new Date(sourceRow.expires_at).getTime();
+  return Number.isFinite(expiresAt) && expiresAt <= nowMs + REFRESH_TTL_GRACE_MS;
+}
+
+async function refreshSourceForArtist(adminUserId, source, artist) {
+  if (source === "spotify") {
+    return fetchAndCacheSpotifyArtistIntelligence(adminUserId, { artistIntelligenceId: artist.id });
+  }
+  if (source === "lastfm") {
+    return fetchAndCacheLastfmArtistIntelligence({ artistIntelligenceId: artist.id });
+  }
+  return fetchAndCacheMusicBrainzArtistIntelligence({ artistIntelligenceId: artist.id });
+}
+
+async function refreshUserUnmatchedArtistIntelligence(options = {}) {
+  const userId = normalizeUserId(options.userId);
+  if (!userId) {
+    const error = new Error("user_id is required.");
+    error.code = "missing_user_id";
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const adminUserId = normalizeUserId(options.adminUserId) || userId;
+  const limit = normalizeLimit(options.limit, 25, REFRESH_MAX_LIMIT);
+  const sources = normalizeRefreshSources(options.sources);
+  if (!sources.length) {
+    const error = new Error("At least one source is required.");
+    error.code = "missing_sources";
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const diagnostics = await buildDiagnosticsForUser(userId);
+  const byArtist = new Map();
+  for (const record of diagnostics) {
+    if ((record.approved_artist_genres || []).length || (record.spotify_artist_genres || []).length) continue;
+    (record.artist_names && record.artist_names.length ? record.artist_names : ["Unknown Artist"]).forEach((artistName, index) => {
+      const normalized = normalizeArtistName(artistName);
+      if (!normalized || byArtist.has(normalized)) return;
+      byArtist.set(normalized, {
+        artistName,
+        spotifyArtistId: (record.spotify_artist_ids || [])[index] || null,
+        unmatched_track_count: 1,
+      });
+    });
+  }
+
+  const selectedArtists = [...byArtist.values()].slice(0, limit);
+  const summary = {
+    status: "ok",
+    user_id: userId,
+    limit,
+    sources,
+    artists_considered: byArtist.size,
+    artists_selected: selectedArtists.length,
+    attempted: 0,
+    updated: 0,
+    empty: 0,
+    skipped: 0,
+    failed: 0,
+    results: [],
+    errors: [],
+    note: "Admin-only bounded refresh. No approvals, sorting, rescans, playlist assignments, or Spotify writes are performed.",
+  };
+
+  for (const item of selectedArtists) {
+    const artist = artistIntelligenceRepo.getOrCreateArtistIntelligence({
+      artistName: item.artistName,
+      spotifyArtistId: item.spotifyArtistId,
+    });
+    const sourceRows = new Map(artistIntelligenceRepo.listArtistIntelligenceSources(artist.id).map((row) => [row.source, row]));
+    const artistResult = { artist_name: item.artistName, artist_intelligence_id: artist.id, sources: [] };
+
+    for (const source of sources) {
+      if (!sourceNeedsRefresh(sourceRows.get(source), Date.now())) {
+        summary.skipped += 1;
+        artistResult.sources.push({ source, status: "skipped" });
+        continue;
+      }
+      summary.attempted += 1;
+      try {
+        const result = await refreshSourceForArtist(adminUserId, source, artist);
+        const signalCount = Array.isArray(result.normalized_signals) ? result.normalized_signals.length : 0;
+        if (signalCount > 0) summary.updated += 1;
+        else summary.empty += 1;
+        artistResult.sources.push({ source, status: signalCount > 0 ? "updated" : "empty", signal_count: signalCount, top_signals: (result.normalized_signals || []).slice(0, 8) });
+      } catch (err) {
+        summary.failed += 1;
+        const error = { artist_name: item.artistName, source, error: err.code || `${source}_refresh_error`, message: err.message };
+        summary.errors.push(error);
+        artistResult.sources.push({ source, status: "failed", error: error.error, message: error.message });
+      }
+    }
+
+    summary.results.push(artistResult);
+  }
+
+  return summary;
+}
+
 module.exports = {
   getAdminUserUnmatchedExport,
+  refreshUserUnmatchedArtistIntelligence,
 };

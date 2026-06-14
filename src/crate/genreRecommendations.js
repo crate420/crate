@@ -361,7 +361,23 @@ function serializeRecommendation(artist, best, intelligence) {
   };
 }
 
-function buildRecommendations({ db = openDatabase() } = {}) {
+
+function isRecommendationAlreadyApproved(db, recommendation) {
+  if (!tableExists(db, "artist_genres")) return false;
+  const row = db.prepare(`
+    SELECT 1 AS found
+    FROM artist_genres
+    WHERE lower(trim(artist_name)) = @artistName
+      AND lower(trim(genre)) = @genre
+    LIMIT 1
+  `).get({
+    artistName: recommendation.normalized_artist_name,
+    genre: normalizeSignal(recommendation.approved_genre),
+  });
+  return Boolean(row);
+}
+
+function buildRecommendations({ db = openDatabase(), includeApproved = false } = {}) {
   const sources = readSourcesByArtist(db);
   const recommendations = [];
 
@@ -371,7 +387,9 @@ function buildRecommendations({ db = openDatabase() } = {}) {
       || null;
     const best = bestRecommendationForArtist(artist, intelligence);
     if (!best) continue;
-    recommendations.push(serializeRecommendation(artist, best, intelligence));
+    const recommendation = serializeRecommendation(artist, best, intelligence);
+    if (!includeApproved && isRecommendationAlreadyApproved(db, recommendation)) continue;
+    recommendations.push(recommendation);
   }
 
   return recommendations.sort((left, right) => {
@@ -417,7 +435,7 @@ async function getAdminGenreRecommendations(options = {}) {
 function findRecommendation(artistName, playlistCode) {
   const normalizedArtistName = normalizeArtistName(artistName);
   const normalizedPlaylistCode = String(playlistCode || "").trim();
-  return buildRecommendations().find((row) => row.normalized_artist_name === normalizedArtistName && row.recommended_playlist_code === normalizedPlaylistCode) || null;
+  return buildRecommendations({ includeApproved: true }).find((row) => row.normalized_artist_name === normalizedArtistName && row.recommended_playlist_code === normalizedPlaylistCode) || null;
 }
 
 function writeApprovalLog(db, recommendation, adminUser) {
@@ -573,6 +591,7 @@ async function approveSelectedGenreRecommendations(options = {}) {
 }
 
 module.exports = {
+  buildRecommendations,
   approveGenreRecommendation,
   approveSelectedGenreRecommendations,
   getAdminGenreRecommendations,
