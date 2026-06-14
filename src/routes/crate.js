@@ -516,6 +516,7 @@ router.post("/admin/user-unmatched-export/refresh-artist-intelligence", requireC
       adminUserId: req.currentUser.id,
       limit: req.body?.limit,
       sources: req.body?.sources,
+      refreshEmpty: req.body?.refresh_empty ?? req.body?.refreshEmpty,
     }));
   } catch (err) {
     if (err.statusCode) {

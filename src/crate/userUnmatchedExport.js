@@ -456,12 +456,84 @@ function normalizeRefreshSources(value) {
     .filter((source) => REFRESH_SOURCES.includes(source));
 }
 
-function sourceNeedsRefresh(sourceRow, nowMs) {
-  if (!sourceRow) return true;
-  if (sourceRow.error_code) return false;
-  if (!sourceRow.expires_at) return false;
-  const expiresAt = new Date(sourceRow.expires_at).getTime();
-  return Number.isFinite(expiresAt) && expiresAt <= nowMs + REFRESH_TTL_GRACE_MS;
+function comparableSignalsForSource(sourceRow) {
+  return sourceComparisonSignals({
+    normalized_signals_json: sourceRow?.normalized_signals_json,
+    normalized_signals: sourceRow?.normalized_signals,
+  });
+}
+
+function isPayloadEmpty(sourceRow) {
+  const payload = parseJson(sourceRow?.raw_payload_json, null);
+  if (!payload || typeof payload !== "object") return true;
+  return Object.keys(payload).length === 0;
+}
+
+function getSourceRefreshStatus(sourceRow, nowMs, options = {}) {
+  const refreshEmpty = options.refreshEmpty !== false;
+
+  if (!sourceRow) {
+    return {
+      status: "missing_source",
+      eligible: true,
+      signal_count: 0,
+      fetched_at: null,
+      expires_at: null,
+      error_code: null,
+    };
+  }
+
+  const signals = comparableSignalsForSource(sourceRow);
+  const signalCount = signals.length;
+  const payloadEmpty = isPayloadEmpty(sourceRow);
+  const expiresAt = sourceRow.expires_at ? new Date(sourceRow.expires_at).getTime() : null;
+  const hasExpiry = Number.isFinite(expiresAt);
+  const expired = hasExpiry ? expiresAt <= nowMs + REFRESH_TTL_GRACE_MS : false;
+  const hasUsableEvidence = signalCount > 0 && !payloadEmpty;
+
+  if (sourceRow.error_code) {
+    const retryable = !hasExpiry || expired;
+    return {
+      status: retryable ? "fetch_error" : "cooldown_blocked",
+      eligible: retryable,
+      signal_count: signalCount,
+      fetched_at: sourceRow.fetched_at || null,
+      expires_at: sourceRow.expires_at || null,
+      error_code: sourceRow.error_code,
+      error_message: sourceRow.error_message || null,
+    };
+  }
+
+  if (expired) {
+    return {
+      status: hasUsableEvidence ? "stale_with_signals" : "stale_empty",
+      eligible: true,
+      signal_count: signalCount,
+      fetched_at: sourceRow.fetched_at || null,
+      expires_at: sourceRow.expires_at || null,
+      error_code: null,
+    };
+  }
+
+  if (!hasUsableEvidence) {
+    return {
+      status: "fresh_empty",
+      eligible: refreshEmpty,
+      signal_count: signalCount,
+      fetched_at: sourceRow.fetched_at || null,
+      expires_at: sourceRow.expires_at || null,
+      error_code: null,
+    };
+  }
+
+  return {
+    status: "fresh_with_signals",
+    eligible: false,
+    signal_count: signalCount,
+    fetched_at: sourceRow.fetched_at || null,
+    expires_at: sourceRow.expires_at || null,
+    error_code: null,
+  };
 }
 
 async function refreshSourceForArtist(adminUserId, source, artist) {
@@ -485,6 +557,7 @@ async function refreshUserUnmatchedArtistIntelligence(options = {}) {
 
   const adminUserId = normalizeUserId(options.adminUserId) || userId;
   const limit = normalizeLimit(options.limit, 25, REFRESH_MAX_LIMIT);
+  const refreshEmpty = options.refreshEmpty !== false;
   const sources = normalizeRefreshSources(options.sources);
   if (!sources.length) {
     const error = new Error("At least one source is required.");
@@ -499,21 +572,41 @@ async function refreshUserUnmatchedArtistIntelligence(options = {}) {
     if ((record.approved_artist_genres || []).length || (record.spotify_artist_genres || []).length) continue;
     (record.artist_names && record.artist_names.length ? record.artist_names : ["Unknown Artist"]).forEach((artistName, index) => {
       const normalized = normalizeArtistName(artistName);
-      if (!normalized || byArtist.has(normalized)) return;
-      byArtist.set(normalized, {
+      if (!normalized) return;
+      const item = byArtist.get(normalized) || {
         artistName,
+        normalizedArtistName: normalized,
         spotifyArtistId: (record.spotify_artist_ids || [])[index] || null,
-        unmatched_track_count: 1,
-      });
+        unmatched_track_count: 0,
+        affected_user_count: 1,
+        sample_tracks: [],
+      };
+      item.unmatched_track_count += 1;
+      if (!item.spotifyArtistId && (record.spotify_artist_ids || [])[index]) item.spotifyArtistId = (record.spotify_artist_ids || [])[index];
+      if (item.sample_tracks.length < 5) {
+        item.sample_tracks.push({
+          track_id: record.track_id,
+          track_name: record.track_name,
+          spotify_track_id: record.spotify_track_id,
+        });
+      }
+      byArtist.set(normalized, item);
     });
   }
 
-  const selectedArtists = [...byArtist.values()].slice(0, limit);
+  const selectedArtists = [...byArtist.values()]
+    .sort((left, right) => {
+      if (right.unmatched_track_count !== left.unmatched_track_count) return right.unmatched_track_count - left.unmatched_track_count;
+      if (right.affected_user_count !== left.affected_user_count) return right.affected_user_count - left.affected_user_count;
+      return left.artistName.localeCompare(right.artistName);
+    })
+    .slice(0, limit);
   const summary = {
     status: "ok",
     user_id: userId,
     limit,
     sources,
+    refresh_empty: refreshEmpty,
     artists_considered: byArtist.size,
     artists_selected: selectedArtists.length,
     attempted: 0,
@@ -521,6 +614,7 @@ async function refreshUserUnmatchedArtistIntelligence(options = {}) {
     empty: 0,
     skipped: 0,
     failed: 0,
+    source_status_counts: {},
     results: [],
     errors: [],
     note: "Admin-only bounded refresh. No approvals, sorting, rescans, playlist assignments, or Spotify writes are performed.",
@@ -532,26 +626,47 @@ async function refreshUserUnmatchedArtistIntelligence(options = {}) {
       spotifyArtistId: item.spotifyArtistId,
     });
     const sourceRows = new Map(artistIntelligenceRepo.listArtistIntelligenceSources(artist.id).map((row) => [row.source, row]));
-    const artistResult = { artist_name: item.artistName, artist_intelligence_id: artist.id, sources: [] };
+    const artistResult = {
+      artist_name: item.artistName,
+      normalized_artist_name: item.normalizedArtistName,
+      artist_intelligence_id: artist.id,
+      spotify_artist_id: artist.spotify_artist_id || item.spotifyArtistId || null,
+      unmatched_track_count: item.unmatched_track_count,
+      affected_user_count: item.affected_user_count,
+      sample_tracks: item.sample_tracks,
+      sources: [],
+    };
 
     for (const source of sources) {
-      if (!sourceNeedsRefresh(sourceRows.get(source), Date.now())) {
+      const sourceStatus = getSourceRefreshStatus(sourceRows.get(source), Date.now(), { refreshEmpty });
+      summary.source_status_counts[sourceStatus.status] = (summary.source_status_counts[sourceStatus.status] || 0) + 1;
+      if (!sourceStatus.eligible) {
         summary.skipped += 1;
-        artistResult.sources.push({ source, status: "skipped" });
+        artistResult.sources.push({ source, action: "skipped", ...sourceStatus });
         continue;
       }
       summary.attempted += 1;
       try {
         const result = await refreshSourceForArtist(adminUserId, source, artist);
-        const signalCount = Array.isArray(result.normalized_signals) ? result.normalized_signals.length : 0;
+        const comparableSignals = sourceComparisonSignals({ normalized_signals: result.normalized_signals || [] });
+        const signalCount = comparableSignals.length;
         if (signalCount > 0) summary.updated += 1;
         else summary.empty += 1;
-        artistResult.sources.push({ source, status: signalCount > 0 ? "updated" : "empty", signal_count: signalCount, top_signals: (result.normalized_signals || []).slice(0, 8) });
+        artistResult.sources.push({
+          source,
+          action: "attempted",
+          previous_status: sourceStatus.status,
+          status: signalCount > 0 ? "updated" : "empty",
+          signal_count: signalCount,
+          top_signals: comparableSignals.slice(0, 8),
+          fetched_at: result.fetched_at || null,
+          expires_at: result.expires_at || null,
+        });
       } catch (err) {
         summary.failed += 1;
         const error = { artist_name: item.artistName, source, error: err.code || `${source}_refresh_error`, message: err.message };
         summary.errors.push(error);
-        artistResult.sources.push({ source, status: "failed", error: error.error, message: error.message });
+        artistResult.sources.push({ source, action: "attempted", previous_status: sourceStatus.status, status: "fetch_error", error: error.error, message: error.message });
       }
     }
 
