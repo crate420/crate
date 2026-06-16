@@ -31,6 +31,7 @@
       label: 'Validation',
       links: [
         { href: '/admin-playlist-seeds.html', label: 'Playlist Seeds' },
+        { href: '/admin-specialty-discovery.html', label: 'Specialty Discovery' },
         { href: '/admin-specialty-validation.html', label: 'Specialty Validation' },
         { href: '/admin-playlist-dna-validation.html', label: 'Playlist DNA Validation' },
         { href: '/admin-dna-evidence-quality.html', label: 'DNA Evidence Quality' },

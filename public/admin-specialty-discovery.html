@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Crate Specialty Discovery</title>
+    <style>
+      :root{color-scheme:light;--bg:#f6f8fb;--panel:#fff;--border:#d7dde5;--muted:#657080;--text:#17202a;--action:#1769aa;--danger:#a23a3a;--good:#197653;--warn:#9a6500;--mid:#4863b8;--weak:#6b5a00}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:14px}main{max-width:1540px;margin:0 auto;padding:24px}header,.toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}header{margin-bottom:16px}h1,h2,h3{margin:0;line-height:1.2}h1{font-size:24px}h2{font-size:18px}h3{font-size:15px}.muted{color:var(--muted)}.button,button,input{border:1px solid var(--border);border-radius:6px;background:#fff;color:var(--text);font:inherit;min-height:34px}.button,button{cursor:pointer;display:inline-flex;align-items:center;padding:6px 10px;text-decoration:none}.button.primary,button.primary{background:var(--action);border-color:var(--action);color:#fff}button:disabled{cursor:not-allowed;opacity:.55}input{padding:6px 9px;width:96px}.panel{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:14px}.message{min-height:22px;color:var(--muted);margin:8px 0}.message.error{color:var(--danger)}.summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}.stat{border:1px solid var(--border);border-radius:6px;padding:10px}.stat strong{display:block;font-size:20px}.stat span{display:block;color:var(--muted);font-size:12px;font-weight:800;text-transform:uppercase}.grid{display:grid;grid-template-columns:1.05fr .95fr;gap:14px}table{width:100%;border-collapse:collapse}th,td{border-bottom:1px solid var(--border);padding:9px 8px;text-align:left;vertical-align:top}th{color:var(--muted);font-size:12px;text-transform:uppercase}.score{font-weight:900}.score.good{color:var(--good)}.score.mid{color:var(--mid)}.score.warn{color:var(--warn)}.score.bad{color:var(--danger)}.band{display:inline-flex;border-radius:999px;padding:3px 8px;font-size:12px;font-weight:850}.band.strongly_supported{background:#dff5eb;color:#116245}.band.supported{background:#e7ecff;color:#344aa0}.band.weak{background:#fff3d8;color:#7a5000}.band.not_supported{background:#fde8e8;color:#8f2828}.tags{display:flex;flex-wrap:wrap;gap:5px}.tag{border:1px solid var(--border);border-radius:999px;background:#f7f9fc;padding:3px 7px;font-size:12px}.mini{font-size:12px;color:var(--muted);line-height:1.45}.breakdown{display:grid;gap:4px;min-width:220px}.bar{display:grid;grid-template-columns:112px 1fr 34px;gap:6px;align-items:center}.bar-track{height:7px;border-radius:999px;background:#e9edf3;overflow:hidden}.bar-fill{height:100%;background:var(--action);border-radius:999px}.tabs{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:10px}.tab{border-radius:999px}.tab.is-active{background:var(--action);border-color:var(--action);color:#fff}.hidden{display:none}.nowrap{white-space:nowrap}@media(max-width:1050px){.grid{grid-template-columns:1fr}table{display:block;overflow-x:auto;white-space:nowrap}}
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <div>
+          <h1>Specialty Discovery</h1>
+          <div class="muted">Read-only user eligibility scoring for specialty playlist candidates.</div>
+        </div>
+        <nav class="toolbar">
+          <a class="button" href="/admin.html">Admin Home</a>
+          <a class="button" href="/admin-specialty-validation.html">Specialty Validation</a>
+          <a class="button" href="/admin-playlist-dna-validation.html">Playlist DNA</a>
+          <label class="toolbar"><span class="muted">User</span><input id="userIdInput" type="number" min="1" value="29"></label>
+          <button class="primary" id="refreshButton" type="button">Refresh</button>
+        </nav>
+      </header>
+      <div class="message" id="message">Loading specialty discovery...</div>
+
+      <section class="panel"><div class="summary" id="summaryCards"></div></section>
+
+      <div class="grid">
+        <section class="panel">
+          <h2>Specialty Score Bands</h2>
+          <div class="tabs" id="bandTabs"></div>
+          <table><thead><tr><th>Specialty</th><th>Score</th><th>Evidence</th><th>Suppression</th></tr></thead><tbody id="bandRows"></tbody></table>
+        </section>
+        <section class="panel">
+          <h2>Evidence Breakdown</h2>
+          <table><thead><tr><th>Specialty</th><th>Score Parts</th><th>Top Evidence</th></tr></thead><tbody id="evidenceRows"></tbody></table>
+        </section>
+      </div>
+
+      <section class="panel">
+        <h2>Candidate Build Priority</h2>
+        <table><thead><tr><th>Candidate</th><th>Recommendation</th><th>Users</th><th>Scores</th><th>User #29</th><th>Evidence</th></tr></thead><tbody id="priorityRows"></tbody></table>
+      </section>
+
+      <section class="panel">
+        <h2>Cohort Comparison</h2>
+        <table><thead><tr><th>Specialty</th><th>Status</th><th>Users</th><th>Median / P75</th><th>User #29</th><th>Build Signal</th></tr></thead><tbody id="cohortRows"></tbody></table>
+      </section>
+    </main>
+
+    <script>
+      const state={report:null,cohort:null,activeBand:'strongly_supported'};
+      const message=document.getElementById('message');const refreshButton=document.getElementById('refreshButton');const userIdInput=document.getElementById('userIdInput');const summaryCards=document.getElementById('summaryCards');const bandTabs=document.getElementById('bandTabs');const bandRows=document.getElementById('bandRows');const evidenceRows=document.getElementById('evidenceRows');const cohortRows=document.getElementById('cohortRows');const priorityRows=document.getElementById('priorityRows');
+      const bandLabels={strongly_supported:'Strongly Supported',supported:'Supported',weak:'Weak',not_supported:'Not Supported'};
+      function escapeHtml(value){return String(value??'').replace(/[&<>\"]/g,function(char){return({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'})[char];});}
+      function formatNumber(value){return Number(value||0).toLocaleString();}
+      function scoreClass(value){if(value>=85)return'good';if(value>=70)return'mid';if(value>=55)return'warn';return'bad';}
+      function setMessage(text,isError){message.textContent=text;message.className='message'+(isError?' error':'');}
+      async function requestJson(url){const response=await fetch(url,{credentials:'include'});const body=await response.json().catch(function(){return{};});if(!response.ok)throw new Error(body.message||body.error||'Request failed');return body;}
+      function bandBadge(band){return '<span class="band '+escapeHtml(band)+'">'+escapeHtml(bandLabels[band]||band)+'</span>';}
+      function tags(items,limit=5){const list=(items||[]).slice(0,limit);return '<div class="tags">'+(list.length?list.map(function(item){const label=item.value||item.signal||item;const detail=item.count?' · '+formatNumber(item.count):'';return '<span class="tag">'+escapeHtml(label)+escapeHtml(detail)+'</span>';}).join(''):'<span class="mini">None</span>')+'</div>';}
+      function reasonList(items){return (items||[]).length?'<div class="mini">'+(items||[]).map(escapeHtml).join('<br>')+'</div>':'<span class="mini">None</span>';}
+      function scoreParts(row){const b=row.score_breakdown||{};const values=[['Footprint',b.footprint,20],['Genres',b.genres,20],['Artist intel',b.artist_intelligence,15],['Seed',b.seed_overlap,15],['DNA',b.playlist_dna,15],['Track',b.track_signals,10],['Cluster',b.identity_cluster,5],['Penalty',b.conflict_penalty,35]];return '<div class="breakdown">'+values.map(function(pair){const width=Math.max(0,Math.min(100,(Number(pair[1]||0)/pair[2])*100));return '<div class="bar"><span class="mini">'+escapeHtml(pair[0])+'</span><div class="bar-track"><div class="bar-fill" style="width:'+width+'%"></div></div><span class="mini">'+escapeHtml(pair[1]||0)+'</span></div>';}).join('')+'</div>';}
+      function renderSummary(){const summary=state.report?.user_summary||{};const bands=state.report?.bands||{};const stats=[['User','#'+(summary.user_id||'')],['Tracks',summary.total_tracks],['Matched',summary.matched_tracks],['Unmatched',summary.unmatched_tracks],['Artists',summary.artist_count],['Strong',(bands.strongly_supported||[]).length],['Supported',(bands.supported||[]).length],['Suppressed',(bands.not_supported||[]).length]];summaryCards.innerHTML=stats.map(function(pair){return '<div class="stat"><strong>'+escapeHtml(formatNumberOrText(pair[1]))+'</strong><span>'+escapeHtml(pair[0])+'</span></div>';}).join('');}
+      function formatNumberOrText(value){return typeof value==='number'?formatNumber(value):value;}
+      function renderBandTabs(){const bands=state.report?.bands||{};bandTabs.innerHTML=Object.keys(bandLabels).map(function(band){const count=(bands[band]||[]).length;return '<button class="tab '+(state.activeBand===band?'is-active':'')+'" type="button" data-band="'+escapeHtml(band)+'">'+escapeHtml(bandLabels[band])+' · '+formatNumber(count)+'</button>';}).join('');}
+      function specialtyCell(row){return '<strong>'+escapeHtml(row.label)+'</strong><div class="mini">'+escapeHtml(row.code)+' · '+escapeHtml(row.catalog_status)+'</div>'+bandBadge(row.band);}
+      function evidenceSummary(row){const e=row.evidence||{};return '<div class="mini">'+formatNumber(e.track_count)+' tracks · '+formatNumber(e.artist_count)+' artists · '+formatNumber(e.seed_overlap_count)+' seed overlaps</div><div class="mini">DNA: '+escapeHtml(e.dna_playlist_label||e.dna_playlist_code||'none')+'</div><div class="mini">Conflicts: '+formatNumber(e.conflict_track_count)+' tracks · dominance '+formatNumber(e.single_artist_dominance_percent)+'%</div>';}
+      function renderBandRows(){const rows=state.report?.bands?.[state.activeBand]||[];bandRows.innerHTML=rows.length?rows.map(function(row){return '<tr><td>'+specialtyCell(row)+'</td><td><span class="score '+scoreClass(row.score)+'">'+escapeHtml(row.score)+'</span><div class="mini">Raw '+escapeHtml(row.raw_score)+'</div></td><td>'+evidenceSummary(row)+'</td><td>'+reasonList(row.suppression_reasons)+'</td></tr>';}).join(''):'<tr><td colspan="4" class="mini">No specialties in this band.</td></tr>';}
+      function renderEvidence(){const rows=(state.report?.specialties||[]).slice(0,12);evidenceRows.innerHTML=rows.length?rows.map(function(row){const e=row.evidence||{};const top=[...(e.top_approved_genres||[]),...(e.top_artist_intelligence||[]),...(e.top_track_signals||[]),...(e.dna_matched_terms||[])];return '<tr><td>'+specialtyCell(row)+'</td><td>'+scoreParts(row)+'</td><td><div class="mini"><strong>Approved / intel / track / DNA</strong></div>'+tags(top,8)+'<div class="mini">Spotify</div>'+tags(e.top_spotify_genres,6)+'</td></tr>';}).join(''):'<tr><td colspan="3" class="mini">No evidence rows.</td></tr>';}
+      function renderCohort(){const rows=state.cohort?.cohort_comparison||[];cohortRows.innerHTML=rows.length?rows.map(function(row){return '<tr><td><strong>'+escapeHtml(row.label)+'</strong><div class="mini">'+escapeHtml(row.code)+'</div></td><td>'+escapeHtml(row.catalog_status)+'</td><td><div class="mini">Strong '+formatNumber(row.strongly_supported_users)+' · Supported '+formatNumber(row.supported_users)+' · Weak '+formatNumber(row.weak_users)+'</div></td><td><span class="score '+scoreClass(row.p75_score)+'">'+formatNumber(row.median_score)+' / '+formatNumber(row.p75_score)+'</span></td><td>'+escapeHtml(row.user_29_score ?? 'n/a')+'<div class="mini">'+escapeHtml(row.user_29_band||'')+' · pctl '+escapeHtml(row.user_29_percentile??'n/a')+'</div></td><td>'+escapeHtml(row.build_recommendation)+'</td></tr>';}).join(''):'<tr><td colspan="6" class="mini">No cohort rows.</td></tr>';}
+      function renderPriority(){const rows=state.cohort?.candidate_build_priority||[];priorityRows.innerHTML=rows.length?rows.map(function(row){return '<tr><td><strong>'+escapeHtml(row.label)+'</strong><div class="mini">'+escapeHtml(row.code)+'</div></td><td>'+escapeHtml(row.build_recommendation)+'</td><td>'+formatNumber(row.supported_or_better_users)+' supported+<div class="mini">'+formatNumber(row.strongly_supported_users)+' strong</div></td><td>Median '+formatNumber(row.median_score)+'<div class="mini">P75 '+formatNumber(row.p75_score)+'</div></td><td>'+escapeHtml(row.user_29_score??'n/a')+'<div class="mini">'+escapeHtml(row.user_29_band||'')+'</div></td><td>'+formatNumber(row.total_supporting_tracks)+' tracks · '+formatNumber(row.total_supporting_artists)+' artists</td></tr>';}).join(''):'<tr><td colspan="6" class="mini">No candidate rows.</td></tr>';}
+      function renderAll(){renderSummary();renderBandTabs();renderBandRows();renderEvidence();renderCohort();renderPriority();}
+      async function loadReport(){refreshButton.disabled=true;setMessage('Loading specialty discovery...');try{const userId=Number.parseInt(userIdInput.value,10)||29;const userUrl='/crate/admin/specialty-discovery?user_id='+encodeURIComponent(userId);const cohortUrl='/crate/admin/specialty-discovery/cohort';const results=await Promise.all([requestJson(userUrl),requestJson(cohortUrl)]);state.report=results[0];state.cohort=results[1];renderAll();setMessage('Specialty discovery loaded. Read-only: no sorting, approvals, rescans, playlist sends, Spotify writes, or user-facing changes.');}catch(error){setMessage(error.message,true);}finally{refreshButton.disabled=false;}}
+      refreshButton.addEventListener('click',loadReport);
+      bandTabs.addEventListener('click',function(event){const button=event.target?.closest?.('[data-band]');if(!button)return;state.activeBand=button.dataset.band;renderBandTabs();renderBandRows();});
+      loadReport();
+    </script>
+    <script src="/adminNav.js"></script>
+  </body>
+</html>

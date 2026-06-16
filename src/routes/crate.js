@@ -59,6 +59,7 @@ const { getDatabaseDiagnostics } = require("../crate/dbDiagnostics");
 const { getAdminEraDiagnostics } = require("../crate/eraDiagnostics");
 const playlistSeedRegistry = require("../crate/playlistSeedRegistry");
 const { getSeedIntelligenceReport } = require("../crate/seedIntelligence");
+const { getSpecialtyDiscoveryCohort, getSpecialtyDiscoveryForUser } = require("../crate/specialtyDiscovery");
 const { fetchAllPlaylistSeeds, fetchPlaylistSeed } = require("../crate/playlistSeedFetcher");
 const { getMissingArtistGenres } = require("../crate/missingArtistGenres");
 const { fetchAndCacheMusicBrainzArtistIntelligence } = require("../crate/musicbrainzArtistIntelligence");
@@ -800,6 +801,26 @@ router.get("/admin/specialty-validation", requireCurrentUser, requireAdminUser, 
       return res.status(400).json({ error: "invalid_user_id", message: "user_id must be a positive integer." });
     }
     return res.json(getSpecialtyPlaylistValidationReport(userId, { matchLimit }));
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.get("/admin/specialty-discovery", requireCurrentUser, requireAdminUser, (req, res, next) => {
+  try {
+    const userId = req.query.user_id ? Number.parseInt(req.query.user_id, 10) : req.currentUser.id;
+    return res.json(getSpecialtyDiscoveryForUser(userId));
+  } catch (err) {
+    if (err.statusCode) {
+      return res.status(err.statusCode).json({ error: err.code || "specialty_discovery_error", message: err.message });
+    }
+    return next(err);
+  }
+});
+
+router.get("/admin/specialty-discovery/cohort", requireCurrentUser, requireAdminUser, (req, res, next) => {
+  try {
+    return res.json(getSpecialtyDiscoveryCohort({ limit: req.query.limit }));
   } catch (err) {
     return next(err);
   }

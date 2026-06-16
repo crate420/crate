@@ -52,6 +52,10 @@ function createApp() {
     res.sendFile(path.join(config.rootDir, "public/admin-specialty-validation.html"));
   });
 
+  app.get("/admin-specialty-discovery.html", requireAdminPage, (req, res) => {
+    res.sendFile(path.join(config.rootDir, "public/admin-specialty-discovery.html"));
+  });
+
   app.get("/admin-unmatched.html", requireAdminPage, (req, res) => {
     res.sendFile(path.join(config.rootDir, "public/admin-unmatched.html"));
   });
