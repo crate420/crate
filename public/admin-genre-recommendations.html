@@ -306,7 +306,8 @@
     });
 
     recommendationsBody.addEventListener('click', (event) => {
-      const key = event.target?.dataset?.approveKey;
+      const button = event.target.closest('[data-approve-key]');
+      const key = button?.dataset?.approveKey;
       if (!key) return;
       const row = rowByKey(key);
       if (row) openApprovalModal('single', [row]);
