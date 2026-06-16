@@ -80,13 +80,15 @@
       let latestPayload = null;
 
       function formatNumber(value){return Number(value||0).toLocaleString();}
+      function formatPercent(value){const number=Number(value);if(!Number.isFinite(number))return '—';return number.toLocaleString(undefined,{maximumFractionDigits:1})+'%';}
+      function matchPercent(stats){const total=Number(stats.total_tracks||stats.source_tracks||0);const matched=Number(stats.matched_tracks||0);if(!total)return '0%';const percent=stats.match_percent ?? ((matched/total)*100);return formatPercent(percent);}
       function escapeHtml(value){return String(value??'').replace(/[&<>"']/g,function(char){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char];});}
       function pillList(values){return (values||[]).slice(0,8).map(function(value){return '<span class="pill">'+escapeHtml(value)+'</span>';}).join('') || '<span class="muted">-</span>';}
       async function requestJson(url){const response=await fetch(url,{credentials:'same-origin'});const body=await response.json().catch(function(){return {};});if(!response.ok)throw new Error(body.message||body.error||('Request failed: '+response.status));return body;}
       function setMessage(text,isError){message.textContent=text;message.classList.toggle('error',Boolean(isError));}
       function renderSummary(payload){const stats=payload.user_stats||{};summary.innerHTML=[
-        ['Source Tracks',stats.total_tracks],['Matched',stats.matched_tracks],['Unmatched',stats.unmatched_tracks],['Match %',(stats.match_percent||0)+'%']
-      ].map(function(item){return '<article class="metric"><strong>'+escapeHtml(formatNumber(item[1]))+'</strong><span>'+escapeHtml(item[0])+'</span></article>';}).join('');}
+        ['Source Tracks',stats.total_tracks],['Matched',stats.matched_tracks],['Unmatched',stats.unmatched_tracks],['Match %',matchPercent(stats)]
+      ].map(function(item){return '<article class="metric"><strong>'+escapeHtml(item[0]==='Match %'?item[1]:formatNumber(item[1]))+'</strong><span>'+escapeHtml(item[0])+'</span></article>';}).join('');}
       function renderClusters(payload){clusterRows.innerHTML=(payload.identity_cluster_counts||[]).map(function(row){return '<tr><td>'+escapeHtml(row.identity_cluster)+'</td><td>'+formatNumber(row.count)+'</td></tr>';}).join('') || '<tr><td colspan="2" class="muted">No clusters.</td></tr>';}
       function renderArtists(payload){artistRows.innerHTML=(payload.top_unmatched_artists||[]).slice(0,50).map(function(row){return '<tr><td><strong>'+escapeHtml(row.artist)+'</strong></td><td>'+formatNumber(row.unmatched_track_count)+'</td><td>'+pillList(row.approved_artist_genres)+'</td><td>'+pillList(row.spotify_genres)+'</td><td>'+pillList(row.artist_intelligence_sources_present)+'</td><td>'+escapeHtml(row.estimated_recovery_opportunity||'-')+'</td></tr>';}).join('') || '<tr><td colspan="6" class="muted">No unmatched artists.</td></tr>';}
       function renderTracks(payload){trackRows.innerHTML=(payload.top_unmatched_tracks||[]).slice(0,250).map(function(row){const labels=(row.candidate_identity_labels||[]).map(function(item){return item.label;});return '<tr><td><strong>'+escapeHtml(row.track)+'</strong></td><td>'+escapeHtml(row.artist)+'</td><td>'+escapeHtml(row.release_year||'-')+'</td><td>'+pillList(row.current_evidence)+'</td><td>'+escapeHtml(row.unmatched_reason||'-')+'</td><td>'+pillList(labels)+'</td><td>'+escapeHtml(row.likely_crate_destination||'-')+'</td></tr>';}).join('') || '<tr><td colspan="7" class="muted">No unmatched tracks.</td></tr>';}
@@ -100,5 +102,6 @@
       loadButton.addEventListener('click',loadExport);
       loadUsers().catch(function(error){setMessage(error.message,true);});
     </script>
+    <script src="/adminNav.js"></script>
   </body>
 </html>

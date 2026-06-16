@@ -6,174 +6,81 @@
     <title>Crate Admin</title>
     <style>
       :root {
-        color-scheme: light;
-        --border: #d7dde5;
-        --muted: #657080;
-        --text: #17202a;
-        --bg: #f6f8fb;
-        --panel: #ffffff;
-        --action: #1769aa;
-        --danger: #a23a3a;
+        color-scheme: dark;
+        --bg: #07112b;
+        --panel: rgba(9, 20, 48, 0.92);
+        --line: rgba(52, 211, 238, 0.32);
+        --text: #f8fafc;
+        --muted: #b8c0d4;
+        --cyan: #21d4d4;
+        --pink: #f02aa8;
+        --orange: #ff8a4c;
+        --blue: #4f8df7;
+        --danger: #ff9da8;
+        --action: #21d4d4;
       }
-
-      * {
-        box-sizing: border-box;
-      }
-
+      * { box-sizing: border-box; }
       body {
         margin: 0;
-        background: var(--bg);
+        background: radial-gradient(circle at top left, rgba(240, 42, 168, 0.16), transparent 34rem), #07112b;
         color: var(--text);
-        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
         font-size: 14px;
       }
-
-      main {
-        max-width: 1120px;
-        margin: 0 auto;
-        padding: 24px;
-      }
-
-      header,
-      .section-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 16px;
-      }
-
-      header {
-        margin-bottom: 16px;
-      }
-
-      h1,
-      h2 {
-        margin: 0;
-        line-height: 1.2;
-      }
-
+      main { width: min(1240px, calc(100% - 32px)); margin: 0 auto; padding: 32px 0 56px; }
+      header { display: grid; gap: 14px; margin-bottom: 22px; }
+      h1, h2, h3 { margin: 0; line-height: 1.15; }
       h1 {
-        font-size: 24px;
+        font-size: clamp(2rem, 5vw, 4.5rem);
+        text-transform: uppercase;
+        background: linear-gradient(90deg, var(--pink), var(--orange), var(--blue), var(--cyan));
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
       }
-
-      h2 {
-        font-size: 18px;
-      }
-
-      .layout {
-        display: grid;
-        gap: 14px;
-      }
-
-      .section {
+      h2 { font-size: 1.15rem; }
+      h3 { font-size: 1rem; }
+      p { color: var(--muted); line-height: 1.5; margin: 6px 0 0; }
+      .message { min-height: 22px; color: var(--muted); }
+      .message.error { color: var(--danger); }
+      .layout { display: grid; gap: 16px; }
+      .section, .tool-card {
+        border: 1px solid var(--line);
+        border-radius: 12px;
         background: var(--panel);
-        border: 1px solid var(--border);
-        border-radius: 8px;
         padding: 16px;
       }
-
-      .section-header {
-        margin-bottom: 12px;
-      }
-
-      .nav {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 10px;
-      }
-
-      button,
-      .button {
-        border: 1px solid var(--border);
-        border-radius: 6px;
-        background: #fff;
+      .section-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+      .tool-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+      .tool-card { display: grid; gap: 8px; min-height: 132px; text-decoration: none; color: var(--text); }
+      .tool-card:hover { border-color: var(--cyan); }
+      .tool-card span { color: var(--muted); line-height: 1.45; }
+      .group-title { color: var(--cyan); font-size: 0.78rem; font-weight: 900; letter-spacing: 0.08em; text-transform: uppercase; margin: 8px 0 10px; }
+      .nav, .actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+      button, .button {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.06);
         color: var(--text);
         cursor: pointer;
         display: inline-flex;
         align-items: center;
         min-height: 34px;
-        padding: 6px 10px;
+        padding: 8px 11px;
         font: inherit;
+        font-weight: 800;
         text-decoration: none;
       }
-
-      button.primary,
-      .button.primary {
-        background: var(--action);
-        border-color: var(--action);
-        color: #fff;
-      }
-
-      button:disabled {
-        cursor: not-allowed;
-        opacity: 0.55;
-      }
-
-      .message {
-        min-height: 22px;
-        color: var(--muted);
-        margin-top: 4px;
-      }
-
-      .message.error {
-        color: var(--danger);
-      }
-
-      .counts {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-        gap: 10px;
-        margin-bottom: 12px;
-      }
-
-      .count {
-        border: 1px solid var(--border);
-        border-radius: 6px;
-        padding: 10px;
-      }
-
-      .label {
-        color: var(--muted);
-        font-size: 12px;
-        font-weight: 700;
-        text-transform: uppercase;
-      }
-
-      .value {
-        font-size: 20px;
-        font-weight: 700;
-        margin-top: 4px;
-      }
-
-      .runs {
-        display: grid;
-        gap: 6px;
-        margin-bottom: 12px;
-      }
-
-      .run {
-        color: var(--muted);
-      }
-
-      pre {
-        background: #101827;
-        border-radius: 6px;
-        color: #e7edf6;
-        margin: 0;
-        max-height: 420px;
-        overflow: auto;
-        padding: 12px;
-        white-space: pre-wrap;
-        word-break: break-word;
-      }
-
-      @media (max-width: 720px) {
-        header,
-        .section-header {
-          align-items: flex-start;
-          flex-direction: column;
-        }
-      }
+      button.primary, .button.primary { background: rgba(33, 212, 212, 0.14); border-color: var(--cyan); color: var(--cyan); }
+      button:disabled { cursor: not-allowed; opacity: 0.55; }
+      .counts { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 12px; }
+      .count { border: 1px solid rgba(184, 192, 212, 0.2); border-radius: 10px; padding: 12px; background: rgba(255,255,255,0.035); }
+      .label { color: var(--muted); font-size: 12px; font-weight: 800; text-transform: uppercase; }
+      .value { font-size: 22px; font-weight: 900; margin-top: 4px; }
+      .runs { display: grid; gap: 6px; margin-bottom: 12px; }
+      .run { color: var(--muted); }
+      pre { background: rgba(0, 0, 0, 0.28); border: 1px solid rgba(184, 192, 212, 0.16); border-radius: 10px; color: #e7edf6; margin: 0; max-height: 420px; overflow: auto; padding: 12px; white-space: pre-wrap; word-break: break-word; }
+      @media (max-width: 760px) { main { width: min(100% - 20px, 1240px); } .section-header { align-items: flex-start; flex-direction: column; } }
     </style>
   </head>
   <body>
@@ -181,31 +88,54 @@
       <header>
         <div>
           <h1>Crate Admin</h1>
+          <p>One launchpad for diagnostics, recommendations, intelligence, and validation tools.</p>
           <div class="message" id="message"></div>
         </div>
-        <nav class="nav">
-          <a class="button" href="/admin-review.html">Admin Review</a>
-          <a class="button" href="/crate/admin/unmatched-review">Unmatched Review</a>
-          <a class="button" href="/admin-unmatched-diagnostics.html">Unmatched Forensics</a>
-          <a class="button" href="/admin-user-diagnostics.html">User Diagnostics</a>
-          <a class="button" href="/admin-artist-gap-analysis.html">Artist Gaps</a>
-          <a class="button" href="/admin-artist-enrichment-queue.html">Enrichment Queue</a>
-          <a class="button" href="/admin-genre-recommendations.html">Genre Recommendations</a>
-          <a class="button" href="/admin-genre-recommendation-rescan.html">Recommendation Rescan</a>
-          <a class="button" href="/admin-recommendation-impact.html">Recommendation Impact</a>
-          <a class="button" href="/admin-track-intelligence.html">Track Intelligence</a>
-          <a class="button" href="/admin-track-learning.html">Track Learning</a>
-          <a class="button" href="/admin-playlist-dna-validation.html">Playlist DNA</a>
-          <a class="button" href="/admin-dna-evidence-quality.html">DNA Evidence Quality</a>
-          <a class="button" href="/admin-intelligence-coverage.html">Intelligence Coverage</a>
-          <a class="button" href="/admin-era-diagnostics.html">Era Diagnostics</a>
-          <a class="button" href="/admin-playlist-seeds.html">Playlist Seeds</a>
-          <a class="button" href="/admin-specialty-validation.html">Specialty Validation</a>
-          <a class="button" href="/admin-learning.html">Learning Review</a>
-          <a class="button" href="/admin-artist-intelligence.html">Artist Intelligence</a>
-          <a class="button" href="/admin-artist-recommendations.html">Intelligence Recommendations</a>
-        </nav>
+        <nav data-admin-nav></nav>
       </header>
+
+      <section class="section">
+        <div class="section-header"><h2>Active Admin Tools</h2></div>
+        <div class="layout">
+          <div>
+            <div class="group-title">Dashboard</div>
+            <div class="tool-grid">
+              <a class="tool-card" href="/admin-user-diagnostics.html"><h3>User Diagnostics</h3><span>Compare match rate, unmatched artists, genres, and reasons by user.</span></a>
+              <a class="tool-card" href="/admin-user-unmatched-export.html"><h3>User Unmatched Export</h3><span>Export user-specific unmatched evidence for spreadsheet analysis.</span></a>
+            </div>
+          </div>
+          <div>
+            <div class="group-title">Recommendations</div>
+            <div class="tool-grid">
+              <a class="tool-card" href="/admin-genre-recommendations.html"><h3>Genre Recommendations</h3><span>Review pending artist fallback recommendations from cached intelligence.</span></a>
+              <a class="tool-card" href="/admin-genre-recommendation-rescan.html"><h3>Recommendation Rescan</h3><span>Apply approved recommendation gains to selected users only.</span></a>
+              <a class="tool-card" href="/admin-recommendation-impact.html"><h3>Recommendation Impact</h3><span>Measure estimated versus actual recovery from approvals and rescans.</span></a>
+              <a class="tool-card" href="/admin-artist-gap-analysis.html"><h3>Artist Gaps</h3><span>Find highest-impact missing artists across users.</span></a>
+            </div>
+          </div>
+          <div>
+            <div class="group-title">Intelligence</div>
+            <div class="tool-grid">
+              <a class="tool-card" href="/admin-artist-intelligence.html"><h3>Artist Intelligence</h3><span>Inspect cached Spotify, Last.fm, and MusicBrainz evidence.</span></a>
+              <a class="tool-card" href="/admin-artist-enrichment-queue.html"><h3>Artist Enrichment Queue</h3><span>Prioritize missing artist evidence for unmatched tracks.</span></a>
+              <a class="tool-card" href="/admin-intelligence-coverage.html"><h3>Intelligence Coverage</h3><span>Track artist and track intelligence coverage across the library.</span></a>
+              <a class="tool-card" href="/admin-track-intelligence.html"><h3>Track Intelligence</h3><span>Review track-level evidence and playlist fit candidates.</span></a>
+              <a class="tool-card" href="/admin-track-learning.html"><h3>Track Learning</h3><span>Generate and inspect backend-only derived track profiles.</span></a>
+            </div>
+          </div>
+          <div>
+            <div class="group-title">Validation</div>
+            <div class="tool-grid">
+              <a class="tool-card" href="/admin-playlist-seeds.html"><h3>Playlist Seeds</h3><span>Review curated specialty playlist seed sources and cache state.</span></a>
+              <a class="tool-card" href="/admin-specialty-validation.html"><h3>Specialty Validation</h3><span>Validate specialty playlist matches and false-positive risk.</span></a>
+              <a class="tool-card" href="/admin-playlist-dna-validation.html"><h3>Playlist DNA Validation</h3><span>See playlist DNA self-test results and unmatched DNA matches.</span></a>
+              <a class="tool-card" href="/admin-dna-evidence-quality.html"><h3>DNA Evidence Quality</h3><span>Assess which playlists have trustworthy evidence coverage.</span></a>
+              <a class="tool-card" href="/admin-era-diagnostics.html"><h3>Era Diagnostics</h3><span>Review remaster and reissue era suspects.</span></a>
+              <a class="tool-card" href="/admin-unmatched-diagnostics.html"><h3>Unmatched Forensics</h3><span>Inspect why tracks are unmatched without changing sorting.</span></a>
+            </div>
+          </div>
+        </div>
+      </section>
 
       <div class="layout">
         <section class="section">
@@ -217,7 +147,6 @@
           <div class="runs" id="runs"></div>
           <pre id="statusJson">{}</pre>
         </section>
-
 
         <section class="section">
           <div class="section-header">
@@ -231,7 +160,7 @@
         <section class="section">
           <div class="section-header">
             <h2>Training Data</h2>
-            <div class="nav">
+            <div class="actions">
               <button class="primary" id="importArtistGenresButton" type="button">Import artist genres</button>
               <button id="importAndResortButton" type="button">Import + resort all</button>
             </div>
@@ -258,6 +187,7 @@
       </div>
     </main>
 
+    <script src="/adminNav.js"></script>
     <script>
       const messageEl = document.getElementById("message");
       const countsEl = document.getElementById("counts");

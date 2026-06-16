@@ -48,5 +48,6 @@
     async function loadImpact(){refreshButton.disabled=true;setMessage('Loading impact report...');try{const payload=await requestJson('/crate/admin/recommendation-impact');renderSummary(payload.summary||{});renderArtists(payload.top_approved_artists_by_actual_gain||[]);renderMetricRows('sourcesBody',payload.source_performance||[],'source');renderMetricRows('lanesBody',payload.playlist_lane_performance||[],'playlist lane');renderZero(payload.zero_gain_approvals||[]);renderPending(payload.remaining_pending_recommendations||[]);renderRescans(payload.recent_rescans||[]);document.getElementById('attributionNote').textContent=payload.attribution_note||'';setMessage('Impact report loaded.')}catch(error){setMessage(error.message,true)}finally{refreshButton.disabled=false}}
     refreshButton.addEventListener('click',loadImpact);loadImpact();
   </script>
+  <script src="/adminNav.js"></script>
 </body>
 </html>

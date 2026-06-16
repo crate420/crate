@@ -53,5 +53,6 @@
       async function loadReport(){refreshButton.disabled=true;setMessage('Loading Playlist DNA validation...');try{const payload=await requestJson('/crate/admin/playlist-dna-validation?limit=100');renderSummary(payload.summary||{});renderValidationRows(topRows,payload.validation?.top_performing_playlists||[]);renderValidationRows(weakRows,payload.validation?.weakest_playlists||[]);renderUnmatched(payload.strong_unmatched_dna_matches||[]);renderConflicts(payload.artist_track_dna_conflicts||[]);renderProfiles(payload.playlist_dna_profiles||[]);renderMatrix(payload.validation?.confusion_matrix||[]);setMessage('Playlist DNA validation loaded. Read-only report.');}catch(error){setMessage(error.message,true);}finally{refreshButton.disabled=false;}}
       refreshButton.addEventListener('click',loadReport);loadReport();
     </script>
+    <script src="/adminNav.js"></script>
   </body>
 </html>

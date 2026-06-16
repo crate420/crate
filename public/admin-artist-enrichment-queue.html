@@ -58,5 +58,6 @@
       async function refreshLastfmQueue(){refreshLastfmButton.disabled=true;refreshSpotifyButton.disabled=true;refreshButton.disabled=true;setMessage('Refreshing Last.fm tags for queue...');try{const payload=await requestJson('/crate/admin/artist-enrichment-queue/refresh-lastfm',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({filter:filterSelect.value,limit:25})});refreshResult.textContent=JSON.stringify(payload,null,2);setMessage('Last.fm refresh complete: '+formatNumber(payload.updated)+' updated, '+formatNumber(payload.empty)+' empty, '+formatNumber(payload.failed)+' failed.');await loadQueue();}catch(error){refreshResult.textContent=JSON.stringify({error:error.message},null,2);setMessage(error.message,true);}finally{refreshLastfmButton.disabled=false;refreshSpotifyButton.disabled=false;refreshButton.disabled=false;}}
       refreshButton.addEventListener('click',loadQueue);refreshSpotifyButton.addEventListener('click',refreshSpotifyQueue);refreshLastfmButton.addEventListener('click',refreshLastfmQueue);filterSelect.addEventListener('change',loadQueue);loadQueue();
     </script>
+    <script src="/adminNav.js"></script>
   </body>
 </html>

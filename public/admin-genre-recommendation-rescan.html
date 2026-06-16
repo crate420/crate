@@ -17,6 +17,7 @@
       <nav class="toolbar">
         <a class="button" href="/admin.html">Admin Home</a>
         <a class="button" href="/admin-genre-recommendations.html">Genre Recommendations</a>
+          <a class="button" href="/admin-recommendation-impact.html">Recommendation Impact</a>
         <a class="button" href="/admin-artist-gap-analysis.html">Artist Gaps</a>
         <a class="button" href="/admin-user-diagnostics.html">User Diagnostics</a>
         <button class="button" id="refreshButton" type="button">Refresh</button>
@@ -86,5 +87,6 @@
     async function runRescan(){confirmButton.disabled=true;rescanButton.disabled=true;setMessage('Running selected user rescan...');try{const payload=await requestJson('/crate/admin/genre-recommendation-rescan',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_ids:[...state.selectedUserIds].map(Number)})});resultPanel.hidden=false;resultJson.textContent=JSON.stringify(payload,null,2);closeConfirm();state.selectedUserIds.clear();await loadPlan();setMessage('Rescan complete. Actual gain: '+formatNumber(payload.actual_gain)+' track(s).')}catch(error){setMessage(error.message,true);confirmButton.disabled=false;updateRescanButton()}}
     usersBody.addEventListener('change',(event)=>{const id=event.target?.dataset?.userId;if(!id)return;if(event.target.checked)state.selectedUserIds.add(String(id));else state.selectedUserIds.delete(String(id));updateRescanButton()});refreshButton.addEventListener('click',loadPlan);rescanButton.addEventListener('click',openConfirm);cancelButton.addEventListener('click',closeConfirm);confirmModal.addEventListener('click',(event)=>{if(event.target===confirmModal)closeConfirm()});confirmButton.addEventListener('click',runRescan);loadPlan();
   </script>
+  <script src="/adminNav.js"></script>
 </body>
 </html>
