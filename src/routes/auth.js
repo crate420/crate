@@ -113,6 +113,15 @@ router.get("/me", (req, res) => {
     });
   }
 
+  if (!user.refresh_token) {
+    return res.status(401).json({
+      error: "spotify_reauthorization_required",
+      message: "Spotify needs you to reconnect your account.",
+      reauthorization_required: true,
+      redirect_url: "/auth/spotify?reauthorize=1",
+    });
+  }
+
   return res.json({
     user: {
       id: user.id,

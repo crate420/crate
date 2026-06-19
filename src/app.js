@@ -149,6 +149,20 @@ function createApp() {
 
     console.error(err);
 
+    if (err.statusCode) {
+      const payload = {
+        error: err.code || "request_error",
+        message: err.message,
+      };
+
+      if (err.reauthorizationRequired) {
+        payload.reauthorization_required = true;
+        payload.redirect_url = err.redirectUrl || "/auth/spotify?reauthorize=1";
+      }
+
+      return res.status(err.statusCode).json(payload);
+    }
+
     return res.status(500).json({
       error: "internal_server_error",
       message: "Something went wrong.",

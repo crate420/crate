@@ -59,9 +59,16 @@ async function requestToken(params) {
   const body = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    throw new Error(
+    const error = new Error(
       `Spotify token request failed (${response.status}): ${body.error_description || body.error || "unknown error"}`,
     );
+    error.code = body.error || "spotify_token_request_failed";
+    error.statusCode = response.status;
+    error.spotifyStatus = response.status;
+    error.spotifyError = body.error || null;
+    error.spotifyErrorDescription = body.error_description || null;
+    error.isInvalidGrant = body.error === "invalid_grant";
+    throw error;
   }
 
   return body;

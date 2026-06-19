@@ -95,7 +95,27 @@ function updateTokens(userId, tokens) {
   return findById(userId);
 }
 
+function clearSpotifyTokens(userId) {
+  openDatabase()
+    .prepare(`
+      UPDATE users
+      SET
+        access_token = NULL,
+        refresh_token = NULL,
+        token_expires_at = NULL,
+        updated_at = @updatedAt
+      WHERE id = @userId
+    `)
+    .run({
+      userId,
+      updatedAt: new Date().toISOString(),
+    });
+
+  return findById(userId);
+}
+
 module.exports = {
+  clearSpotifyTokens,
   findById,
   findBySpotifyUserId,
   updateTokens,

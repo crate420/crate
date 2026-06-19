@@ -128,12 +128,19 @@ function sendKnownCrateFlowError(res, step, err) {
     return false;
   }
 
-  res.status(err.statusCode).json({
+  const payload = {
     error: err.code || "crate_flow_error",
     message: err.message,
     step,
     spotify_status: err.spotifyStatus || null,
-  });
+  };
+
+  if (err.reauthorizationRequired) {
+    payload.reauthorization_required = true;
+    payload.redirect_url = err.redirectUrl || "/auth/spotify?reauthorize=1";
+  }
+
+  res.status(err.statusCode).json(payload);
 
   return true;
 }
@@ -720,11 +727,18 @@ router.post("/playlists/sync", requireCurrentUser, async (req, res, next) => {
     }));
   } catch (err) {
     if (err.statusCode) {
-      return res.status(err.statusCode).json({
+      const payload = {
         error: err.code || "playlist_sync_error",
         message: err.message,
         summary: err.summary || null,
-      });
+      };
+
+      if (err.reauthorizationRequired) {
+        payload.reauthorization_required = true;
+        payload.redirect_url = err.redirectUrl || "/auth/spotify?reauthorize=1";
+      }
+
+      return res.status(err.statusCode).json(payload);
     }
 
     return next(err);
