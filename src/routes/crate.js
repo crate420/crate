@@ -63,6 +63,7 @@ const { getSpecialtyDiscoveryCohort, getSpecialtyDiscoveryForUser } = require(".
 const { fetchAllPlaylistSeeds, fetchPlaylistSeed } = require("../crate/playlistSeedFetcher");
 const { getMissingArtistGenres } = require("../crate/missingArtistGenres");
 const { fetchAndCacheMusicBrainzArtistIntelligence } = require("../crate/musicbrainzArtistIntelligence");
+const { getLibraryInsightsForUser } = require("../crate/libraryInsights");
 const { getCrateStatus, getGlobalCrateStatus } = require("../crate/status");
 const { getAdminUserDiagnostics } = require("../crate/userDiagnostics");
 const { getAdminUserUnmatchedExport, refreshUserUnmatchedArtistIntelligence } = require("../crate/userUnmatchedExport");
@@ -278,6 +279,14 @@ router.get("/status", (req, res, next) => {
       specialtySuggestionsVisible,
       specialtyPreviewEnabled,
     }));
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.get("/library-insights", requireCurrentUser, (req, res, next) => {
+  try {
+    return res.json(getLibraryInsightsForUser(req.currentUser.id));
   } catch (err) {
     return next(err);
   }
@@ -836,6 +845,22 @@ router.get("/admin/specialty-discovery/cohort", requireCurrentUser, requireAdmin
   try {
     return res.json(getSpecialtyDiscoveryCohort({ limit: req.query.limit }));
   } catch (err) {
+    return next(err);
+  }
+});
+
+router.get("/admin/library-insights", requireCurrentUser, requireAdminUser, (req, res, next) => {
+  try {
+    const userId = Number.parseInt(req.query.user_id, 10);
+    return res.json(getLibraryInsightsForUser(userId));
+  } catch (err) {
+    if (err.statusCode) {
+      return res.status(err.statusCode).json({
+        error: err.code || "library_insights_error",
+        message: err.message,
+      });
+    }
+
     return next(err);
   }
 });
