@@ -119,6 +119,55 @@ function releaseYearForTrack(track) {
   return effectiveReleaseYearForRow(track);
 }
 
+function normalizeYearFilterValue(value, fieldName) {
+  if (value == null || value === "") return null;
+  const year = Number.parseInt(value, 10);
+  const maxYear = new Date().getFullYear() + 1;
+  if (!Number.isInteger(year) || year < 1900 || year > maxYear) {
+    const error = new Error(`${fieldName} must be a valid year.`);
+    error.statusCode = 400;
+    error.code = "invalid_year_range";
+    throw error;
+  }
+  return year;
+}
+
+function yearRangeForSelection(selection) {
+  const min = normalizeYearFilterValue(selection?.year_min, "year_min");
+  const max = normalizeYearFilterValue(selection?.year_max, "year_max");
+
+  if (min == null && max == null) return null;
+  if (min == null || max == null) {
+    const error = new Error("Both year_min and year_max are required when filtering a playlist by year.");
+    error.statusCode = 400;
+    error.code = "invalid_year_range";
+    throw error;
+  }
+  if (min > max) {
+    const error = new Error("year_min cannot be greater than year_max.");
+    error.statusCode = 400;
+    error.code = "invalid_year_range";
+    throw error;
+  }
+
+  return { min, max };
+}
+
+function trackMatchesYearRange(track, yearRange) {
+  if (!yearRange) return true;
+  const year = releaseYearForTrack(track);
+  return Boolean(year && year >= yearRange.min && year <= yearRange.max);
+}
+
+function filterTracksByYearRange(tracks, yearRange) {
+  return yearRange ? tracks.filter((track) => trackMatchesYearRange(track, yearRange)) : tracks;
+}
+
+function selectionWithYearRange(selection, yearRange) {
+  if (!yearRange) return selection;
+  return { ...selection, year_min: yearRange.min, year_max: yearRange.max };
+}
+
 function trackMatchesEra(track, era) {
   const eraKey = normalizeEra(era);
   if (eraKey === "all") {
@@ -167,17 +216,19 @@ function trackMatchesArtist(track, artistName) {
   ));
 }
 
-function specialtyTracksForSelection(userId, seedCode) {
+function specialtyTracksForSelection(userId, seedCode, tracksById = new Map()) {
   const preview = resolveSpecialtyTracksForUser(userId, seedCode, { limit: 10000 });
   return (preview.tracks || []).map((track) => ({
     ...track,
+    ...(tracksById.get(track.track_id) || {}),
     uri: track.spotify_uri,
     playlist_code: preview.playlist_code,
   }));
 }
 
-function selectedDefinitionFor(selection, allTracks, userId) {
+function selectedDefinitionFor(selection, allTracks, userId, context = {}) {
   const type = String(selection?.type || "").trim().toLowerCase();
+  const yearRange = yearRangeForSelection(selection);
 
   if (type === "genre") {
     const playlistCode = String(selection.playlist_code || "").trim();
@@ -187,8 +238,11 @@ function selectedDefinitionFor(selection, allTracks, userId) {
       playlistCode: `genre:${playlistCode}:${era}`,
       displayName,
       source: "selected",
-      selection: { type: "genre", playlist_code: playlistCode, era },
-      tracks: allTracks.filter((track) => track.playlist_code === playlistCode && trackMatchesEra(track, era)),
+      selection: selectionWithYearRange({ type: "genre", playlist_code: playlistCode, era }, yearRange),
+      tracks: filterTracksByYearRange(
+        allTracks.filter((track) => track.playlist_code === playlistCode && trackMatchesEra(track, era)),
+        yearRange,
+      ),
     };
   }
 
@@ -198,8 +252,8 @@ function selectedDefinitionFor(selection, allTracks, userId) {
       playlistCode: `artist:${slugify(artistName)}`,
       displayName: displayNameForArtistSelection(artistName),
       source: "selected",
-      selection: { type: "artist", artist_name: artistName },
-      tracks: allTracks.filter((track) => trackMatchesArtist(track, artistName)),
+      selection: selectionWithYearRange({ type: "artist", artist_name: artistName }, yearRange),
+      tracks: filterTracksByYearRange(allTracks.filter((track) => trackMatchesArtist(track, artistName)), yearRange),
     };
   }
 
@@ -209,8 +263,8 @@ function selectedDefinitionFor(selection, allTracks, userId) {
       playlistCode: `era:${era}`,
       displayName: displayNameForEraSelection(era),
       source: "selected",
-      selection: { type: "era", era },
-      tracks: allTracks.filter((track) => trackMatchesEra(track, era)),
+      selection: selectionWithYearRange({ type: "era", era }, yearRange),
+      tracks: filterTracksByYearRange(allTracks.filter((track) => trackMatchesEra(track, era)), yearRange),
     };
   }
 
@@ -222,8 +276,8 @@ function selectedDefinitionFor(selection, allTracks, userId) {
       playlistCode,
       displayName: displayNameForSpecialtySelection(seedCode, playlistCode),
       source: "specialty",
-      selection: { type: "specialty", seed_code: seedCode, playlist_code: playlistCode },
-      tracks: specialtyTracksForSelection(userId, seedCode),
+      selection: selectionWithYearRange({ type: "specialty", seed_code: seedCode, playlist_code: playlistCode }, yearRange),
+      tracks: filterTracksByYearRange(specialtyTracksForSelection(userId, seedCode, context.tracksById), yearRange),
     };
   }
 
@@ -232,9 +286,10 @@ function selectedDefinitionFor(selection, allTracks, userId) {
 
 function buildSelectedDefinitions(selections, allTracks, userId) {
   const definitionsByCode = new Map();
+  const tracksById = new Map(allTracks.map((track) => [track.track_id, track]));
 
   for (const selection of selections) {
-    const definition = selectedDefinitionFor(selection, allTracks, userId);
+    const definition = selectedDefinitionFor(selection, allTracks, userId, { tracksById });
     if (!definition || !definition.displayName || !definition.playlistCode) {
       continue;
     }
@@ -613,6 +668,7 @@ async function syncPlaylists(userId, options = {}) {
 
 module.exports = {
   PLAYLIST_DEFINITIONS,
+  buildSelectedDefinitions,
   normalizePlaylistName,
   syncPlaylists,
 };

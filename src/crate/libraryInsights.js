@@ -171,6 +171,13 @@ function topEntries(countsByKey, labelKey) {
     });
 }
 
+function serializeYearCounts(countsByYear) {
+  return [...countsByYear.entries()]
+    .map(([year, count]) => ({ year: Number(year), count }))
+    .filter((row) => isUsableReleaseYear(row.year) && Number(row.count || 0) > 0)
+    .sort((left, right) => left.year - right.year);
+}
+
 function median(values) {
   if (!values.length) return null;
   const sorted = [...values].sort((left, right) => left - right);
@@ -258,6 +265,7 @@ function buildTimeline(records) {
       : null,
     median_release_year: median(releaseYears),
     release_year_count: releaseYears.length,
+    year_counts: serializeYearCounts(byYear),
   };
 }
 
@@ -368,25 +376,26 @@ function buildEra(records) {
 }
 
 function buildPlaylists(library, records, userId) {
-  const playlistYears = new Map();
+  const playlistYearCounts = new Map();
 
   for (const record of records) {
     if (!record.playlist_code || !record.releaseYear) continue;
-    const years = playlistYears.get(record.playlist_code) || [];
-    years.push(record.releaseYear);
-    playlistYears.set(record.playlist_code, years);
+    if (!playlistYearCounts.has(record.playlist_code)) {
+      playlistYearCounts.set(record.playlist_code, new Map());
+    }
+    increment(playlistYearCounts.get(record.playlist_code), record.releaseYear);
   }
 
   const playlistRows = [...library.playlist_counts.entries()]
     .map(([playlistCode, count]) => {
-      const years = playlistYears.get(playlistCode) || [];
-      const sortedYears = years.sort((left, right) => left - right);
+      const yearCounts = serializeYearCounts(playlistYearCounts.get(playlistCode) || new Map());
       return {
         playlist_code: playlistCode,
         display_name: playlistLabel(playlistCode),
         count,
-        start_year: sortedYears[0] || null,
-        end_year: sortedYears[sortedYears.length - 1] || null,
+        start_year: yearCounts[0]?.year || null,
+        end_year: yearCounts[yearCounts.length - 1]?.year || null,
+        year_counts: yearCounts,
       };
     })
     .sort((left, right) => {
