@@ -10,13 +10,13 @@ const router = express.Router();
 function betaStatusPayload(req, res) {
   const access = getBetaAccess(req);
   const currentUser = getCurrentUser(req, res);
-  const registered = Boolean(access || currentUser);
+  const registered = true;
   const spotifyConnected = Boolean(currentUser);
-  const nextStep = !registered ? "register" : spotifyConnected ? "dashboard" : "spotify";
+  const nextStep = spotifyConnected ? "dashboard" : "spotify";
 
   return {
     status: "ok",
-    has_access: registered,
+    has_access: true,
     registered,
     spotifyConnected,
     userId: currentUser?.id || null,

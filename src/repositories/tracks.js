@@ -18,7 +18,7 @@ function normalizeSavedTrack(savedTrack) {
   };
 }
 
-function upsertSavedTracksForUser(userId, savedTracks) {
+function upsertSavedTracksForUser(userId, savedTracks, options = {}) {
   const db = openDatabase();
   const now = new Date().toISOString();
   const stats = {
@@ -105,9 +105,14 @@ function upsertSavedTracksForUser(userId, savedTracks) {
   `);
 
   const writeTracks = db.transaction(() => {
+    let processed = 0;
     for (const savedTrack of savedTracks) {
+      processed += 1;
       if (!savedTrack?.track?.id || !savedTrack.track.uri) {
         stats.skipped += 1;
+        if (typeof options.onProgress === "function" && (processed % 250 === 0 || processed === savedTracks.length)) {
+          options.onProgress({ processed, total: savedTracks.length, ...stats });
+        }
         continue;
       }
 
@@ -138,6 +143,10 @@ function upsertSavedTracksForUser(userId, savedTracks) {
         stats.userTracksUpdated += 1;
       } else {
         stats.userTracksInserted += 1;
+      }
+
+      if (typeof options.onProgress === "function" && (processed % 250 === 0 || processed === savedTracks.length)) {
+        options.onProgress({ processed, total: savedTracks.length, ...stats });
       }
     }
   });

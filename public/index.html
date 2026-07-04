@@ -51,21 +51,39 @@
 
       .bars {
         display: inline-grid;
-        grid-template-columns: repeat(3, 7px);
+        grid-template-columns: repeat(5, 8px);
         align-items: end;
-        gap: 4px;
-        height: 34px;
+        gap: 6px;
+        height: 54px;
+        padding-bottom: 16px;
       }
 
       .bars span {
+        position: relative;
         display: block;
-        border-radius: 8px;
-        background: var(--grad);
+        width: 8px;
+        border-radius: 999px;
       }
 
-      .bars span:nth-child(1) { height: 22px; }
-      .bars span:nth-child(2) { height: 34px; }
-      .bars span:nth-child(3) { height: 27px; }
+      .bars span::after {
+        content: "";
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: calc(100% + 4px);
+        height: 16px;
+        border-radius: inherit;
+        background: inherit;
+        opacity: .24;
+        transform: scaleY(.85);
+        transform-origin: top;
+      }
+
+      .bars span:nth-child(1) { height: 16px; background: linear-gradient(180deg, #ff914d, #ef2aa8); }
+      .bars span:nth-child(2) { height: 28px; background: linear-gradient(180deg, #ef2aa8, #8b5cf6); }
+      .bars span:nth-child(3) { height: 36px; background: linear-gradient(180deg, #ff9a5d, #8b5cf6); }
+      .bars span:nth-child(4) { height: 44px; background: linear-gradient(180deg, #8b5cf6, #1685e8); }
+      .bars span:nth-child(5) { height: 52px; background: linear-gradient(180deg, #19d2e6, #1685e8); }
 
       h1 {
         margin: 0;
@@ -101,18 +119,6 @@
       label {
         color: var(--cyan);
         font-weight: 700;
-      }
-
-      input {
-        width: 100%;
-        border: 1px solid rgba(255, 255, 255, .16);
-        border-radius: 999px;
-        background: rgba(255, 255, 255, .11);
-        color: #fff;
-        font: inherit;
-        font-size: 18px;
-        padding: 14px 18px;
-        text-transform: uppercase;
       }
 
       button, a.button {
@@ -162,34 +168,25 @@
   <body>
     <main>
       <div class="brand" aria-label="Crate">
-        <span class="bars" aria-hidden="true"><span></span><span></span><span></span></span>
+        <span class="bars" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></span>
         <span>Crate</span>
       </div>
       <h1>Welcome to the beta</h1>
       <p>Thanks for helping test Crate. This beta connects to your Spotify account, sorts your Liked Songs into playlist lanes, and lets you choose what to send to Spotify.</p>
       <ul>
-        <li>Start by entering your name and email so we can track tester feedback.</li>
-        <li>Connect Spotify, then run Sort from the Crate dashboard.</li>
+        <li>Connect Spotify, then run Scan & Sort from the Crate dashboard.</li>
         <li>Review the playlist previews before sending anything to Spotify.</li>
         <li>Expect a few rough edges. That is what this pass is for.</li>
       </ul>
-      <section class="gate" aria-label="Tester registration">
-        <label for="betaName">Name</label>
-        <input id="betaName" autocomplete="name" placeholder="Your name" style="text-transform:none">
-        <label for="betaEmail">Email</label>
-        <input id="betaEmail" autocomplete="email" placeholder="you@example.com" inputmode="email" style="text-transform:none">
+      <section class="gate" aria-label="Spotify connection">
         <div class="actions">
-          <button id="claimButton" type="button">Register and continue</button>
-          <a class="button secondary" id="continueButton" href="/auth/spotify" hidden>Continue to Spotify</a>
+          <a class="button" id="connectButton" href="/auth/spotify">Connect to Spotify</a>
         </div>
-        <div class="message" id="message" role="status">Checking registration...</div>
+        <div class="message" id="message" role="status">Nothing is sent to Spotify until you review and confirm.</div>
       </section>
     </main>
     <script>
-      const betaName = document.getElementById('betaName');
-      const betaEmail = document.getElementById('betaEmail');
-      const claimButton = document.getElementById('claimButton');
-      const continueButton = document.getElementById('continueButton');
+      const connectButton = document.getElementById('connectButton');
       const message = document.getElementById('message');
 
       function setMessage(text, type = '') {
@@ -208,22 +205,12 @@
         return body;
       }
 
-      function nextStepLabel(status) {
-        if (status?.nextStep === 'dashboard') return 'Opening your dashboard…';
-        if (status?.nextStep === 'spotify') return 'Opening Spotify connection…';
-        return 'Enter your name and email to continue.';
-      }
-
       function resumeNextStep(status) {
-        if (!status?.registered && !status?.has_access) return false;
-        const target = status.redirectTo || (status.spotifyConnected ? '/app.html' : '/auth/spotify');
-        betaName.disabled = true;
-        betaEmail.disabled = true;
-        claimButton.hidden = true;
-        continueButton.hidden = false;
-        continueButton.href = target;
-        continueButton.textContent = status.spotifyConnected ? 'Continue to dashboard' : 'Connect Spotify';
-        setMessage(nextStepLabel(status), 'success');
+        if (!status?.spotifyConnected) return false;
+        const target = status.redirectTo || '/app.html';
+        connectButton.textContent = 'Opening your dashboard…';
+        connectButton.href = target;
+        setMessage('Opening your dashboard…', 'success');
         window.location.replace(target);
         return true;
       }
@@ -231,47 +218,19 @@
       async function checkStatus() {
         const params = new URLSearchParams(window.location.search);
         if (params.get('registration_required')) {
-          setMessage('Enter your name and email before connecting Spotify.', 'error');
+          setMessage('Connect Spotify to continue.', 'error');
         }
         try {
           const status = await requestJson('/beta/status');
           if (resumeNextStep(status)) return;
           if (!params.get('registration_required')) {
-            setMessage('Enter your name and email to continue.');
+            setMessage('Nothing is sent to Spotify until you review and confirm.');
           }
         } catch (err) {
-          setMessage('Could not check registration: ' + err.message, 'error');
+          setMessage('Could not check Spotify status: ' + err.message, 'error');
         }
       }
 
-      async function claimAccess() {
-        claimButton.disabled = true;
-        setMessage('Saving tester registration...');
-        try {
-          const result = await requestJson('/beta/claim', {
-            method: 'POST',
-            body: JSON.stringify({
-              name: betaName.value,
-              email: betaEmail.value,
-            }),
-          });
-          if (!resumeNextStep(result)) {
-            setMessage('Registration saved. Connect Spotify to continue.', 'success');
-            continueButton.hidden = false;
-            continueButton.href = '/auth/spotify';
-            continueButton.textContent = 'Connect Spotify';
-          }
-        } catch (err) {
-          setMessage(err.message, 'error');
-        } finally {
-          claimButton.disabled = false;
-        }
-      }
-
-      claimButton.addEventListener('click', claimAccess);
-      betaEmail.addEventListener('keydown', (event) => {
-        if (event.key === 'Enter') claimAccess();
-      });
       checkStatus();
     </script>
   </body>

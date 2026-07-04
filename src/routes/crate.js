@@ -73,6 +73,7 @@ const { resolveSpecialtyTracksForUser } = require("../crate/specialtyTrackResolv
 const { syncPlaylists } = require("../crate/syncPlaylists");
 const { syncLikedSongs } = require("../crate/syncLikedSongs");
 const { sortTracks } = require("../crate/sortTracks");
+const progress = require("../crate/progress");
 const { fetchAndCacheSpotifyArtistIntelligence } = require("../crate/spotifyArtistIntelligence");
 const { applyTrackOverride, getTrackForReview } = require("../crate/trackOverrides");
 const { importTrainingData } = require("../crate/trainingImport");
@@ -220,6 +221,18 @@ async function syncLikedHandler(req, res, next) {
       step: "syncLikedSongs",
       ...summary,
     });
+    progress.updateProgress(req.currentUser.id, {
+      status: "running",
+      stage: "scan_complete",
+      title: "Spotify Library Read",
+      body: "Crate is ready to build your playlists.",
+      detail: `${summary.seen.toLocaleString()} songs read`,
+      songs_processed: summary.seen,
+      songs_total: summary.seen,
+      inserted: summary.inserted,
+      updated: summary.updated,
+      skipped: summary.skipped,
+    });
 
     console.log("[Crate Flow] sync-liked-songs request complete", {
       user_id: req.currentUser.id,
@@ -247,6 +260,10 @@ async function syncLikedHandler(req, res, next) {
     runs.finishRun(run.id, "failed", {
       step: "syncLikedSongs",
       error: err.message,
+    });
+    progress.failProgress(req.currentUser.id, {
+      stage: "scan_failed",
+      detail: err.message,
     });
     logCrateFlowError("syncLikedSongs", req.currentUser, err);
 
@@ -282,6 +299,10 @@ router.get("/status", (req, res, next) => {
   } catch (err) {
     return next(err);
   }
+});
+
+router.get("/progress", requireCurrentUser, (req, res) => {
+  return res.json(progress.getProgress(req.currentUser.id));
 });
 
 router.get("/library-insights", requireCurrentUser, (req, res, next) => {
@@ -669,6 +690,23 @@ router.post("/sort", requireCurrentUser, async (req, res, next) => {
       step: "sortTracks",
       ...summary,
     });
+    const completedStatus = getCrateStatus({ userId: req.currentUser.id });
+    const completedSorted = Number(completedStatus?.userTracksSorted ?? summary.matched);
+    const completedTotal = Number(completedStatus?.userTracksTotal ?? summary.processed);
+    const completedUnmatched = Number(completedStatus?.userTracksUnmatched ?? summary.unmatched);
+    progress.finishProgress(req.currentUser.id, {
+      title: "Your Crate Is Ready",
+      body: "Your dashboard is ready to review.",
+      detail: `${completedSorted.toLocaleString()} of ${completedTotal.toLocaleString()} songs sorted`,
+      songs_processed: completedTotal,
+      songs_total: completedTotal,
+      artists_found: Number(completedStatus?.userArtistsTotal || 0),
+      genres_found: Number(completedStatus?.userGenresTotal || 0),
+      sorted_processed: completedSorted,
+      sorted_total: completedTotal,
+      matched: completedSorted,
+      unmatched: completedUnmatched,
+    });
 
     console.log("[Crate Flow] sort request complete", {
       user_id: req.currentUser.id,
@@ -701,6 +739,10 @@ router.post("/sort", requireCurrentUser, async (req, res, next) => {
     runs.finishRun(run.id, "failed", {
       step: "sortTracks",
       error: err.message,
+    });
+    progress.failProgress(req.currentUser.id, {
+      stage: "sort_failed",
+      detail: err.message,
     });
     logCrateFlowError("sortTracks", req.currentUser, err);
 

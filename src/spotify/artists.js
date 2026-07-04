@@ -10,7 +10,7 @@ function chunk(values, size) {
   return chunks;
 }
 
-async function getArtistsByIds(userId, artistIds) {
+async function getArtistsByIds(userId, artistIds, options = {}) {
   const uniqueArtistIds = [...new Set(artistIds)].filter(Boolean);
   const artistsById = new Map();
 
@@ -56,6 +56,15 @@ async function getArtistsByIds(userId, artistIds) {
         batches: chunks.length,
         artists_loaded: artistsById.size,
         failed_batches: failedBatches,
+      });
+    }
+
+    if (typeof options.onProgress === "function") {
+      options.onProgress({
+        batchesCompleted: index + 1,
+        batches: chunks.length,
+        artistsLoaded: artistsById.size,
+        failedBatches,
       });
     }
   }

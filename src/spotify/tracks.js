@@ -16,6 +16,7 @@ async function getAllLikedTracks(userId, options = {}) {
         pageNumber,
         pageCount: items.length,
         totalFetched: tracks.length,
+        total: Number(page.total || 0),
         hasNextPage: Boolean(page.next),
       });
     }
