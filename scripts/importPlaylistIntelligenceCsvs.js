@@ -11,6 +11,9 @@ const PROTECTED_STATUSES = new Set(["approved", "rejected", "ignored"]);
 const COLLECTION_CODE_ALIASES = {
   "alt_r&b": "alt_rb",
 };
+const COLLECTION_FOLDER_ALIASES = {
+  alt_rb: "alt_r&b",
+};
 const ARTIST_HEADERS = [
   "artist",
   "artists",
@@ -60,6 +63,24 @@ function parseArgs(argv) {
   }
 
   return { collectionCode, options };
+}
+
+function normalizeOptions(options = {}) {
+  const normalized = {
+    dryRun: options.dryRun === true || options.dry_run === true,
+    reimport: options.reimport === true,
+    insertSources: options.insertSources !== false && options.insert_sources !== false,
+    overwriteStatus: options.overwriteStatus === true || options.overwrite_status === true,
+    status: cleanText(options.status || options.review_status || DEFAULT_STATUS),
+    confidence: Number.parseInt(options.confidence ?? options.confidence_score ?? DEFAULT_CONFIDENCE, 10),
+  };
+  if (!REVIEW_STATUSES.has(normalized.status)) {
+    throw new Error("Invalid status. Use candidate, approved, rejected, or ignored.");
+  }
+  if (!Number.isInteger(normalized.confidence) || normalized.confidence < 0 || normalized.confidence > 100) {
+    throw new Error("Invalid confidence. Use a number from 0 to 100.");
+  }
+  return normalized;
 }
 
 function cleanText(value) {
@@ -315,21 +336,29 @@ function writeArtists(db, collection, artists, summary, options) {
 }
 
 function runImport(collectionCode, options) {
+  const normalizedOptions = normalizeOptions(options);
   const db = openDatabase();
   const collection = requireCollection(db, collectionCode);
-  const { directory, files } = ensureResearchDirectory(collectionCode);
-  const { artists, summary } = collectArtistEvidence(files, collection, options, db);
+  const folderCode = COLLECTION_FOLDER_ALIASES[collectionCode] || collectionCode;
+  const { directory, files } = ensureResearchDirectory(folderCode);
+  const { artists, summary } = collectArtistEvidence(files, collection, normalizedOptions, db);
   summary.directory = directory;
-  writeArtists(db, collection, artists, summary, options);
+  writeArtists(db, collection, artists, summary, normalizedOptions);
   return summary;
 }
 
-try {
-  const { collectionCode, options } = parseArgs(process.argv);
-  console.log(JSON.stringify(runImport(collectionCode, options), null, 2));
-} catch (err) {
-  console.error(err.showUsage ? err.message : JSON.stringify({ status: "error", message: err.message }, null, 2));
-  process.exitCode = 1;
-} finally {
-  closeDatabase();
+if (require.main === module) {
+  try {
+    const { collectionCode, options } = parseArgs(process.argv);
+    console.log(JSON.stringify(runImport(collectionCode, options), null, 2));
+  } catch (err) {
+    console.error(err.showUsage ? err.message : JSON.stringify({ status: "error", message: err.message }, null, 2));
+    process.exitCode = 1;
+  } finally {
+    closeDatabase();
+  }
 }
+
+module.exports = {
+  runImport,
+};
