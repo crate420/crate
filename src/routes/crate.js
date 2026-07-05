@@ -67,6 +67,7 @@ const {
   createPlaylistIntelligenceCollection,
   deleteRow: deletePlaylistIntelligenceRow,
   getPlaylistIntelligenceCollection,
+  importArtistEvidenceCsvToCollection,
   listPlaylistIntelligenceCollections,
   updateArtist: updatePlaylistIntelligenceArtist,
   updatePlaylistIntelligenceCollection,
@@ -1007,6 +1008,15 @@ router.post("/admin/playlist-intelligence/:collectionCode/artists", requireCurre
     return res.status(201).json({ status: "ok", artist: addArtistToCollection(req.params.collectionCode, req.body || {}) });
   } catch (err) {
     if (err.statusCode) return res.status(err.statusCode).json({ error: err.code || "playlist_intelligence_artist_error", message: err.message });
+    return next(err);
+  }
+});
+
+router.post("/admin/playlist-intelligence/:collectionCode/artists/import-csv", requireCurrentUser, requireAdminUser, (req, res, next) => {
+  try {
+    return res.json(importArtistEvidenceCsvToCollection(req.params.collectionCode, req.body || {}));
+  } catch (err) {
+    if (err.statusCode) return res.status(err.statusCode).json({ error: err.code || "playlist_intelligence_artist_import_error", message: err.message });
     return next(err);
   }
 });

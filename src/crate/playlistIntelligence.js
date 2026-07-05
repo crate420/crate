@@ -31,6 +31,69 @@ function integerInRange(value, options) {
   return Math.round(numberInRange(value, options));
 }
 
+function parseCsvRows(csvText) {
+  const text = String(csvText || "").replace(/^\uFEFF/, "");
+  const rows = [];
+  let row = [];
+  let field = "";
+  let quoted = false;
+
+  for (let index = 0; index < text.length; index += 1) {
+    const char = text[index];
+    const next = text[index + 1];
+    if (quoted) {
+      if (char === "\"" && next === "\"") {
+        field += "\"";
+        index += 1;
+      } else if (char === "\"") {
+        quoted = false;
+      } else {
+        field += char;
+      }
+    } else if (char === "\"") {
+      quoted = true;
+    } else if (char === ",") {
+      row.push(field);
+      field = "";
+    } else if (char === "\n") {
+      row.push(field);
+      rows.push(row);
+      row = [];
+      field = "";
+    } else if (char !== "\r") {
+      field += char;
+    }
+  }
+  row.push(field);
+  rows.push(row);
+
+  return rows.filter((csvRow) => csvRow.some((value) => cleanText(value)));
+}
+
+function normalizeHeader(value) {
+  return normalizeCode(value);
+}
+
+function csvObjectRows(csvText) {
+  const rows = parseCsvRows(csvText);
+  if (rows.length < 2) return [];
+  const headers = rows[0].map(normalizeHeader);
+  return rows.slice(1).map((row) => Object.fromEntries(headers.map((header, index) => [header, cleanText(row[index])]))).filter((row) => Object.values(row).some(Boolean));
+}
+
+function firstCsvValue(row, keys = []) {
+  for (const key of keys) {
+    const value = cleanText(row[key]);
+    if (value) return value;
+  }
+  return "";
+}
+
+function mergeReviewStatus(left, right) {
+  const rank = { approved: 4, candidate: 3, ignored: 2, rejected: 1 };
+  return (rank[right] || 0) > (rank[left] || 0) ? right : left;
+}
+
 function requireCollection(db, codeOrId) {
   const value = cleanText(codeOrId);
   const row = /^\d+$/.test(value)
@@ -399,6 +462,125 @@ function addArtistToCollection(codeOrId, body = {}) {
   return serializeArtist(db.prepare("SELECT * FROM playlist_collection_artists WHERE id = ?").get(result.lastInsertRowid));
 }
 
+function artistEvidenceFromCsvRow(row, defaults = {}) {
+  const artistName = firstCsvValue(row, ["artist_name", "artist_names", "artist_name_s", "artist", "artists", "main_artist", "name"]);
+  const appearanceCount = firstCsvValue(row, ["appearance_count", "appearances", "appearance", "count", "playlist_count"]);
+  const evidenceCount = firstCsvValue(row, ["evidence_count", "evidence", "evidence_total"]);
+  const sourceCount = firstCsvValue(row, ["source_count", "sources", "source_playlists", "playlist_sources"]);
+  const confidenceScore = firstCsvValue(row, ["confidence_score", "confidence", "score"]);
+  const reviewStatus = firstCsvValue(row, ["review_status", "status"]) || defaults.review_status || defaults.reviewStatus || "candidate";
+  const defaultAppearanceCount = defaults.appearance_count ?? defaults.appearanceCount ?? 1;
+  return evidencePayload({
+    artist_name: artistName,
+    appearance_count: appearanceCount || defaultAppearanceCount,
+    evidence_count: evidenceCount || defaults.evidence_count || defaults.evidenceCount || appearanceCount || defaultAppearanceCount,
+    source_count: sourceCount || defaults.source_count || defaults.sourceCount || 1,
+    confidence_score: confidenceScore || defaults.confidence_score || defaults.confidenceScore || 0,
+    review_status: reviewStatus,
+    notes: firstCsvValue(row, ["notes", "note"]) || cleanText(defaults.notes),
+  }, "artist");
+}
+
+function importArtistEvidenceCsvToCollection(codeOrId, body = {}) {
+  const db = openDatabase();
+  const collection = requireCollection(db, codeOrId);
+  const rows = csvObjectRows(body.csv || body.csvText || body.content);
+  if (!rows.length) {
+    const error = new Error("CSV must include a header row and at least one artist row.");
+    error.statusCode = 400;
+    error.code = "invalid_playlist_intelligence_artist_csv";
+    throw error;
+  }
+
+  const merged = new Map();
+  const errors = [];
+  rows.forEach((row, index) => {
+    try {
+      const payload = artistEvidenceFromCsvRow(row, body.defaults || body);
+      const key = payload.artist_name.toLowerCase();
+      const current = merged.get(key);
+      if (!current) {
+        merged.set(key, payload);
+      } else {
+        merged.set(key, {
+          ...current,
+          appearance_count: current.appearance_count + payload.appearance_count,
+          evidence_count: current.evidence_count + payload.evidence_count,
+          source_count: Math.max(current.source_count, payload.source_count),
+          confidence_score: Math.max(current.confidence_score, payload.confidence_score),
+          review_status: mergeReviewStatus(current.review_status, payload.review_status),
+          approved: mergeReviewStatus(current.review_status, payload.review_status) === "approved" ? 1 : 0,
+          notes: [current.notes, payload.notes].filter(Boolean).join("\n"),
+        });
+      }
+    } catch (err) {
+      errors.push({ row_number: index + 2, message: err.message });
+    }
+  });
+
+  const rowsToImport = [...merged.values()];
+  const summary = {
+    status: "ok",
+    collection_code: collection.collection_code,
+    collection_name: collection.collection_name,
+    parsed_rows: rows.length,
+    valid_rows: rowsToImport.length,
+    error_count: errors.length,
+    inserted: 0,
+    updated: 0,
+    unchanged: 0,
+    dry_run: body.dry_run === true || body.dryRun === true,
+    errors,
+    sample: rowsToImport.slice(0, 10).map((row) => ({
+      artist_name: row.artist_name,
+      appearance_count: row.appearance_count,
+      evidence_count: row.evidence_count,
+      source_count: row.source_count,
+      confidence_score: row.confidence_score,
+      review_status: row.review_status,
+    })),
+  };
+
+  if (summary.dry_run) return summary;
+
+  const importRows = db.transaction(() => {
+    for (const payload of rowsToImport) {
+      const existing = db.prepare(`
+        SELECT * FROM playlist_collection_artists
+        WHERE collection_id = ? AND lower(artist_name) = lower(?)
+      `).get(collection.id, payload.artist_name);
+      if (existing) {
+        const result = db.prepare(`
+          UPDATE playlist_collection_artists
+          SET artist_name = @artist_name,
+              appearance_count = @appearance_count,
+              evidence_count = @evidence_count,
+              source_count = @source_count,
+              review_status = @review_status,
+              confidence_score = @confidence_score,
+              approved = @approved,
+              notes = @notes,
+              updated_at = CURRENT_TIMESTAMP
+          WHERE id = @id
+        `).run({ ...payload, id: existing.id });
+        summary.updated += result.changes ? 1 : 0;
+      } else {
+        db.prepare(`
+          INSERT INTO playlist_collection_artists
+            (collection_id, artist_name, appearance_count, evidence_count, source_count, review_status, confidence_score, approved, notes)
+          VALUES
+            (@collection_id, @artist_name, @appearance_count, @evidence_count, @source_count, @review_status, @confidence_score, @approved, @notes)
+        `).run({ ...payload, collection_id: collection.id });
+        summary.inserted += 1;
+      }
+    }
+  });
+
+  importRows();
+  summary.unchanged = summary.valid_rows - summary.inserted - summary.updated;
+  return summary;
+}
+
 function updateArtist(id, body = {}) {
   const db = openDatabase();
   const existing = db.prepare("SELECT * FROM playlist_collection_artists WHERE id = ?").get(id);
@@ -508,6 +690,7 @@ module.exports = {
   createPlaylistIntelligenceCollection,
   deleteRow,
   getPlaylistIntelligenceCollection,
+  importArtistEvidenceCsvToCollection,
   listPlaylistIntelligenceCollections,
   updateArtist,
   updatePlaylistIntelligenceCollection,

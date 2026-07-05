@@ -155,6 +155,15 @@
         '</form>';
       }
 
+      function artistImportForm() {
+        return '<form id="artistImportForm" class="form-grid">' +
+          '<label><span>Default Status</span><select name="review_status"><option value="candidate">candidate</option><option value="approved">approved</option><option value="rejected">rejected</option><option value="ignored">ignored</option></select></label>' +
+          '<label><span>Default Confidence</span><input name="confidence_score" type="number" min="0" max="100" value="70"></label>' +
+          '<label class="wide"><span>Artist Evidence CSV</span><textarea name="csv" placeholder="artist_name,appearance_count,evidence_count,source_count,confidence_score,review_status,notes"></textarea></label>' +
+          '<div class="wide row-actions"><button type="button" data-preview-artist-import>Preview Import</button><button class="primary" type="submit">Import Artist Evidence</button></div>' +
+        '</form>';
+      }
+
       function trackForm() {
         return '<form id="trackForm" class="form-grid">' +
           '<label><span>Track</span><input name="track_name" required></label>' +
@@ -231,7 +240,7 @@
         detailPanel.innerHTML = '<header><div><h2>' + escapeHtml(collection.collection_name) + '</h2><div class="mini">' + escapeHtml(collection.collection_code) + ' · ' + escapeHtml(collection.research_status) + '</div></div><a class="button" href="#researchNotes">Research Notes</a></header>' +
           '<section class="subsection">' + collectionForm(collection) + '</section>' +
           '<section class="subsection"><h3>Source Playlists</h3>' + renderSourceRows(detail.source_playlists || [], true) + '<h3 style="margin-top:14px">Excluded Playlists</h3>' + renderSourceRows(detail.source_playlists || [], false) + '<h3 style="margin-top:14px">Add Source Playlist</h3>' + sourceForm() + '</section>' +
-          '<section class="subsection"><h3>Consensus Artists</h3>' + renderArtistRows(detail.consensus_artists || []) + '<h3 style="margin-top:14px">Add Artist Evidence</h3>' + artistForm() + '</section>' +
+          '<section class="subsection"><h3>Consensus Artists</h3>' + renderArtistRows(detail.consensus_artists || []) + '<h3 style="margin-top:14px">Import Artist Evidence CSV</h3>' + artistImportForm() + '<h3 style="margin-top:14px">Add Artist Evidence</h3>' + artistForm() + '</section>' +
           '<section class="subsection"><h3>Consensus Tracks</h3>' + renderTrackRows(detail.consensus_tracks || []) + '<h3 style="margin-top:14px">Add Track Evidence</h3>' + trackForm() + '</section>';
       }
 
@@ -295,6 +304,24 @@
         setMessage('Added ' + kind + ' evidence.');
       }
 
+      async function importArtistCsv(event, dryRun = false) {
+        event.preventDefault();
+        const form = event.currentTarget;
+        const code = state.detail.collection.collection_code;
+        const payload = {
+          csv: formValue(form, 'csv'),
+          review_status: formValue(form, 'review_status'),
+          confidence_score: formValue(form, 'confidence_score'),
+          dry_run: dryRun,
+        };
+        const result = await requestJson('/crate/admin/playlist-intelligence/' + encodeURIComponent(code) + '/artists/import-csv', {
+          method: 'POST',
+          body: JSON.stringify(payload),
+        });
+        if (!dryRun) await loadCollections(code);
+        setMessage((dryRun ? 'Preview: ' : 'Imported: ') + result.valid_rows + ' valid artist row(s), ' + result.inserted + ' inserted, ' + result.updated + ' updated, ' + result.error_count + ' error(s).' );
+      }
+
       async function saveRow(row, kind, id) {
         const payload = rowPayload(row);
         const plural = kind + 's';
@@ -319,6 +346,7 @@
             if (event.target.id === 'collectionForm') await saveCollection(event);
             if (event.target.id === 'sourceForm') await addFromForm(event, 'source');
             if (event.target.id === 'artistForm') await addFromForm(event, 'artist');
+            if (event.target.id === 'artistImportForm') await importArtistCsv(event, false);
             if (event.target.id === 'trackForm') await addFromForm(event, 'track');
           } catch (err) {
             setMessage(err.message, true);
@@ -334,6 +362,7 @@
             if (target.matches('[data-delete-source]')) await deleteRow('source', sourceRow.dataset.sourceId);
             if (target.matches('[data-save-artist]')) await saveRow(artistRow, 'artist', artistRow.dataset.artistId);
             if (target.matches('[data-delete-artist]')) await deleteRow('artist', artistRow.dataset.artistId);
+            if (target.matches('[data-preview-artist-import]')) await importArtistCsv({ preventDefault(){}, currentTarget: target.closest('form') }, true);
             if (target.matches('[data-save-track]')) await saveRow(trackRow, 'track', trackRow.dataset.trackId);
             if (target.matches('[data-delete-track]')) await deleteRow('track', trackRow.dataset.trackId);
           } catch (err) {
