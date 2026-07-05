@@ -36,6 +36,22 @@ function createApp() {
     res.sendFile(path.join(config.rootDir, "public/admin.html"));
   });
 
+  app.get("/admin-users.html", requireAdminPage, (req, res) => {
+    res.sendFile(path.join(config.rootDir, "public/admin-users.html"));
+  });
+
+  app.get("/admin-intelligence.html", requireAdminPage, (req, res) => {
+    res.sendFile(path.join(config.rootDir, "public/admin-intelligence.html"));
+  });
+
+  app.get("/admin-playlists-v2.html", requireAdminPage, (req, res) => {
+    res.sendFile(path.join(config.rootDir, "public/admin-playlists-v2.html"));
+  });
+
+  app.get("/admin-system.html", requireAdminPage, (req, res) => {
+    res.sendFile(path.join(config.rootDir, "public/admin-system.html"));
+  });
+
   app.get("/admin-review.html", requireAdminPage, (req, res) => {
     res.sendFile(path.join(config.rootDir, "public/admin-review.html"));
   });

@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Crate Intelligence Center</title>
+    <link rel="stylesheet" href="/admin.css">
+  </head>
+  <body data-admin-section="intelligence">
+    <main>
+      <header class="admin-page-header">
+        <div>
+          <h1>Intelligence Center</h1>
+          <p>One workspace for review, artist evidence, track evidence, playlist intelligence, coverage, and diagnostics.</p>
+        </div>
+        <button class="primary" id="refreshButton" type="button">Refresh</button>
+      </header>
+
+      <div class="admin-message" id="message">Loading intelligence workspace...</div>
+
+      <section class="admin-panel" data-admin-tabs>
+        <div class="admin-tabs" role="tablist">
+          <button class="admin-tab is-active" data-tab-target="review" type="button">Review Queue</button>
+          <button class="admin-tab" data-tab-target="artist" type="button">Artist Intelligence</button>
+          <button class="admin-tab" data-tab-target="track" type="button">Track Intelligence</button>
+          <button class="admin-tab" data-tab-target="playlist" type="button">Playlist Intelligence</button>
+          <button class="admin-tab" data-tab-target="coverage" type="button">Coverage</button>
+          <button class="admin-tab" data-tab-target="diagnostics" type="button">Diagnostics</button>
+        </div>
+
+        <div data-tab-panel="review">
+          <div class="admin-panel-header">
+            <div>
+              <h2>Review Queue</h2>
+              <p>Approvals stay in the existing focused tools for Phase 1. This tab is the new front door.</p>
+            </div>
+          </div>
+          <div class="admin-stats" id="reviewStats"></div>
+          <div class="admin-link-grid" style="margin-top:12px">
+            <a class="admin-card" href="/admin-artist-recommendations.html"><h3>Artist Recommendations</h3><p>Review Artist Intelligence and Playlist Intelligence evidence before writing artist genres.</p></a>
+            <a class="admin-card" href="/admin-genre-recommendations.html"><h3>Genre Recommendations</h3><p>Existing genre recommendation approval workflow.</p></a>
+            <a class="admin-card" href="/admin-recommendation-impact.html"><h3>Recommendation Impact</h3><p>Inspect approval value before running recovery work.</p></a>
+          </div>
+        </div>
+
+        <div data-tab-panel="artist" hidden>
+          <div class="admin-panel-header"><h2>Artist Intelligence</h2></div>
+          <div class="admin-stats" id="artistStats"></div>
+          <div class="admin-link-grid" style="margin-top:12px">
+            <a class="admin-card" href="/admin-artist-intelligence.html"><h3>Artist Intelligence Cache</h3><p>Inspect cached Spotify, Last.fm, and MusicBrainz evidence.</p></a>
+            <a class="admin-card" href="/admin-artist-gap-analysis.html"><h3>Artist Gaps</h3><p>Find high-impact missing artist evidence.</p></a>
+          </div>
+        </div>
+
+        <div data-tab-panel="track" hidden>
+          <div class="admin-panel-header"><h2>Track Intelligence</h2></div>
+          <div class="admin-stats" id="trackStats"></div>
+          <div class="admin-link-grid" style="margin-top:12px">
+            <a class="admin-card" href="/admin-track-intelligence.html"><h3>Track Intelligence</h3><p>Review track-level evidence and playlist candidates.</p></a>
+            <a class="admin-card" href="/admin-era-diagnostics.html"><h3>Era Diagnostics</h3><p>Review remaster and release-year evidence.</p></a>
+          </div>
+        </div>
+
+        <div data-tab-panel="playlist" hidden>
+          <div class="admin-panel-header"><h2>Playlist Intelligence</h2></div>
+          <div class="admin-stats" id="playlistStats"></div>
+          <div class="admin-link-grid" style="margin-top:12px">
+            <a class="admin-card" href="/admin-playlist-intelligence.html"><h3>Playlist Intelligence</h3><p>Review collection definitions, source playlists, consensus artists, and tracks.</p></a>
+          </div>
+        </div>
+
+        <div data-tab-panel="coverage" hidden>
+          <div class="admin-panel-header"><h2>Coverage</h2></div>
+          <div class="admin-stats" id="coverageStats"></div>
+          <div class="admin-link-grid" style="margin-top:12px">
+            <a class="admin-card" href="/admin-intelligence-coverage.html"><h3>Intelligence Coverage</h3><p>Read-only coverage and readiness report.</p></a>
+            <a class="admin-card" href="/admin-dna-evidence-quality.html"><h3>DNA Evidence Quality</h3><p>Playlist evidence quality and readiness ranking.</p></a>
+          </div>
+        </div>
+
+        <div data-tab-panel="diagnostics" hidden>
+          <div class="admin-panel-header"><h2>Diagnostics</h2></div>
+          <div class="admin-link-grid">
+            <a class="admin-card" href="/admin-unmatched-diagnostics.html"><h3>Unmatched Forensics</h3><p>Track-level unmatched diagnostics.</p></a>
+            <a class="admin-card" href="/admin-learning.html"><h3>Learning Signals</h3><p>Existing learning signal reports.</p></a>
+            <a class="admin-card" href="/admin-playlist-dna-validation.html"><h3>Playlist DNA Validation</h3><p>Validate playlist DNA behavior.</p></a>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script src="/adminShell.js"></script>
+    <script>
+      const message = document.getElementById('message');
+      const refreshButton = document.getElementById('refreshButton');
+      const reviewStats = document.getElementById('reviewStats');
+      const artistStats = document.getElementById('artistStats');
+      const trackStats = document.getElementById('trackStats');
+      const playlistStats = document.getElementById('playlistStats');
+      const coverageStats = document.getElementById('coverageStats');
+
+      function stat(label, value) {
+        return '<div class="admin-stat"><strong>' + CrateAdmin.escapeHtml(value ?? '-') + '</strong><span>' + CrateAdmin.escapeHtml(label) + '</span></div>';
+      }
+
+      async function maybe(url) {
+        try { return await CrateAdmin.requestJson(url); }
+        catch (error) { return { error: error.message }; }
+      }
+
+      async function loadIntelligence() {
+        refreshButton.disabled = true;
+        message.textContent = 'Loading intelligence workspace...';
+        message.className = 'admin-message';
+        try {
+          const [artistRecommendations, genreRecommendations, artistIntelligence, trackIntelligence, playlistIntelligence, coverage] = await Promise.all([
+            maybe('/crate/admin/artist-intelligence/recommendations?confidence_min=85&limit=50'),
+            maybe('/crate/admin/genre-recommendations?limit=50'),
+            maybe('/crate/admin/artist-intelligence?limit=1'),
+            maybe('/crate/admin/track-intelligence?limit=1'),
+            maybe('/crate/admin/playlist-intelligence'),
+            maybe('/crate/admin/intelligence-coverage'),
+          ]);
+
+          reviewStats.innerHTML = [
+            stat('Artist Review Candidates', CrateAdmin.formatNumber(artistRecommendations.count || 0)),
+            stat('Genre Recommendations', CrateAdmin.formatNumber(genreRecommendations.recommendation_count || genreRecommendations.count || 0)),
+            stat('Approval Tools', 3),
+          ].join('');
+          artistStats.innerHTML = [
+            stat('Artist Rows', CrateAdmin.formatNumber(artistIntelligence.summary?.total || artistIntelligence.summary?.total_artists || 0)),
+            stat('Pending', CrateAdmin.formatNumber(artistIntelligence.summary?.pending || 0)),
+            stat('Sources', 'Spotify / Last.fm / MB'),
+          ].join('');
+          trackStats.innerHTML = [
+            stat('Track Rows', CrateAdmin.formatNumber(trackIntelligence.summary?.total || trackIntelligence.count || 0)),
+            stat('Profiles', CrateAdmin.formatNumber(trackIntelligence.summary?.profile_count || 0)),
+            stat('Era Evidence', 'Diagnostics'),
+          ].join('');
+          playlistStats.innerHTML = [
+            stat('Collections', CrateAdmin.formatNumber(playlistIntelligence.summary?.collection_count || 0)),
+            stat('Sources', CrateAdmin.formatNumber(playlistIntelligence.summary?.source_playlist_count || 0)),
+            stat('Approved Artists', CrateAdmin.formatNumber(playlistIntelligence.summary?.approved_artist_count || 0)),
+          ].join('');
+          coverageStats.innerHTML = [
+            stat('Total Artists', CrateAdmin.formatNumber(coverage.summary?.total_artists || coverage.overall_coverage?.total_artists || 0)),
+            stat('Total Tracks', CrateAdmin.formatNumber(coverage.summary?.total_tracks || coverage.track_coverage?.total_tracks || 0)),
+            stat('Recoverable', CrateAdmin.formatNumber(coverage.summary?.estimated_recoverable_tracks || 0)),
+          ].join('');
+          message.textContent = 'Intelligence workspace loaded.';
+        } catch (error) {
+          message.textContent = error.message;
+          message.className = 'admin-message error';
+        } finally {
+          refreshButton.disabled = false;
+        }
+      }
+
+      refreshButton.addEventListener('click', loadIntelligence);
+      loadIntelligence();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Crate Admin Users</title>
+    <link rel="stylesheet" href="/admin.css">
+  </head>
+  <body data-admin-section="users">
+    <main>
+      <header class="admin-page-header">
+        <div><h1>Users</h1><p>Phase 2 home for user list, library status, unmatched detail, exports, and rescans.</p></div>
+      </header>
+      <section class="admin-panel">
+        <div class="admin-tabs">
+          <button class="admin-tab is-active" type="button">Overview</button>
+          <button class="admin-tab" type="button">Library</button>
+          <button class="admin-tab" type="button">Unmatched</button>
+          <button class="admin-tab" type="button">Export</button>
+        </div>
+        <div class="admin-placeholder">Phase 2 will merge User Diagnostics, User Unmatched Export, and relevant unmatched diagnostics here.</div>
+        <div class="admin-link-grid" style="margin-top:14px">
+          <a class="admin-card" href="/admin-user-diagnostics.html"><h3>User Diagnostics</h3><p>Legacy page remains available.</p></a>
+          <a class="admin-card" href="/admin-user-unmatched-export.html"><h3>User Unmatched Export</h3><p>Legacy page remains available.</p></a>
+        </div>
+      </section>
+    </main>
+    <script src="/adminShell.js"></script>
+  </body>
+</html>

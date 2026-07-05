@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Crate Admin System</title>
+    <link rel="stylesheet" href="/admin.css">
+  </head>
+  <body data-admin-section="system">
+    <main>
+      <header class="admin-page-header">
+        <div><h1>System</h1><p>Phase 2 home for jobs, imports, rescans, manual tools, diagnostics, and dangerous actions.</p></div>
+      </header>
+      <section class="admin-panel">
+        <div class="admin-tabs">
+          <button class="admin-tab is-active" type="button">Jobs</button>
+          <button class="admin-tab" type="button">Imports</button>
+          <button class="admin-tab" type="button">Rescans</button>
+          <button class="admin-tab" type="button">Manual Tools</button>
+          <button class="admin-tab" type="button">Diagnostics</button>
+        </div>
+        <div class="admin-placeholder">Phase 2 will move refresh jobs, imports, rescans, and dangerous manual tools here with stronger separation.</div>
+        <div class="admin-link-grid" style="margin-top:14px">
+          <a class="admin-card" href="/admin-genre-recommendation-rescan.html"><h3>Recommendation Rescan</h3><p>Legacy page remains available but hidden from top-level nav.</p></a>
+          <a class="admin-card" href="/admin-unmatched.html"><h3>Manual Track Assignment</h3><p>Legacy page remains available but hidden from top-level nav.</p></a>
+          <a class="admin-card" href="/admin-artist-enrichment-queue.html"><h3>Artist Enrichment Queue</h3><p>Legacy page remains available but hidden from top-level nav.</p></a>
+        </div>
+      </section>
+    </main>
+    <script src="/adminShell.js"></script>
+  </body>
+</html>

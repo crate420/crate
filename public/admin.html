@@ -3,413 +3,144 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Crate Admin</title>
-    <style>
-      :root {
-        color-scheme: dark;
-        --bg: #07112b;
-        --panel: rgba(9, 20, 48, 0.92);
-        --line: rgba(52, 211, 238, 0.32);
-        --text: #f8fafc;
-        --muted: #b8c0d4;
-        --cyan: #21d4d4;
-        --pink: #f02aa8;
-        --orange: #ff8a4c;
-        --blue: #4f8df7;
-        --danger: #ff9da8;
-        --action: #21d4d4;
-      }
-      * { box-sizing: border-box; }
-      body {
-        margin: 0;
-        background: radial-gradient(circle at top left, rgba(240, 42, 168, 0.16), transparent 34rem), #07112b;
-        color: var(--text);
-        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-        font-size: 14px;
-      }
-      main { width: min(1240px, calc(100% - 32px)); margin: 0 auto; padding: 32px 0 56px; }
-      header { display: grid; gap: 14px; margin-bottom: 22px; }
-      h1, h2, h3 { margin: 0; line-height: 1.15; }
-      h1 {
-        font-size: clamp(2rem, 5vw, 4.5rem);
-        text-transform: uppercase;
-        background: linear-gradient(90deg, var(--pink), var(--orange), var(--blue), var(--cyan));
-        -webkit-background-clip: text;
-        background-clip: text;
-        color: transparent;
-      }
-      h2 { font-size: 1.15rem; }
-      h3 { font-size: 1rem; }
-      p { color: var(--muted); line-height: 1.5; margin: 6px 0 0; }
-      .message { min-height: 22px; color: var(--muted); }
-      .message.error { color: var(--danger); }
-      .layout { display: grid; gap: 16px; }
-      .section, .tool-card {
-        border: 1px solid var(--line);
-        border-radius: 12px;
-        background: var(--panel);
-        padding: 16px;
-      }
-      .section-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
-      .tool-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
-      .tool-card { display: grid; gap: 8px; min-height: 132px; text-decoration: none; color: var(--text); }
-      .tool-card:hover { border-color: var(--cyan); }
-      .tool-card span { color: var(--muted); line-height: 1.45; }
-      .group-title { color: var(--cyan); font-size: 0.78rem; font-weight: 900; letter-spacing: 0.08em; text-transform: uppercase; margin: 8px 0 10px; }
-      .nav, .actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
-      button, .button {
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        background: rgba(255, 255, 255, 0.06);
-        color: var(--text);
-        cursor: pointer;
-        display: inline-flex;
-        align-items: center;
-        min-height: 34px;
-        padding: 8px 11px;
-        font: inherit;
-        font-weight: 800;
-        text-decoration: none;
-      }
-      button.primary, .button.primary { background: rgba(33, 212, 212, 0.14); border-color: var(--cyan); color: var(--cyan); }
-      button:disabled { cursor: not-allowed; opacity: 0.55; }
-      .counts { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 12px; }
-      .count { border: 1px solid rgba(184, 192, 212, 0.2); border-radius: 10px; padding: 12px; background: rgba(255,255,255,0.035); }
-      .label { color: var(--muted); font-size: 12px; font-weight: 800; text-transform: uppercase; }
-      .value { font-size: 22px; font-weight: 900; margin-top: 4px; }
-      .runs { display: grid; gap: 6px; margin-bottom: 12px; }
-      .run { color: var(--muted); }
-      pre { background: rgba(0, 0, 0, 0.28); border: 1px solid rgba(184, 192, 212, 0.16); border-radius: 10px; color: #e7edf6; margin: 0; max-height: 420px; overflow: auto; padding: 12px; white-space: pre-wrap; word-break: break-word; }
-      @media (max-width: 760px) { main { width: min(100% - 20px, 1240px); } .section-header { align-items: flex-start; flex-direction: column; } }
-    </style>
+    <title>Crate Admin Dashboard</title>
+    <link rel="stylesheet" href="/admin.css">
   </head>
-  <body>
+  <body data-admin-section="dashboard">
     <main>
-      <header>
+      <header class="admin-page-header">
         <div>
-          <h1>Crate Admin</h1>
-          <p>One launchpad for diagnostics, recommendations, intelligence, and validation tools.</p>
-          <div class="message" id="message"></div>
+          <h1>Dashboard</h1>
+          <p>System health, user stats, library stats, recent jobs, and warnings.</p>
         </div>
-        <nav data-admin-nav></nav>
+        <button class="primary" id="refreshButton" type="button">Refresh</button>
       </header>
 
-      <section class="section">
-        <div class="section-header"><h2>Active Admin Tools</h2></div>
-        <div class="layout">
-          <div>
-            <div class="group-title">Dashboard</div>
-            <div class="tool-grid">
-              <a class="tool-card" href="/admin-user-diagnostics.html"><h3>User Diagnostics</h3><span>Compare match rate, unmatched artists, genres, and reasons by user.</span></a>
-              <a class="tool-card" href="/admin-user-unmatched-export.html"><h3>User Unmatched Export</h3><span>Export user-specific unmatched evidence for spreadsheet analysis.</span></a>
-            </div>
+      <div class="admin-message" id="message">Loading dashboard...</div>
+
+      <section class="admin-grid">
+        <div class="admin-panel">
+          <div class="admin-panel-header"><h2>System Health</h2></div>
+          <div class="admin-stats" id="healthStats"></div>
+        </div>
+
+        <div class="admin-grid two">
+          <div class="admin-panel">
+            <div class="admin-panel-header"><h2>User Statistics</h2></div>
+            <div class="admin-stats" id="userStats"></div>
           </div>
-          <div>
-            <div class="group-title">Recommendations</div>
-            <div class="tool-grid">
-              <a class="tool-card" href="/admin-genre-recommendations.html"><h3>Genre Recommendations</h3><span>Review pending artist fallback recommendations from cached intelligence.</span></a>
-              <a class="tool-card" href="/admin-genre-recommendation-rescan.html"><h3>Recommendation Rescan</h3><span>Apply approved recommendation gains to selected users only.</span></a>
-              <a class="tool-card" href="/admin-recommendation-impact.html"><h3>Recommendation Impact</h3><span>Measure estimated versus actual recovery from approvals and rescans.</span></a>
-              <a class="tool-card" href="/admin-artist-gap-analysis.html"><h3>Artist Gaps</h3><span>Find highest-impact missing artists across users.</span></a>
-            </div>
+          <div class="admin-panel">
+            <div class="admin-panel-header"><h2>Library Statistics</h2></div>
+            <div class="admin-stats" id="libraryStats"></div>
           </div>
-          <div>
-            <div class="group-title">Intelligence</div>
-            <div class="tool-grid">
-              <a class="tool-card" href="/admin-artist-intelligence.html"><h3>Artist Intelligence</h3><span>Inspect cached Spotify, Last.fm, and MusicBrainz evidence.</span></a>
-              <a class="tool-card" href="/admin-artist-enrichment-queue.html"><h3>Artist Enrichment Queue</h3><span>Prioritize missing artist evidence for unmatched tracks.</span></a>
-              <a class="tool-card" href="/admin-intelligence-coverage.html"><h3>Intelligence Coverage</h3><span>Track artist and track intelligence coverage across the library.</span></a>
-              <a class="tool-card" href="/admin-track-intelligence.html"><h3>Track Intelligence</h3><span>Review track-level evidence and playlist fit candidates.</span></a>
-              <a class="tool-card" href="/admin-track-learning.html"><h3>Track Learning</h3><span>Generate and inspect backend-only derived track profiles.</span></a>
-            </div>
+        </div>
+
+        <div class="admin-grid two">
+          <div class="admin-panel">
+            <div class="admin-panel-header"><h2>Recent Jobs</h2></div>
+            <div id="recentJobs" class="admin-grid"></div>
           </div>
-          <div>
-            <div class="group-title">Validation</div>
-            <div class="tool-grid">
-              <a class="tool-card" href="/admin-playlist-seeds.html"><h3>Playlist Seeds</h3><span>Review curated specialty playlist seed sources and cache state.</span></a>
-              <a class="tool-card" href="/admin-specialty-validation.html"><h3>Specialty Validation</h3><span>Validate specialty playlist matches and false-positive risk.</span></a>
-              <a class="tool-card" href="/admin-playlist-dna-validation.html"><h3>Playlist DNA Validation</h3><span>See playlist DNA self-test results and unmatched DNA matches.</span></a>
-              <a class="tool-card" href="/admin-dna-evidence-quality.html"><h3>DNA Evidence Quality</h3><span>Assess which playlists have trustworthy evidence coverage.</span></a>
-              <a class="tool-card" href="/admin-era-diagnostics.html"><h3>Era Diagnostics</h3><span>Review remaster and reissue era suspects.</span></a>
-              <a class="tool-card" href="/admin-unmatched-diagnostics.html"><h3>Unmatched Forensics</h3><span>Inspect why tracks are unmatched without changing sorting.</span></a>
-            </div>
+          <div class="admin-panel">
+            <div class="admin-panel-header"><h2>Warnings / Alerts</h2></div>
+            <div id="warnings" class="admin-grid"></div>
           </div>
         </div>
       </section>
-
-      <div class="layout">
-        <section class="section">
-          <div class="section-header">
-            <h2>Crate Status</h2>
-            <button class="primary" id="refreshStatusButton" type="button">Refresh status</button>
-          </div>
-          <div class="counts" id="counts"></div>
-          <div class="runs" id="runs"></div>
-          <pre id="statusJson">{}</pre>
-        </section>
-
-        <section class="section">
-          <div class="section-header">
-            <h2>Tester Registrations</h2>
-            <button class="primary" id="refreshBetaClaimsButton" type="button">Refresh tester registrations</button>
-          </div>
-          <div class="message">Shows tester registrations with submitted name/email and Spotify connection details when available.</div>
-          <pre id="betaClaimsJson">{}</pre>
-        </section>
-
-        <section class="section">
-          <div class="section-header">
-            <h2>Training Data</h2>
-            <div class="actions">
-              <button class="primary" id="importArtistGenresButton" type="button">Import artist genres</button>
-              <button id="importAndResortButton" type="button">Import + resort all</button>
-            </div>
-          </div>
-          <div class="message">Imports the deployed artist genre seed, then optionally re-sorts only the current user's tracks.</div>
-          <pre id="artistGenreImportJson">{}</pre>
-        </section>
-
-        <section class="section">
-          <div class="section-header">
-            <h2>Sorting Actions</h2>
-            <button class="primary" id="resortAllButton" type="button">Run resort-all</button>
-          </div>
-          <pre id="resortJson">{}</pre>
-        </section>
-
-        <section class="section">
-          <div class="section-header">
-            <h2>Playlist Actions</h2>
-            <button class="primary" id="playlistSyncButton" type="button">Run playlist sync</button>
-          </div>
-          <pre id="playlistSyncJson">{}</pre>
-        </section>
-      </div>
     </main>
 
-    <script src="/adminNav.js"></script>
+    <script src="/adminShell.js"></script>
     <script>
-      const messageEl = document.getElementById("message");
-      const countsEl = document.getElementById("counts");
-      const runsEl = document.getElementById("runs");
-      const statusJsonEl = document.getElementById("statusJson");
-      const betaClaimsJsonEl = document.getElementById("betaClaimsJson");
-      const artistGenreImportJsonEl = document.getElementById("artistGenreImportJson");
-      const resortJsonEl = document.getElementById("resortJson");
-      const playlistSyncJsonEl = document.getElementById("playlistSyncJson");
-      const refreshStatusButton = document.getElementById("refreshStatusButton");
-      const refreshBetaClaimsButton = document.getElementById("refreshBetaClaimsButton");
-      const importArtistGenresButton = document.getElementById("importArtistGenresButton");
-      const importAndResortButton = document.getElementById("importAndResortButton");
-      const resortAllButton = document.getElementById("resortAllButton");
-      const playlistSyncButton = document.getElementById("playlistSyncButton");
+      const message = document.getElementById('message');
+      const refreshButton = document.getElementById('refreshButton');
+      const healthStats = document.getElementById('healthStats');
+      const userStats = document.getElementById('userStats');
+      const libraryStats = document.getElementById('libraryStats');
+      const recentJobs = document.getElementById('recentJobs');
+      const warnings = document.getElementById('warnings');
 
-      function setMessage(text, isError = false) {
-        messageEl.textContent = text || "";
-        messageEl.classList.toggle("error", Boolean(isError));
+      function stat(label, value) {
+        return '<div class="admin-stat"><strong>' + CrateAdmin.escapeHtml(value ?? '-') + '</strong><span>' + CrateAdmin.escapeHtml(label) + '</span></div>';
       }
 
-      function formatJson(value) {
-        return JSON.stringify(value, null, 2);
+      function compactJob(label, run) {
+        if (!run) return '<div class="admin-placeholder">' + CrateAdmin.escapeHtml(label) + ': no recent run found.</div>';
+        const bits = [
+          run.created_at || run.started_at || run.fetched_at,
+          run.status,
+          run.matched_tracks != null ? CrateAdmin.formatNumber(run.matched_tracks) + ' matched' : '',
+          run.unmatched_tracks != null ? CrateAdmin.formatNumber(run.unmatched_tracks) + ' unmatched' : '',
+        ].filter(Boolean).join(' · ');
+        return '<div class="admin-card"><h3>' + CrateAdmin.escapeHtml(label) + '</h3><p>' + CrateAdmin.escapeHtml(bits || 'Recent job recorded.') + '</p></div>';
       }
 
-      async function requestJson(url, options = {}) {
-        const response = await fetch(url, {
-          credentials: "include",
-          headers: {
-            "Content-Type": "application/json",
-            ...(options.headers || {}),
-          },
-          ...options,
-        });
-        const body = await response.json().catch(() => ({}));
-
-        if (!response.ok) {
-          throw new Error(body.message || body.error || `Request failed: ${response.status}`);
-        }
-
-        return body;
+      function warning(text) {
+        return '<div class="admin-placeholder">' + CrateAdmin.escapeHtml(text) + '</div>';
       }
 
-      function renderCount(label, value) {
-        const wrapper = document.createElement("div");
-        const labelEl = document.createElement("div");
-        const valueEl = document.createElement("div");
-
-        wrapper.className = "count";
-        labelEl.className = "label";
-        valueEl.className = "value";
-        labelEl.textContent = label;
-        valueEl.textContent = value ?? "null";
-        wrapper.append(labelEl, valueEl);
-
-        return wrapper;
+      function latest(array) {
+        return Array.isArray(array) && array.length ? array[0] : null;
       }
 
-      function renderRun(label, value) {
-        const wrapper = document.createElement("div");
-        wrapper.className = "run";
-        wrapper.textContent = `${label}: ${value}`;
-        return wrapper;
+      function renderWarnings(status, diagnostics, coverage) {
+        const items = [];
+        const users = diagnostics.users || [];
+        const unmatched = users.reduce((sum, user) => sum + Number(user.unmatched_tracks || user.total_unmatched_tracks || 0), 0);
+        if (unmatched > 0) items.push(CrateAdmin.formatNumber(unmatched) + ' unmatched tracks remain across users.');
+        if ((coverage.summary?.estimated_recoverable_tracks || 0) > 0) items.push(CrateAdmin.formatNumber(coverage.summary.estimated_recoverable_tracks) + ' potentially recoverable tracks in intelligence coverage.');
+        if ((status.spotify_config?.ok || status.spotify?.configured) === false) items.push('Spotify configuration is incomplete.');
+        warnings.innerHTML = items.length ? items.map(warning).join('') : warning('No dashboard warnings from current read-only checks.');
       }
 
-      function runSummary(run) {
-        if (!run) {
-          return "None";
-        }
-
-        const id = run.run_id || run.id;
-        const status = run.status ? ` ${run.status}` : "";
-        const completed = run.completed_at || run.finished_at || run.started_at || "";
-
-        return `#${id || "?"}${status}${completed ? ` at ${completed}` : ""}`;
-      }
-
-      function renderStatus(status) {
-        countsEl.replaceChildren(
-          renderCount("Total tracks", status.total_tracks_count),
-          renderCount("Matched", status.matched_tracks_count),
-          renderCount("Unmatched", status.unmatched_tracks_count),
-          renderCount("Artist genres", status.total_artist_genres_count),
-        );
-
-        runsEl.replaceChildren(
-          renderRun("Last sync run", runSummary(status.last_sync_run)),
-          renderRun("Last sort run", runSummary(status.last_sort_run)),
-          renderRun("Last playlist sync", runSummary(status.last_playlist_sync_run)),
-        );
-
-        statusJsonEl.textContent = formatJson(status);
-      }
-
-      async function refreshStatus() {
-        refreshStatusButton.disabled = true;
-        setMessage("Refreshing status...");
-
+      async function loadDashboard() {
+        refreshButton.disabled = true;
+        message.textContent = 'Loading dashboard...';
+        message.className = 'admin-message';
         try {
-          const status = await requestJson("/crate/admin/status");
-          renderStatus(status);
-          setMessage("Status refreshed.");
-        } catch (err) {
-          setMessage(err.message, true);
-          statusJsonEl.textContent = formatJson({ error: err.message });
+          const [health, status, diagnostics, coverage] = await Promise.all([
+            CrateAdmin.requestJson('/health'),
+            CrateAdmin.requestJson('/crate/admin/status'),
+            CrateAdmin.requestJson('/crate/admin/user-diagnostics'),
+            CrateAdmin.requestJson('/crate/admin/intelligence-coverage'),
+          ]);
+
+          const users = diagnostics.users || [];
+          const liked = users.reduce((sum, user) => sum + Number(user.total_liked_tracks || 0), 0);
+          const matched = users.reduce((sum, user) => sum + Number(user.matched_tracks || 0), 0);
+          const unmatched = users.reduce((sum, user) => sum + Number(user.unmatched_tracks || user.total_unmatched_tracks || 0), 0);
+          const matchPct = liked ? Math.round((matched / liked) * 1000) / 10 + '%' : '-';
+
+          healthStats.innerHTML = [
+            stat('Service', health.status || status.status || '-'),
+            stat('Uptime', health.uptime_seconds ? CrateAdmin.formatNumber(Math.round(health.uptime_seconds)) + 's' : '-'),
+            stat('Environment', status.environment || '-'),
+          ].join('');
+          userStats.innerHTML = [
+            stat('Users', users.length),
+            stat('Liked Songs', CrateAdmin.formatNumber(liked)),
+            stat('Match Rate', matchPct),
+          ].join('');
+          libraryStats.innerHTML = [
+            stat('Matched', CrateAdmin.formatNumber(matched)),
+            stat('Unmatched', CrateAdmin.formatNumber(unmatched)),
+            stat('Coverage Score', coverage.summary?.overall_readiness_score ?? coverage.readiness_progress?.current?.A ?? '-'),
+          ].join('');
+          recentJobs.innerHTML = [
+            compactJob('Latest Scan', latest(status.recent_scan_runs || status.scan_runs)),
+            compactJob('Latest Sort', latest(status.recent_sort_runs || status.sort_runs)),
+            compactJob('Latest Playlist Sync', latest(status.recent_playlist_sync_runs || status.playlist_sync_runs)),
+          ].join('');
+          renderWarnings(status, diagnostics, coverage);
+          message.textContent = 'Dashboard loaded.';
+        } catch (error) {
+          message.textContent = error.message;
+          message.className = 'admin-message error';
         } finally {
-          refreshStatusButton.disabled = false;
+          refreshButton.disabled = false;
         }
       }
 
-      async function refreshBetaClaims() {
-        refreshBetaClaimsButton.disabled = true;
-        setMessage("Refreshing tester registrations...");
-
-        try {
-          const result = await requestJson("/crate/admin/beta-claims");
-          betaClaimsJsonEl.textContent = formatJson(result);
-          setMessage("Tester registrations refreshed.");
-        } catch (err) {
-          setMessage(err.message, true);
-          betaClaimsJsonEl.textContent = formatJson({ error: err.message });
-        } finally {
-          refreshBetaClaimsButton.disabled = false;
-        }
-      }
-
-      async function importArtistGenres() {
-        importArtistGenresButton.disabled = true;
-        importAndResortButton.disabled = true;
-        setMessage("Importing artist genre seed...");
-
-        try {
-          const result = await requestJson("/crate/admin/import-artist-genres", { method: "POST" });
-          artistGenreImportJsonEl.textContent = formatJson(result);
-          setMessage("Artist genre import complete.");
-          await refreshStatus();
-          return result;
-        } catch (err) {
-          setMessage(err.message, true);
-          artistGenreImportJsonEl.textContent = formatJson({ error: err.message });
-          throw err;
-        } finally {
-          importArtistGenresButton.disabled = false;
-          importAndResortButton.disabled = false;
-        }
-      }
-
-      async function runResortAll() {
-        resortAllButton.disabled = true;
-        setMessage("Running resort-all...");
-
-        try {
-          const result = await requestJson("/crate/admin/resort-all", { method: "POST" });
-          resortJsonEl.textContent = formatJson(result);
-          setMessage("Resort-all complete.");
-          await refreshStatus();
-          return result;
-        } catch (err) {
-          setMessage(err.message, true);
-          resortJsonEl.textContent = formatJson({ error: err.message });
-          throw err;
-        } finally {
-          resortAllButton.disabled = false;
-        }
-      }
-
-      async function importArtistGenresAndResort() {
-        importArtistGenresButton.disabled = true;
-        importAndResortButton.disabled = true;
-        resortAllButton.disabled = true;
-        setMessage("Importing artist genres, then running resort-all...");
-
-        try {
-          const importResult = await requestJson("/crate/admin/import-artist-genres", { method: "POST" });
-          artistGenreImportJsonEl.textContent = formatJson(importResult);
-          const resortResult = await requestJson("/crate/admin/resort-all", { method: "POST" });
-          resortJsonEl.textContent = formatJson(resortResult);
-          setMessage("Artist genre import and resort-all complete.");
-          await refreshStatus();
-        } catch (err) {
-          setMessage(err.message, true);
-          const currentImport = artistGenreImportJsonEl.textContent || "{}";
-          artistGenreImportJsonEl.textContent = currentImport === "{}"
-            ? formatJson({ error: err.message })
-            : currentImport;
-          resortJsonEl.textContent = formatJson({ error: err.message });
-        } finally {
-          importArtistGenresButton.disabled = false;
-          importAndResortButton.disabled = false;
-          resortAllButton.disabled = false;
-        }
-      }
-
-      async function runPlaylistSync() {
-        playlistSyncButton.disabled = true;
-        setMessage("Running playlist sync...");
-
-        try {
-          const result = await requestJson("/crate/playlists/sync", { method: "POST" });
-          playlistSyncJsonEl.textContent = formatJson(result);
-          setMessage("Playlist sync complete.");
-          await refreshStatus();
-        } catch (err) {
-          setMessage(err.message, true);
-          playlistSyncJsonEl.textContent = formatJson({ error: err.message });
-        } finally {
-          playlistSyncButton.disabled = false;
-        }
-      }
-
-      refreshStatusButton.addEventListener("click", refreshStatus);
-      refreshBetaClaimsButton.addEventListener("click", refreshBetaClaims);
-      importArtistGenresButton.addEventListener("click", () => {
-        importArtistGenres().catch(() => {});
-      });
-      importAndResortButton.addEventListener("click", importArtistGenresAndResort);
-      resortAllButton.addEventListener("click", () => {
-        runResortAll().catch(() => {});
-      });
-      playlistSyncButton.addEventListener("click", runPlaylistSync);
-      refreshStatus();
-      refreshBetaClaims();
+      refreshButton.addEventListener('click', loadDashboard);
+      loadDashboard();
     </script>
   </body>
 </html>
