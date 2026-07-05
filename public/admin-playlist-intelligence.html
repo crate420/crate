@@ -1,0 +1,370 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Crate Playlist Intelligence</title>
+    <style>
+      :root{color-scheme:light;--bg:#f6f8fb;--panel:#fff;--border:#d7dde5;--muted:#657080;--text:#17202a;--action:#1769aa;--good:#197653;--warn:#9a6500;--danger:#a23a3a}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:14px}main{max-width:1480px;margin:0 auto;padding:24px}header,.toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}header{margin-bottom:16px}h1,h2,h3{margin:0;line-height:1.2}h1{font-size:24px}h2{font-size:18px}h3{font-size:15px}.muted{color:var(--muted)}.message{min-height:22px;margin:8px 0;color:var(--muted)}.message.error{color:var(--danger)}.panel{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:14px}.summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}.stat{border:1px solid var(--border);border-radius:6px;padding:10px}.stat strong{display:block;font-size:22px}.stat span{display:block;color:var(--muted);font-size:12px;font-weight:850;text-transform:uppercase}.grid{display:grid;grid-template-columns:minmax(420px,.88fr) minmax(520px,1.12fr);gap:14px}.button,button,input,select,textarea{border:1px solid var(--border);border-radius:6px;background:#fff;color:var(--text);font:inherit}.button,button{display:inline-flex;align-items:center;justify-content:center;min-height:34px;padding:6px 10px;cursor:pointer;text-decoration:none}.button.primary,button.primary{background:var(--action);border-color:var(--action);color:#fff}button.danger{border-color:#efc2c2;color:var(--danger)}button:disabled{opacity:.55;cursor:not-allowed}input,select,textarea{width:100%;padding:7px 9px}textarea{min-height:86px;resize:vertical}.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.form-grid .wide{grid-column:1/-1}label span{display:block;margin:0 0 4px;color:var(--muted);font-size:12px;font-weight:850;text-transform:uppercase}table{width:100%;border-collapse:collapse}th,td{border-bottom:1px solid var(--border);padding:9px 8px;text-align:left;vertical-align:top}th{color:var(--muted);font-size:12px;text-transform:uppercase}.collections tr{cursor:pointer}.collections tr:hover{background:#f2f6fb}.collections tr.is-active{background:#e8f3ff}.badge{display:inline-flex;border-radius:999px;padding:3px 8px;font-size:12px;font-weight:850}.badge.active{background:#dff5eb;color:#116245}.badge.research{background:#fff3d8;color:#7a5000}.badge.retired{background:#eceff4;color:#536070}.mini{font-size:12px;color:var(--muted);line-height:1.4}.row-actions{display:flex;gap:6px;flex-wrap:wrap}.editable-table input,.editable-table select{min-width:88px}.editable-table textarea{min-width:180px;min-height:48px}.checkbox-cell{text-align:center}.philosophy{border-left:4px solid var(--action);padding-left:12px;color:var(--muted);line-height:1.45}.empty{padding:18px;color:var(--muted);text-align:center}.subsection{border-top:1px solid var(--border);margin-top:16px;padding-top:16px}.split{display:grid;grid-template-columns:1fr 1fr;gap:12px}@media(max-width:1120px){.grid,.split,.form-grid{grid-template-columns:1fr}table{display:block;overflow-x:auto;white-space:nowrap}.editable-table textarea{min-width:240px}}
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <div>
+          <h1>Playlist Intelligence</h1>
+          <div class="muted">Admin-only research infrastructure for Crate collection intelligence.</div>
+        </div>
+        <nav class="toolbar" data-admin-nav></nav>
+      </header>
+
+      <div class="message" id="message">Loading playlist intelligence...</div>
+
+      <section class="panel">
+        <div class="philosophy">Crate is not cloning Spotify playlists. Each collection represents a defined listening experience. Source playlists are research evidence used to identify consensus artists, consensus tracks, and collection boundaries.</div>
+      </section>
+
+      <section class="panel">
+        <div class="summary" id="summaryCards"></div>
+      </section>
+
+      <div class="grid">
+        <section class="panel">
+          <header>
+            <h2>Collections</h2>
+            <button class="primary" id="newCollectionButton" type="button">New Collection</button>
+          </header>
+          <table class="collections">
+            <thead><tr><th>Collection</th><th>Status</th><th>Sources</th><th>Approved</th><th>Evidence</th></tr></thead>
+            <tbody id="collectionRows"></tbody>
+          </table>
+        </section>
+
+        <section class="panel" id="detailPanel">
+          <h2>Collection Detail</h2>
+          <div class="empty">Select a collection to review intelligence evidence.</div>
+        </section>
+      </div>
+    </main>
+
+    <script>
+      const state = { collections: [], summary: null, detail: null };
+      const message = document.getElementById('message');
+      const summaryCards = document.getElementById('summaryCards');
+      const collectionRows = document.getElementById('collectionRows');
+      const detailPanel = document.getElementById('detailPanel');
+      const newCollectionButton = document.getElementById('newCollectionButton');
+
+      function escapeHtml(value) {
+        return String(value ?? '').replace(/[&<>\"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[char]);
+      }
+      function formatNumber(value) { return Number(value || 0).toLocaleString(); }
+      function setMessage(text, isError = false) {
+        message.textContent = text;
+        message.className = 'message' + (isError ? ' error' : '');
+      }
+      function badge(status) {
+        return '<span class="badge ' + escapeHtml(status) + '">' + escapeHtml(status) + '</span>';
+      }
+      async function requestJson(url, options = {}) {
+        const response = await fetch(url, {
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
+          ...options,
+        });
+        const body = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(body.message || body.error || 'Request failed');
+        return body;
+      }
+      function formValue(form, name) {
+        const field = form.elements[name];
+        if (!field) return '';
+        if (field.type === 'checkbox') return field.checked;
+        return field.value;
+      }
+      function boolValue(value) { return value ? true : false; }
+
+      function renderSummary() {
+        const summary = state.summary || {};
+        const cards = [
+          ['Collections', summary.collection_count],
+          ['Active', summary.active_count],
+          ['Research', summary.research_count],
+          ['Retired', summary.retired_count],
+          ['Source Playlists', summary.source_playlist_count],
+          ['Approved Artists', summary.approved_artist_count],
+          ['Approved Tracks', summary.approved_track_count],
+        ];
+        summaryCards.innerHTML = cards.map(([label, value]) => '<div class="stat"><strong>' + formatNumber(value) + '</strong><span>' + escapeHtml(label) + '</span></div>').join('');
+      }
+
+      function renderCollections() {
+        const selectedCode = state.detail?.collection?.collection_code;
+        collectionRows.innerHTML = state.collections.map((collection) => {
+          const activeClass = selectedCode === collection.collection_code ? ' class="is-active"' : '';
+          return '<tr data-collection-code="' + escapeHtml(collection.collection_code) + '"' + activeClass + '>' +
+            '<td><strong>' + escapeHtml(collection.collection_name) + '</strong><div class="mini">' + escapeHtml(collection.collection_code) + '</div></td>' +
+            '<td>' + badge(collection.research_status) + '</td>' +
+            '<td>' + formatNumber(collection.source_playlist_count) + '<div class="mini">' + formatNumber(collection.excluded_source_playlist_count) + ' excluded</div></td>' +
+            '<td>' + formatNumber(collection.approved_artist_count) + ' artists<div class="mini">' + formatNumber(collection.approved_track_count) + ' tracks</div></td>' +
+            '<td>' + formatNumber(collection.artist_evidence_count) + ' artists<div class="mini">' + formatNumber(collection.track_evidence_count) + ' tracks</div></td>' +
+          '</tr>';
+        }).join('') || '<tr><td colspan="5" class="empty">No collections yet.</td></tr>';
+      }
+
+      function collectionForm(collection = {}) {
+        return '<form id="collectionForm" class="form-grid">' +
+          '<label><span>Collection Name</span><input name="collection_name" value="' + escapeHtml(collection.collection_name || '') + '" required></label>' +
+          '<label><span>Collection Code</span><input name="collection_code" value="' + escapeHtml(collection.collection_code || '') + '" required></label>' +
+          '<label><span>Research Status</span><select name="research_status">' + ['research', 'active', 'retired'].map((status) => '<option value="' + status + '"' + (collection.research_status === status ? ' selected' : '') + '>' + status + '</option>').join('') + '</select></label>' +
+          '<div></div>' +
+          '<label class="wide"><span>Identity Description</span><textarea name="identity_description">' + escapeHtml(collection.identity_description || '') + '</textarea></label>' +
+          '<label class="wide" id="researchNotes"><span>Research Notes</span><textarea name="notes">' + escapeHtml(collection.notes || '') + '</textarea></label>' +
+          '<div class="wide row-actions"><button class="primary" type="submit">Save Collection</button></div>' +
+        '</form>';
+      }
+
+      function sourceForm() {
+        return '<form id="sourceForm" class="form-grid">' +
+          '<label><span>Playlist Name</span><input name="playlist_name" required></label>' +
+          '<label><span>Source Type</span><select name="source_type"><option value="manual">manual</option><option value="spotify_editorial">spotify_editorial</option><option value="spotify_user">spotify_user</option></select></label>' +
+          '<label><span>Review Status</span><select name="review_status"><option value="candidate">candidate</option><option value="approved">approved</option><option value="rejected">rejected</option><option value="ignored">ignored</option></select></label>' +
+          '<label><span>Trust Level</span><select name="trust_level"><option value="medium">medium</option><option value="high">high</option><option value="low">low</option></select></label>' +
+          '<label><span>Source Name</span><input name="source_name"></label>' +
+          '<label><span>Source Author</span><input name="source_author"></label>' +
+          '<label><span>Source URL</span><input name="source_url"></label>' +
+          '<label><span>Spotify Playlist ID</span><input name="spotify_playlist_id"></label>' +
+          '<label><span>Weight</span><input name="weight" type="number" min="0" max="10" step="0.1" value="1"></label>' +
+          '<label><span>Include In Consensus</span><input name="include_in_consensus" type="checkbox" checked></label>' +
+          '<label><span>Active</span><input name="active" type="checkbox" checked></label>' +
+          '<label class="wide"><span>Notes</span><textarea name="notes"></textarea></label>' +
+          '<div class="wide row-actions"><button type="submit">Add Source Playlist</button></div>' +
+        '</form>';
+      }
+
+      function artistForm() {
+        return '<form id="artistForm" class="form-grid">' +
+          '<label><span>Artist</span><input name="artist_name" required></label>' +
+          '<label><span>Appearance Count</span><input name="appearance_count" type="number" min="0" value="0"></label>' +
+          '<label><span>Evidence Count</span><input name="evidence_count" type="number" min="0" value="0"></label>' +
+          '<label><span>Source Count</span><input name="source_count" type="number" min="0" value="0"></label>' +
+          '<label><span>Confidence</span><input name="confidence_score" type="number" min="0" max="100" value="0"></label>' +
+          '<label><span>Review Status</span><select name="review_status"><option value="candidate">candidate</option><option value="approved">approved</option><option value="rejected">rejected</option><option value="ignored">ignored</option></select></label>' +
+          '<label class="wide"><span>Notes</span><textarea name="notes"></textarea></label>' +
+          '<div class="wide row-actions"><button type="submit">Add Consensus Artist</button></div>' +
+        '</form>';
+      }
+
+      function trackForm() {
+        return '<form id="trackForm" class="form-grid">' +
+          '<label><span>Track</span><input name="track_name" required></label>' +
+          '<label><span>Artist</span><input name="artist_name" required></label>' +
+          '<label><span>Appearance Count</span><input name="appearance_count" type="number" min="0" value="0"></label>' +
+          '<label><span>Evidence Count</span><input name="evidence_count" type="number" min="0" value="0"></label>' +
+          '<label><span>Source Count</span><input name="source_count" type="number" min="0" value="0"></label>' +
+          '<label><span>Confidence</span><input name="confidence_score" type="number" min="0" max="100" value="0"></label>' +
+          '<label><span>Review Status</span><select name="review_status"><option value="candidate">candidate</option><option value="approved">approved</option><option value="rejected">rejected</option><option value="ignored">ignored</option></select></label>' +
+          '<label class="wide"><span>Notes</span><textarea name="notes"></textarea></label>' +
+          '<div class="wide row-actions"><button type="submit">Add Consensus Track</button></div>' +
+        '</form>';
+      }
+
+      function renderSourceRows(rows, included) {
+        const filtered = rows.filter((row) => Boolean(row.include_in_consensus) === included);
+        if (!filtered.length) return '<div class="empty">' + (included ? 'No consensus source playlists yet.' : 'No excluded reference playlists yet.') + '</div>';
+        return '<table class="editable-table"><thead><tr><th>Playlist</th><th>Type</th><th>Status</th><th>Trust</th><th>Source</th><th>Weight</th><th>Use</th><th>Active</th><th>Notes</th><th>Actions</th></tr></thead><tbody>' + filtered.map((row) => (
+          '<tr data-source-id="' + row.id + '">' +
+            '<td><input name="playlist_name" value="' + escapeHtml(row.playlist_name) + '"></td>' +
+            '<td><select name="source_type">' + ['manual', 'spotify_editorial', 'spotify_user'].map((type) => '<option value="' + type + '"' + (row.source_type === type ? ' selected' : '') + '>' + type + '</option>').join('') + '</select></td>' +
+            '<td><select name="review_status">' + ['candidate', 'approved', 'rejected', 'ignored'].map((status) => '<option value="' + status + '"' + (row.review_status === status ? ' selected' : '') + '>' + status + '</option>').join('') + '</select></td>' +
+            '<td><select name="trust_level">' + ['low', 'medium', 'high'].map((level) => '<option value="' + level + '"' + (row.trust_level === level ? ' selected' : '') + '>' + level + '</option>').join('') + '</select></td>' +
+            '<td><input name="source_name" value="' + escapeHtml(row.source_name || '') + '"><input name="source_author" value="' + escapeHtml(row.source_author || '') + '" placeholder="author"><input name="source_url" value="' + escapeHtml(row.source_url || '') + '" placeholder="url"><input name="spotify_playlist_id" value="' + escapeHtml(row.spotify_playlist_id || '') + '" placeholder="spotify id"></td>' +
+            '<td><input name="weight" type="number" min="0" max="10" step="0.1" value="' + escapeHtml(row.weight) + '"></td>' +
+            '<td class="checkbox-cell"><input name="include_in_consensus" type="checkbox"' + (row.include_in_consensus ? ' checked' : '') + '></td>' +
+            '<td class="checkbox-cell"><input name="active" type="checkbox"' + (row.active ? ' checked' : '') + '></td>' +
+            '<td><textarea name="notes">' + escapeHtml(row.notes) + '</textarea></td>' +
+            '<td><div class="row-actions"><button data-save-source type="button">Save</button><button class="danger" data-delete-source type="button">Delete</button></div></td>' +
+          '</tr>'
+        )).join('') + '</tbody></table>';
+      }
+
+      function renderArtistRows(rows) {
+        if (!rows.length) return '<div class="empty">No consensus artist evidence yet.</div>';
+        return '<table class="editable-table"><thead><tr><th>Artist</th><th>Appearances</th><th>Evidence</th><th>Sources</th><th>Confidence</th><th>Status</th><th>Notes</th><th>Actions</th></tr></thead><tbody>' + rows.map((row) => (
+          '<tr data-artist-id="' + row.id + '">' +
+            '<td><input name="artist_name" value="' + escapeHtml(row.artist_name) + '"></td>' +
+            '<td><input name="appearance_count" type="number" min="0" value="' + row.appearance_count + '"></td>' +
+            '<td><input name="evidence_count" type="number" min="0" value="' + row.evidence_count + '"></td>' +
+            '<td><input name="source_count" type="number" min="0" value="' + row.source_count + '"></td>' +
+            '<td><input name="confidence_score" type="number" min="0" max="100" value="' + row.confidence_score + '"></td>' +
+            '<td><select name="review_status">' + ['candidate', 'approved', 'rejected', 'ignored'].map((status) => '<option value="' + status + '"' + (row.review_status === status ? ' selected' : '') + '>' + status + '</option>').join('') + '</select></td>' +
+            '<td><textarea name="notes">' + escapeHtml(row.notes) + '</textarea></td>' +
+            '<td><div class="row-actions"><button data-save-artist type="button">Save</button><button class="danger" data-delete-artist type="button">Delete</button></div></td>' +
+          '</tr>'
+        )).join('') + '</tbody></table>';
+      }
+
+      function renderTrackRows(rows) {
+        if (!rows.length) return '<div class="empty">No consensus track evidence yet.</div>';
+        return '<table class="editable-table"><thead><tr><th>Track</th><th>Artist</th><th>Appearances</th><th>Evidence</th><th>Sources</th><th>Confidence</th><th>Status</th><th>Notes</th><th>Actions</th></tr></thead><tbody>' + rows.map((row) => (
+          '<tr data-track-id="' + row.id + '">' +
+            '<td><input name="track_name" value="' + escapeHtml(row.track_name) + '"></td>' +
+            '<td><input name="artist_name" value="' + escapeHtml(row.artist_name) + '"></td>' +
+            '<td><input name="appearance_count" type="number" min="0" value="' + row.appearance_count + '"></td>' +
+            '<td><input name="evidence_count" type="number" min="0" value="' + row.evidence_count + '"></td>' +
+            '<td><input name="source_count" type="number" min="0" value="' + row.source_count + '"></td>' +
+            '<td><input name="confidence_score" type="number" min="0" max="100" value="' + row.confidence_score + '"></td>' +
+            '<td><select name="review_status">' + ['candidate', 'approved', 'rejected', 'ignored'].map((status) => '<option value="' + status + '"' + (row.review_status === status ? ' selected' : '') + '>' + status + '</option>').join('') + '</select></td>' +
+            '<td><textarea name="notes">' + escapeHtml(row.notes) + '</textarea></td>' +
+            '<td><div class="row-actions"><button data-save-track type="button">Save</button><button class="danger" data-delete-track type="button">Delete</button></div></td>' +
+          '</tr>'
+        )).join('') + '</tbody></table>';
+      }
+
+      function renderDetail() {
+        const detail = state.detail;
+        if (!detail?.collection) {
+          detailPanel.innerHTML = '<h2>Collection Detail</h2><div class="empty">Select a collection to review intelligence evidence.</div>';
+          return;
+        }
+        const collection = detail.collection;
+        detailPanel.innerHTML = '<header><div><h2>' + escapeHtml(collection.collection_name) + '</h2><div class="mini">' + escapeHtml(collection.collection_code) + ' · ' + escapeHtml(collection.research_status) + '</div></div><a class="button" href="#researchNotes">Research Notes</a></header>' +
+          '<section class="subsection">' + collectionForm(collection) + '</section>' +
+          '<section class="subsection"><h3>Source Playlists</h3>' + renderSourceRows(detail.source_playlists || [], true) + '<h3 style="margin-top:14px">Excluded Playlists</h3>' + renderSourceRows(detail.source_playlists || [], false) + '<h3 style="margin-top:14px">Add Source Playlist</h3>' + sourceForm() + '</section>' +
+          '<section class="subsection"><h3>Consensus Artists</h3>' + renderArtistRows(detail.consensus_artists || []) + '<h3 style="margin-top:14px">Add Artist Evidence</h3>' + artistForm() + '</section>' +
+          '<section class="subsection"><h3>Consensus Tracks</h3>' + renderTrackRows(detail.consensus_tracks || []) + '<h3 style="margin-top:14px">Add Track Evidence</h3>' + trackForm() + '</section>';
+      }
+
+      async function loadCollections(selectCode = null) {
+        const payload = await requestJson('/crate/admin/playlist-intelligence');
+        state.collections = payload.collections || [];
+        state.summary = payload.summary || {};
+        renderSummary();
+        renderCollections();
+        const code = selectCode || state.detail?.collection?.collection_code || state.collections[0]?.collection_code;
+        if (code) await loadDetail(code);
+      }
+
+      async function loadDetail(code) {
+        state.detail = await requestJson('/crate/admin/playlist-intelligence/' + encodeURIComponent(code));
+        renderCollections();
+        renderDetail();
+        setMessage('Playlist intelligence loaded. Admin-only: no playlist importing, Spotify writes, sorting changes, or approval writes.');
+      }
+
+      function rowPayload(row) {
+        const payload = {};
+        row.querySelectorAll('input,select,textarea').forEach((field) => {
+          payload[field.name] = field.type === 'checkbox' ? field.checked : field.value;
+        });
+        return payload;
+      }
+
+      async function saveCollection(event) {
+        event.preventDefault();
+        const form = event.currentTarget;
+        const currentCode = state.detail?.collection?.collection_code;
+        const payload = {
+          collection_name: formValue(form, 'collection_name'),
+          collection_code: formValue(form, 'collection_code'),
+          research_status: formValue(form, 'research_status'),
+          identity_description: formValue(form, 'identity_description'),
+          notes: formValue(form, 'notes'),
+        };
+        const response = await requestJson('/crate/admin/playlist-intelligence/' + encodeURIComponent(currentCode), {
+          method: 'PUT',
+          body: JSON.stringify(payload),
+        });
+        state.detail = response;
+        await loadCollections(response.collection.collection_code);
+        setMessage('Collection saved.');
+      }
+
+      async function addFromForm(event, kind) {
+        event.preventDefault();
+        const form = event.currentTarget;
+        const code = state.detail.collection.collection_code;
+        const payload = rowPayload(form);
+        if (kind !== 'source') payload.approved = boolValue(payload.approved);
+        if (kind === 'source') payload.include_in_consensus = boolValue(payload.include_in_consensus);
+        await requestJson('/crate/admin/playlist-intelligence/' + encodeURIComponent(code) + '/' + kind + 's', {
+          method: 'POST',
+          body: JSON.stringify(payload),
+        });
+        await loadCollections(code);
+        setMessage('Added ' + kind + ' evidence.');
+      }
+
+      async function saveRow(row, kind, id) {
+        const payload = rowPayload(row);
+        const plural = kind + 's';
+        await requestJson('/crate/admin/playlist-intelligence/' + plural + '/' + encodeURIComponent(id), {
+          method: 'PUT',
+          body: JSON.stringify(payload),
+        });
+        await loadCollections(state.detail.collection.collection_code);
+        setMessage('Saved ' + kind + ' row.');
+      }
+
+      async function deleteRow(kind, id) {
+        if (!window.confirm('Delete this ' + kind + ' row?')) return;
+        await requestJson('/crate/admin/playlist-intelligence/' + kind + 's/' + encodeURIComponent(id), { method: 'DELETE' });
+        await loadCollections(state.detail.collection.collection_code);
+        setMessage('Deleted ' + kind + ' row.');
+      }
+
+      function bindDetailEvents() {
+        detailPanel.addEventListener('submit', async (event) => {
+          try {
+            if (event.target.id === 'collectionForm') await saveCollection(event);
+            if (event.target.id === 'sourceForm') await addFromForm(event, 'source');
+            if (event.target.id === 'artistForm') await addFromForm(event, 'artist');
+            if (event.target.id === 'trackForm') await addFromForm(event, 'track');
+          } catch (err) {
+            setMessage(err.message, true);
+          }
+        });
+        detailPanel.addEventListener('click', async (event) => {
+          const target = event.target;
+          try {
+            const sourceRow = target.closest?.('[data-source-id]');
+            const artistRow = target.closest?.('[data-artist-id]');
+            const trackRow = target.closest?.('[data-track-id]');
+            if (target.matches('[data-save-source]')) await saveRow(sourceRow, 'source', sourceRow.dataset.sourceId);
+            if (target.matches('[data-delete-source]')) await deleteRow('source', sourceRow.dataset.sourceId);
+            if (target.matches('[data-save-artist]')) await saveRow(artistRow, 'artist', artistRow.dataset.artistId);
+            if (target.matches('[data-delete-artist]')) await deleteRow('artist', artistRow.dataset.artistId);
+            if (target.matches('[data-save-track]')) await saveRow(trackRow, 'track', trackRow.dataset.trackId);
+            if (target.matches('[data-delete-track]')) await deleteRow('track', trackRow.dataset.trackId);
+          } catch (err) {
+            setMessage(err.message, true);
+          }
+        });
+      }
+
+      collectionRows.addEventListener('click', (event) => {
+        const row = event.target.closest('[data-collection-code]');
+        if (row) loadDetail(row.dataset.collectionCode).catch((err) => setMessage(err.message, true));
+      });
+
+      newCollectionButton.addEventListener('click', async () => {
+        try {
+          const name = window.prompt('Collection name');
+          if (!name) return;
+          const payload = await requestJson('/crate/admin/playlist-intelligence', {
+            method: 'POST',
+            body: JSON.stringify({ collection_name: name, collection_code: name, research_status: 'research' }),
+          });
+          await loadCollections(payload.collection.collection_code);
+          setMessage('Collection created.');
+        } catch (err) {
+          setMessage(err.message, true);
+        }
+      });
+
+      bindDetailEvents();
+      loadCollections().catch((err) => setMessage(err.message, true));
+    </script>
+    <script src="/adminNav.js"></script>
+  </body>
+</html>

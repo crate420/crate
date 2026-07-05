@@ -27,6 +27,7 @@
       links: [
         { href: '/admin-intelligence-coverage.html', label: 'Intelligence Coverage' },
         { href: '/admin-artist-intelligence.html', label: 'Artist Intelligence' },
+        { href: '/admin-playlist-intelligence.html', label: 'Playlist Intelligence' },
         { href: '/admin-artist-enrichment-queue.html', label: 'Artist Enrichment Queue' },
         { href: '/admin-track-intelligence.html', label: 'Track Intelligence' },
         { href: '/admin-track-learning.html', label: 'Track Learning', tone: 'advanced' },

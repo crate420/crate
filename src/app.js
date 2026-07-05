@@ -48,6 +48,10 @@ function createApp() {
     res.sendFile(path.join(config.rootDir, "public/admin-playlist-seeds.html"));
   });
 
+  app.get("/admin-playlist-intelligence.html", requireAdminPage, (req, res) => {
+    res.sendFile(path.join(config.rootDir, "public/admin-playlist-intelligence.html"));
+  });
+
   app.get("/admin-specialty-validation.html", requireAdminPage, (req, res) => {
     res.sendFile(path.join(config.rootDir, "public/admin-specialty-validation.html"));
   });

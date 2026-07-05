@@ -8,9 +8,10 @@ const EXACT = {
   MOOD: new Set(["chill", "energetic", "happy", "party", "sad"]),
   STYLE: new Set(["acoustic", "instrumental", "live", "singer-songwriter"]),
   GENRE: new Set([
-    "alternative rock", "blues", "classical", "country", "dance", "disco", "electronic", "folk", "funk", "grunge",
-    "hip hop", "house", "indie rock", "jazz", "metal", "motown", "new wave", "pop", "post-grunge", "punk", "r&b",
-    "reggae", "reggaeton", "rock", "soul", "southern rock", "surf rock", "synthpop", "techno", "trance",
+    "alt r&b", "alternative r&b", "alternative rock", "blues", "britpop", "classical", "college rock", "country",
+    "dance", "disco", "electronic", "folk", "funk", "grunge", "hip hop", "house", "indie rock", "jazz", "metal",
+    "motown", "new wave", "pop", "post-grunge", "punk", "r&b", "reggae", "reggaeton", "rock", "shoegaze", "soul",
+    "southern rock", "surf rock", "synthpop", "techno", "trance",
   ]),
 };
 

@@ -9,8 +9,18 @@ const DEFAULT_BULK_LIMIT = 50;
 const MAX_BULK_LIMIT = 100;
 const DEFAULT_BULK_CONFIDENCE = 95;
 const DEFAULT_BULK_SUPPORT = 3;
+const PLAYLIST_INTELLIGENCE_SOURCE = "Playlist Intelligence";
+const REVIEWABLE_PLAYLIST_INTELLIGENCE_STATUSES = ["candidate", "approved"];
+const PLAYLIST_INTELLIGENCE_COLLECTION_SIGNALS = {
+  alt_rb: "alternative r&b",
+  college_radio: "college rock",
+};
 
 function normalizeGenre(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function normalizeArtistName(value) {
   return String(value || "").trim().toLowerCase();
 }
 
@@ -34,6 +44,10 @@ function normalizeSupport(value) {
   return Math.min(Math.max(Number.isInteger(parsed) ? parsed : DEFAULT_BULK_SUPPORT, 2), 3);
 }
 
+function tableExists(db, tableName) {
+  return Boolean(db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?").get(tableName));
+}
+
 function getSourcesForArtist(artistIntelligenceId) {
   return openDatabase().prepare(`
     SELECT *
@@ -43,6 +57,95 @@ function getSourcesForArtist(artistIntelligenceId) {
   `).all(artistIntelligenceId);
 }
 
+function sourceWeight(source) {
+  if (source.source_type !== "playlist_intelligence") return 1;
+  const trustWeight = { high: 1, medium: 0.75, low: 0.4 }[source.trust_level] || 0.75;
+  const reviewWeight = source.review_status === "approved" ? 1 : 0.85;
+  const sourceCountBonus = Math.min(Number(source.source_count || 0), 3) * 0.05;
+  return Math.min(1, trustWeight * reviewWeight + sourceCountBonus);
+}
+
+function playlistIntelligenceSignal(row) {
+  return normalizeGenre(PLAYLIST_INTELLIGENCE_COLLECTION_SIGNALS[row.collection_code] || row.collection_name);
+}
+
+function playlistIntelligenceConfidence(row) {
+  const base = Number(row.confidence_score || 0) || (row.review_status === "approved" ? 82 : 70);
+  const trustAdjustment = { high: 5, medium: 0, low: -12 }[row.trust_level] || 0;
+  const reviewAdjustment = row.review_status === "approved" ? 5 : 0;
+  const sourceAdjustment = Math.min(Number(row.source_count || row.accepted_source_count || 0), 4) * 2;
+  const cap = row.review_status === "approved" && row.trust_level === "high" ? 95 : 90;
+  return Math.max(0, Math.min(cap, Math.round(base + trustAdjustment + reviewAdjustment + sourceAdjustment)));
+}
+
+function getPlaylistIntelligenceArtistEvidence(artist) {
+  const db = openDatabase();
+  if (!tableExists(db, "playlist_collection_artists") || !tableExists(db, "playlist_collection_definitions")) return [];
+
+  const artistNames = [...new Set([
+    normalizeArtistName(artist?.display_artist_name),
+    normalizeArtistName(artist?.normalized_artist_name),
+  ].filter(Boolean))];
+  if (!artistNames.length) return [];
+
+  const placeholders = artistNames.map(() => "?").join(", ");
+  const hasSources = tableExists(db, "playlist_collection_sources");
+  const sourceSelect = hasSources
+    ? `COALESCE(source_summary.accepted_source_count, 0) AS accepted_source_count,
+       COALESCE(source_summary.total_source_count, 0) AS total_source_count,
+       COALESCE(source_summary.best_trust_level, 'medium') AS trust_level`
+    : `0 AS accepted_source_count,
+       0 AS total_source_count,
+       'medium' AS trust_level`;
+  const sourceJoin = hasSources
+    ? `LEFT JOIN (
+         SELECT
+           collection_id,
+           SUM(CASE WHEN active = 1 AND include_in_consensus = 1 AND review_status IN ('candidate', 'approved') THEN 1 ELSE 0 END) AS accepted_source_count,
+           COUNT(*) AS total_source_count,
+           CASE
+             WHEN SUM(CASE WHEN active = 1 AND include_in_consensus = 1 AND review_status IN ('candidate', 'approved') AND trust_level = 'high' THEN 1 ELSE 0 END) > 0 THEN 'high'
+             WHEN SUM(CASE WHEN active = 1 AND include_in_consensus = 1 AND review_status IN ('candidate', 'approved') AND trust_level = 'medium' THEN 1 ELSE 0 END) > 0 THEN 'medium'
+             ELSE 'low'
+           END AS best_trust_level
+         FROM playlist_collection_sources
+         GROUP BY collection_id
+       ) AS source_summary ON source_summary.collection_id = playlist_collection_definitions.id`
+    : "";
+
+  return db.prepare(`
+    SELECT
+      playlist_collection_artists.*,
+      playlist_collection_definitions.collection_code,
+      playlist_collection_definitions.collection_name,
+      playlist_collection_definitions.research_status,
+      ${sourceSelect}
+    FROM playlist_collection_artists
+    INNER JOIN playlist_collection_definitions
+      ON playlist_collection_definitions.id = playlist_collection_artists.collection_id
+    ${sourceJoin}
+    WHERE lower(playlist_collection_artists.artist_name) IN (${placeholders})
+      AND playlist_collection_artists.review_status IN (${REVIEWABLE_PLAYLIST_INTELLIGENCE_STATUSES.map(() => "?").join(", ")})
+      AND playlist_collection_definitions.research_status IN ('active', 'research')
+    ORDER BY playlist_collection_artists.confidence_score DESC, playlist_collection_definitions.collection_name COLLATE NOCASE ASC
+  `).all(...artistNames, ...REVIEWABLE_PLAYLIST_INTELLIGENCE_STATUSES)
+    .filter((row) => row.review_status === "approved" || Number(row.total_source_count || 0) === 0 || Number(row.accepted_source_count || 0) > 0)
+    .map((row) => {
+      const sourceCount = Math.max(Number(row.source_count || 0), Number(row.accepted_source_count || 0), Number(row.appearance_count || 0));
+      return {
+        source: `${PLAYLIST_INTELLIGENCE_SOURCE}: ${row.collection_name}`,
+        source_type: "playlist_intelligence",
+        signal: playlistIntelligenceSignal(row),
+        review_status: row.review_status,
+        trust_level: row.trust_level || "medium",
+        confidence_score: playlistIntelligenceConfidence({ ...row, source_count: sourceCount }),
+        collection_code: row.collection_code,
+        collection_name: row.collection_name,
+        source_count: sourceCount,
+      };
+    });
+}
+
 function buildRecommendations(artist, sources = []) {
   if (!artist || Number(artist.confidence_score || 0) < MIN_RECOMMENDATION_CONFIDENCE) return [];
 
@@ -50,16 +153,46 @@ function buildRecommendations(artist, sources = []) {
 
   for (const source of sources.filter((row) => !row.error_code)) {
     for (const signal of sourceComparisonSignals(source)) {
-      const names = supportingSources.get(signal) || new Set();
-      names.add(source.source);
-      supportingSources.set(signal, names);
+      const normalizedSignal = normalizeGenre(signal);
+      const evidence = supportingSources.get(normalizedSignal) || new Map();
+      evidence.set(source.source, { source: source.source, source_type: source.source || "artist_intelligence", weight: sourceWeight(source), confidence_score: Number(artist.confidence_score || 0) });
+      supportingSources.set(normalizedSignal, evidence);
     }
   }
 
+  for (const evidenceRow of getPlaylistIntelligenceArtistEvidence(artist)) {
+    if (!evidenceRow.signal) continue;
+    const evidence = supportingSources.get(evidenceRow.signal) || new Map();
+    evidence.set(evidenceRow.source, { ...evidenceRow, weight: sourceWeight(evidenceRow) });
+    supportingSources.set(evidenceRow.signal, evidence);
+  }
+
   return [...supportingSources.entries()]
-    .filter(([signal, names]) => names.size >= 2 && classifySignal(signal) === "GENRE")
-    .map(([genre, names]) => ({ genre, classification: "GENRE", support_count: names.size, sources: [...names].sort() }))
-    .sort((left, right) => right.support_count - left.support_count || left.genre.localeCompare(right.genre));
+    .map(([genre, evidence]) => {
+      const sources = [...evidence.values()];
+      const supportWeight = sources.reduce((sum, source) => sum + Number(source.weight || 0), 0);
+      const evidenceConfidence = Math.min(95, Math.max(Number(artist.confidence_score || 0), ...sources.map((source) => Number(source.confidence_score || 0))));
+      return {
+        genre,
+        classification: classifySignal(genre),
+        support_count: sources.length,
+        support_weight: Math.round(supportWeight * 100) / 100,
+        confidence_score: evidenceConfidence,
+        sources: sources.map((source) => source.source).sort(),
+        source_details: sources
+          .map((source) => ({
+            source: source.source,
+            source_type: source.source_type || "artist_intelligence",
+            review_status: source.review_status || null,
+            trust_level: source.trust_level || null,
+            weight: Math.round(Number(source.weight || 0) * 100) / 100,
+            confidence_score: source.confidence_score || null,
+          }))
+          .sort((left, right) => left.source.localeCompare(right.source)),
+      };
+    })
+    .filter((recommendation) => recommendation.support_count >= 2 && recommendation.support_weight >= 1.5 && recommendation.classification === "GENRE")
+    .sort((left, right) => right.support_weight - left.support_weight || right.support_count - left.support_count || left.genre.localeCompare(right.genre));
 }
 
 function getArtistRecommendationDetail(id) {
@@ -128,7 +261,7 @@ function getBulkRecommendationCandidates(options = {}) {
   const candidateArtists = artists.map((row) => ({
     artist: row.artist,
     confidence_score: row.confidence_score,
-    recommendations: row.recommendations.filter((recommendation) => recommendation.classification === "GENRE" && recommendation.support_count >= supportMin),
+    recommendations: row.recommendations.filter((recommendation) => recommendation.classification === "GENRE" && recommendation.support_count >= supportMin && Number(recommendation.support_weight || recommendation.support_count || 0) >= supportMin),
   })).filter((row) => row.recommendations.length > 0);
 
   return { confidence_min: confidenceMin, support_min: supportMin, limit, artists: candidateArtists };

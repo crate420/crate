@@ -60,6 +60,19 @@ const { getAdminEraDiagnostics } = require("../crate/eraDiagnostics");
 const playlistSeedRegistry = require("../crate/playlistSeedRegistry");
 const { getSeedIntelligenceReport } = require("../crate/seedIntelligence");
 const { getSpecialtyDiscoveryCohort, getSpecialtyDiscoveryForUser } = require("../crate/specialtyDiscovery");
+const {
+  addArtistToCollection,
+  addSourceToCollection,
+  addTrackToCollection,
+  createPlaylistIntelligenceCollection,
+  deleteRow: deletePlaylistIntelligenceRow,
+  getPlaylistIntelligenceCollection,
+  listPlaylistIntelligenceCollections,
+  updateArtist: updatePlaylistIntelligenceArtist,
+  updatePlaylistIntelligenceCollection,
+  updateSource: updatePlaylistIntelligenceSource,
+  updateTrack: updatePlaylistIntelligenceTrack,
+} = require("../crate/playlistIntelligence");
 const { fetchAllPlaylistSeeds, fetchPlaylistSeed } = require("../crate/playlistSeedFetcher");
 const { getMissingArtistGenres } = require("../crate/missingArtistGenres");
 const { fetchAndCacheMusicBrainzArtistIntelligence } = require("../crate/musicbrainzArtistIntelligence");
@@ -887,6 +900,122 @@ router.get("/admin/specialty-discovery/cohort", requireCurrentUser, requireAdmin
   try {
     return res.json(getSpecialtyDiscoveryCohort({ limit: req.query.limit }));
   } catch (err) {
+    return next(err);
+  }
+});
+
+router.get("/admin/playlist-intelligence", requireCurrentUser, requireAdminUser, (req, res, next) => {
+  try {
+    return res.json(listPlaylistIntelligenceCollections());
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.post("/admin/playlist-intelligence", requireCurrentUser, requireAdminUser, (req, res, next) => {
+  try {
+    return res.status(201).json(createPlaylistIntelligenceCollection(req.body || {}));
+  } catch (err) {
+    if (err.statusCode) return res.status(err.statusCode).json({ error: err.code || "playlist_intelligence_error", message: err.message });
+    return next(err);
+  }
+});
+
+router.put("/admin/playlist-intelligence/sources/:id", requireCurrentUser, requireAdminUser, (req, res, next) => {
+  try {
+    return res.json({ status: "ok", source: updatePlaylistIntelligenceSource(req.params.id, req.body || {}) });
+  } catch (err) {
+    if (err.statusCode) return res.status(err.statusCode).json({ error: err.code || "playlist_intelligence_source_error", message: err.message });
+    return next(err);
+  }
+});
+
+router.delete("/admin/playlist-intelligence/sources/:id", requireCurrentUser, requireAdminUser, (req, res, next) => {
+  try {
+    return res.json(deletePlaylistIntelligenceRow("playlist_collection_sources", req.params.id));
+  } catch (err) {
+    if (err.statusCode) return res.status(err.statusCode).json({ error: err.code || "playlist_intelligence_source_error", message: err.message });
+    return next(err);
+  }
+});
+
+router.put("/admin/playlist-intelligence/artists/:id", requireCurrentUser, requireAdminUser, (req, res, next) => {
+  try {
+    return res.json({ status: "ok", artist: updatePlaylistIntelligenceArtist(req.params.id, req.body || {}) });
+  } catch (err) {
+    if (err.statusCode) return res.status(err.statusCode).json({ error: err.code || "playlist_intelligence_artist_error", message: err.message });
+    return next(err);
+  }
+});
+
+router.delete("/admin/playlist-intelligence/artists/:id", requireCurrentUser, requireAdminUser, (req, res, next) => {
+  try {
+    return res.json(deletePlaylistIntelligenceRow("playlist_collection_artists", req.params.id));
+  } catch (err) {
+    if (err.statusCode) return res.status(err.statusCode).json({ error: err.code || "playlist_intelligence_artist_error", message: err.message });
+    return next(err);
+  }
+});
+
+router.put("/admin/playlist-intelligence/tracks/:id", requireCurrentUser, requireAdminUser, (req, res, next) => {
+  try {
+    return res.json({ status: "ok", track: updatePlaylistIntelligenceTrack(req.params.id, req.body || {}) });
+  } catch (err) {
+    if (err.statusCode) return res.status(err.statusCode).json({ error: err.code || "playlist_intelligence_track_error", message: err.message });
+    return next(err);
+  }
+});
+
+router.delete("/admin/playlist-intelligence/tracks/:id", requireCurrentUser, requireAdminUser, (req, res, next) => {
+  try {
+    return res.json(deletePlaylistIntelligenceRow("playlist_collection_tracks", req.params.id));
+  } catch (err) {
+    if (err.statusCode) return res.status(err.statusCode).json({ error: err.code || "playlist_intelligence_track_error", message: err.message });
+    return next(err);
+  }
+});
+
+router.get("/admin/playlist-intelligence/:collectionCode", requireCurrentUser, requireAdminUser, (req, res, next) => {
+  try {
+    return res.json(getPlaylistIntelligenceCollection(req.params.collectionCode));
+  } catch (err) {
+    if (err.statusCode) return res.status(err.statusCode).json({ error: err.code || "playlist_intelligence_error", message: err.message });
+    return next(err);
+  }
+});
+
+router.put("/admin/playlist-intelligence/:collectionCode", requireCurrentUser, requireAdminUser, (req, res, next) => {
+  try {
+    return res.json(updatePlaylistIntelligenceCollection(req.params.collectionCode, req.body || {}));
+  } catch (err) {
+    if (err.statusCode) return res.status(err.statusCode).json({ error: err.code || "playlist_intelligence_error", message: err.message });
+    return next(err);
+  }
+});
+
+router.post("/admin/playlist-intelligence/:collectionCode/sources", requireCurrentUser, requireAdminUser, (req, res, next) => {
+  try {
+    return res.status(201).json({ status: "ok", source: addSourceToCollection(req.params.collectionCode, req.body || {}) });
+  } catch (err) {
+    if (err.statusCode) return res.status(err.statusCode).json({ error: err.code || "playlist_intelligence_source_error", message: err.message });
+    return next(err);
+  }
+});
+
+router.post("/admin/playlist-intelligence/:collectionCode/artists", requireCurrentUser, requireAdminUser, (req, res, next) => {
+  try {
+    return res.status(201).json({ status: "ok", artist: addArtistToCollection(req.params.collectionCode, req.body || {}) });
+  } catch (err) {
+    if (err.statusCode) return res.status(err.statusCode).json({ error: err.code || "playlist_intelligence_artist_error", message: err.message });
+    return next(err);
+  }
+});
+
+router.post("/admin/playlist-intelligence/:collectionCode/tracks", requireCurrentUser, requireAdminUser, (req, res, next) => {
+  try {
+    return res.status(201).json({ status: "ok", track: addTrackToCollection(req.params.collectionCode, req.body || {}) });
+  } catch (err) {
+    if (err.statusCode) return res.status(err.statusCode).json({ error: err.code || "playlist_intelligence_track_error", message: err.message });
     return next(err);
   }
 });
