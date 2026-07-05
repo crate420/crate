@@ -48,6 +48,24 @@ function tableExists(db, tableName) {
   return Boolean(db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?").get(tableName));
 }
 
+function getApprovedGenreSetForArtist(artist) {
+  const db = openDatabase();
+  if (!tableExists(db, "artist_genres")) return new Set();
+
+  const artistNames = [...new Set([
+    normalizeArtistName(artist?.display_artist_name),
+    normalizeArtistName(artist?.normalized_artist_name),
+  ].filter(Boolean))];
+  if (!artistNames.length) return new Set();
+
+  const placeholders = artistNames.map(() => "?").join(", ");
+  return new Set(db.prepare(`
+    SELECT genre
+    FROM artist_genres
+    WHERE lower(trim(artist_name)) IN (${placeholders})
+  `).all(...artistNames).map((row) => normalizeGenre(row.genre)).filter(Boolean));
+}
+
 function getSourcesForArtist(artistIntelligenceId) {
   return openDatabase().prepare(`
     SELECT *
@@ -150,10 +168,12 @@ function buildRecommendations(artist, sources = []) {
   if (!artist || Number(artist.confidence_score || 0) < MIN_RECOMMENDATION_CONFIDENCE) return [];
 
   const supportingSources = new Map();
+  const approvedGenres = getApprovedGenreSetForArtist(artist);
 
   for (const source of sources.filter((row) => !row.error_code)) {
     for (const signal of sourceComparisonSignals(source)) {
       const normalizedSignal = normalizeGenre(signal);
+      if (approvedGenres.has(normalizedSignal)) continue;
       const evidence = supportingSources.get(normalizedSignal) || new Map();
       evidence.set(source.source, { source: source.source, source_type: source.source || "artist_intelligence", weight: sourceWeight(source), confidence_score: Number(artist.confidence_score || 0) });
       supportingSources.set(normalizedSignal, evidence);
@@ -162,6 +182,7 @@ function buildRecommendations(artist, sources = []) {
 
   for (const evidenceRow of getPlaylistIntelligenceArtistEvidence(artist)) {
     if (!evidenceRow.signal) continue;
+    if (approvedGenres.has(evidenceRow.signal)) continue;
     const evidence = supportingSources.get(evidenceRow.signal) || new Map();
     evidence.set(evidenceRow.source, { ...evidenceRow, weight: sourceWeight(evidenceRow) });
     supportingSources.set(evidenceRow.signal, evidence);

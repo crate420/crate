@@ -6,6 +6,13 @@ function normalizeArtistName(artistName) {
 
 function insertArtistGenres({ artistName, genres, source }) {
   const db = openDatabase();
+  const exists = db.prepare(`
+    SELECT 1 AS found
+    FROM artist_genres
+    WHERE lower(trim(artist_name)) = lower(trim(?))
+      AND lower(trim(genre)) = lower(trim(?))
+    LIMIT 1
+  `);
   const insert = db.prepare(`
     INSERT OR IGNORE INTO artist_genres (
       artist_name,
@@ -23,6 +30,10 @@ function insertArtistGenres({ artistName, genres, source }) {
     let inserted = 0;
 
     for (const genre of genres) {
+      if (exists.get(artistName, genre)) {
+        continue;
+      }
+
       const result = insert.run({
         artistName,
         genre,
