@@ -67,14 +67,12 @@ const {
   createPlaylistIntelligenceCollection,
   deleteRow: deletePlaylistIntelligenceRow,
   getPlaylistIntelligenceCollection,
-  importArtistEvidenceCsvToCollection,
   listPlaylistIntelligenceCollections,
   updateArtist: updatePlaylistIntelligenceArtist,
   updatePlaylistIntelligenceCollection,
   updateSource: updatePlaylistIntelligenceSource,
   updateTrack: updatePlaylistIntelligenceTrack,
 } = require("../crate/playlistIntelligence");
-const { runImport: importPlaylistIntelligenceCsvFiles } = require("../../scripts/importPlaylistIntelligenceCsvs");
 const { fetchAllPlaylistSeeds, fetchPlaylistSeed } = require("../crate/playlistSeedFetcher");
 const { getMissingArtistGenres } = require("../crate/missingArtistGenres");
 const { fetchAndCacheMusicBrainzArtistIntelligence } = require("../crate/musicbrainzArtistIntelligence");
@@ -1010,33 +1008,6 @@ router.post("/admin/playlist-intelligence/:collectionCode/artists", requireCurre
   } catch (err) {
     if (err.statusCode) return res.status(err.statusCode).json({ error: err.code || "playlist_intelligence_artist_error", message: err.message });
     return next(err);
-  }
-});
-
-router.post("/admin/playlist-intelligence/:collectionCode/artists/import-csv", requireCurrentUser, requireAdminUser, (req, res, next) => {
-  try {
-    return res.json(importArtistEvidenceCsvToCollection(req.params.collectionCode, req.body || {}));
-  } catch (err) {
-    if (err.statusCode) return res.status(err.statusCode).json({ error: err.code || "playlist_intelligence_artist_import_error", message: err.message });
-    return next(err);
-  }
-});
-
-router.post("/admin/playlist-intelligence/:collectionCode/import-repo-csvs", requireCurrentUser, requireAdminUser, (req, res, next) => {
-  try {
-    return res.json({
-      status: "ok",
-      ...importPlaylistIntelligenceCsvFiles(req.params.collectionCode, {
-        dryRun: req.body?.dry_run === true,
-        reimport: req.body?.reimport === true,
-        insertSources: req.body?.insert_sources !== false,
-        overwriteStatus: req.body?.overwrite_status === true,
-        status: req.body?.review_status || "candidate",
-        confidence: req.body?.confidence_score ?? 70,
-      }),
-    });
-  } catch (err) {
-    return res.status(err.statusCode || 400).json({ error: err.code || "playlist_intelligence_repo_import_error", message: err.message });
   }
 });
 
