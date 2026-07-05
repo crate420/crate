@@ -48,6 +48,17 @@ function readUsersById(db) {
   return new Map(db.prepare("SELECT id, spotify_user_id, display_name, email FROM users ORDER BY id").all().map((row) => [row.id, row]));
 }
 
+function validateUserIds(db, userIds) {
+  const usersById = readUsersById(db);
+  const missingUserIds = userIds.filter((userId) => !usersById.has(userId));
+  if (missingUserIds.length) {
+    const error = new Error("Unknown user id(s): " + missingUserIds.join(", "));
+    error.statusCode = 400;
+    error.code = "unknown_users";
+    throw error;
+  }
+}
+
 function readAppliedPairs(db) {
   const pairs = new Set();
   if (!tableExists(db, "genre_recommendation_rescan_runs")) return pairs;
@@ -250,6 +261,7 @@ function finishRescanRun(db, runId, status, afterCounts, summary) {
 async function runAdminGenreRecommendationRescan(options = {}) {
   const db = openDatabase();
   const selectedUserIds = normalizeUserIds(options.userIds);
+  const manual = Boolean(options.manual);
   if (!selectedUserIds.length) {
     const error = new Error("Select at least one user to rescan.");
     error.statusCode = 400;
@@ -264,17 +276,23 @@ async function runAdminGenreRecommendationRescan(options = {}) {
   }
 
   const plan = getAdminGenreRecommendationRescanPlan();
-  const allowedUserIds = new Set(plan.users.map((user) => user.user_id));
-  const userIds = selectedUserIds.filter((userId) => allowedUserIds.has(userId));
-  if (!userIds.length) {
-    const error = new Error("Selected users do not have pending approved recommendation gains.");
-    error.statusCode = 400;
-    error.code = "no_pending_user_gains";
-    throw error;
+  let userIds = selectedUserIds;
+  let approvalIds = [];
+  if (manual) {
+    validateUserIds(db, userIds);
+  } else {
+    const allowedUserIds = new Set(plan.users.map((user) => user.user_id));
+    userIds = selectedUserIds.filter((userId) => allowedUserIds.has(userId));
+    if (!userIds.length) {
+      const error = new Error("Selected users do not have pending approved recommendation gains.");
+      error.statusCode = 400;
+      error.code = "no_pending_user_gains";
+      throw error;
+    }
+    approvalIds = plan.approvals
+      .filter((approval) => approval.affected_users.some((user) => userIds.includes(user.user_id)))
+      .map((approval) => approval.id);
   }
-  const approvalIds = plan.approvals
-    .filter((approval) => approval.affected_users.some((user) => userIds.includes(user.user_id)))
-    .map((approval) => approval.id);
   const beforeCounts = userIds.map((userId) => readUserCounts(db, userId));
   const rescanRunId = insertRescanRun(db, options.adminUser, userIds, approvalIds, beforeCounts);
   const userResults = [];
@@ -300,10 +318,11 @@ async function runAdminGenreRecommendationRescan(options = {}) {
     const results = afterCounts.map((after) => {
       const before = beforeByUser.get(after.user_id);
       const actualGain = Number(before?.unmatched_tracks || 0) - Number(after.unmatched_tracks || 0);
-      const estimated = plan.users.find((user) => user.user_id === after.user_id)?.estimated_gain || 0;
+      const estimated = manual ? 0 : plan.users.find((user) => user.user_id === after.user_id)?.estimated_gain || 0;
       return { user_id: after.user_id, before, after, estimated_gain: estimated, actual_gain: actualGain };
     });
     const summary = {
+      manual,
       selected_user_count: userIds.length,
       approval_count: approvalIds.length,
       estimated_gain: results.reduce((sum, row) => sum + Number(row.estimated_gain || 0), 0),

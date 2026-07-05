@@ -421,6 +421,7 @@ router.post("/admin/genre-recommendation-rescan", requireCurrentUser, requireAdm
   try {
     return res.json(await runAdminGenreRecommendationRescan({
       userIds: req.body?.user_ids || req.body?.userIds,
+      manual: req.body?.manual === true || req.body?.manual === "true",
       adminUser: req.currentUser,
     }));
   } catch (err) {
