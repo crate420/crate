@@ -11,7 +11,7 @@
       <header class="admin-page-header">
         <div>
           <h1>Dashboard</h1>
-          <p>System health, user stats, library stats, recent jobs, and warnings.</p>
+          <p>System health and recent activity.</p>
         </div>
         <button class="primary" id="refreshButton" type="button">Refresh</button>
       </header>
@@ -22,6 +22,11 @@
         <div class="admin-panel">
           <div class="admin-panel-header"><h2>System Health</h2></div>
           <div class="admin-stats" id="healthStats"></div>
+        </div>
+
+        <div class="admin-panel">
+          <div class="admin-panel-header"><h2>Quick Actions</h2></div>
+          <div id="quickActions" class="admin-quick-actions"></div>
         </div>
 
         <div class="admin-grid two">
@@ -53,6 +58,7 @@
       const message = document.getElementById('message');
       const refreshButton = document.getElementById('refreshButton');
       const healthStats = document.getElementById('healthStats');
+      const quickActions = document.getElementById('quickActions');
       const userStats = document.getElementById('userStats');
       const libraryStats = document.getElementById('libraryStats');
       const recentJobs = document.getElementById('recentJobs');
@@ -65,12 +71,86 @@
       function compactJob(label, run) {
         if (!run) return '<div class="admin-placeholder">' + CrateAdmin.escapeHtml(label) + ': no recent run found.</div>';
         const bits = [
-          run.created_at || run.started_at || run.fetched_at,
+          CrateAdmin.formatDateTime(run.created_at || run.started_at || run.fetched_at),
           run.status,
           run.matched_tracks != null ? CrateAdmin.formatNumber(run.matched_tracks) + ' matched' : '',
           run.unmatched_tracks != null ? CrateAdmin.formatNumber(run.unmatched_tracks) + ' unmatched' : '',
         ].filter(Boolean).join(' · ');
         return '<div class="admin-card"><h3>' + CrateAdmin.escapeHtml(label) + '</h3><p>' + CrateAdmin.escapeHtml(bits || 'Recent job recorded.') + '</p></div>';
+      }
+
+      function actionCard({ icon, value, context, href, label }) {
+        return '<article class="admin-action-card"><span class="admin-action-icon">' + CrateAdmin.escapeHtml(icon) + '</span><div class="admin-action-value">' + CrateAdmin.escapeHtml(value) + '</div><div class="admin-action-context">' + CrateAdmin.escapeHtml(context || '') + '</div><a class="admin-button primary" href="' + CrateAdmin.escapeHtml(href) + '">' + CrateAdmin.escapeHtml(label) + '</a></article>';
+      }
+
+      function highestRecoveryUser(users) {
+        return [...users].filter((user) => Number(user.unmatched || 0) > 0).sort((left, right) => Number(right.unmatched || 0) - Number(left.unmatched || 0))[0] || null;
+      }
+
+      function userDisplayName(user) {
+        return user?.name || user?.display_name || user?.email || user?.spotify_user_id || (user ? 'User #' + user.user_id : 'User');
+      }
+
+      async function latestRecoveryFor(user) {
+        if (!user) return null;
+        try {
+          const payload = await CrateAdmin.requestJson('/crate/admin/users/' + encodeURIComponent(user.user_id) + '/recovery-summary');
+          return payload.latest_recovery?.summary ? { user, summary: payload.latest_recovery.summary } : null;
+        } catch (error) {
+          return null;
+        }
+      }
+
+      async function renderQuickActions({ users, artistRecommendations, playlistIntelligence }) {
+        const actions = [];
+        const recoveryUsers = users.filter((user) => Number(user.unmatched || 0) > 0);
+        const topUser = highestRecoveryUser(users);
+        if (topUser) {
+          actions.push(actionCard({
+            icon: 'U',
+            value: recoveryUsers.length === 1 ? '1 User Needs Recovery' : CrateAdmin.formatNumber(recoveryUsers.length) + ' Users Need Recovery',
+            context: userDisplayName(topUser) + ' • ' + CrateAdmin.formatNumber(topUser.unmatched) + ' unmatched',
+            href: '/admin-users.html?user_id=' + encodeURIComponent(topUser.user_id),
+            label: 'Open User Recovery',
+          }));
+        }
+
+        const pendingReviews = Number(artistRecommendations.count || 0);
+        if (pendingReviews > 0) {
+          actions.push(actionCard({
+            icon: 'I',
+            value: pendingReviews === 1 ? '1 Review Pending' : CrateAdmin.formatNumber(pendingReviews) + ' Reviews Pending',
+            context: 'Artist recommendations',
+            href: '/admin-intelligence.html',
+            label: 'Open Intelligence',
+          }));
+        }
+
+        const latestRecovery = await latestRecoveryFor(topUser);
+        const recoveredCount = Number(latestRecovery?.summary?.recovered_count || latestRecovery?.summary?.actual_gain || 0);
+        if (latestRecovery && recoveredCount > 0) {
+          actions.push(actionCard({
+            icon: 'R',
+            value: 'Last Recovery',
+            context: '+' + CrateAdmin.formatNumber(recoveredCount) + ' Songs Recovered',
+            href: '/admin-users.html?user_id=' + encodeURIComponent(latestRecovery.user.user_id) + '#history',
+            label: 'View History',
+          }));
+        }
+
+        const collectionCount = Number(playlistIntelligence.summary?.collection_count || 0);
+        const candidateCount = Number(playlistIntelligence.summary?.candidate_artist_count || playlistIntelligence.summary?.candidate_track_count || 0);
+        if (collectionCount > 0) {
+          actions.push(actionCard({
+            icon: 'P',
+            value: candidateCount > 0 ? 'Needs Review' : 'Collections Ready',
+            context: CrateAdmin.formatNumber(collectionCount) + ' collections',
+            href: '/admin-playlists-v2.html',
+            label: 'Open Playlists',
+          }));
+        }
+
+        quickActions.innerHTML = actions.length ? actions.slice(0, 4).join('') : '<div class="admin-placeholder">Everything looks healthy.</div>';
       }
 
       function warning(text) {
@@ -88,7 +168,7 @@
         if (unmatched > 0) items.push(CrateAdmin.formatNumber(unmatched) + ' unmatched tracks remain across users.');
         if ((coverage.summary?.estimated_recoverable_tracks || 0) > 0) items.push(CrateAdmin.formatNumber(coverage.summary.estimated_recoverable_tracks) + ' potentially recoverable tracks in intelligence coverage.');
         if ((status.spotify_config?.ok || status.spotify?.configured) === false) items.push('Spotify configuration is incomplete.');
-        warnings.innerHTML = items.length ? items.map(warning).join('') : warning('No dashboard warnings from current read-only checks.');
+        warnings.innerHTML = items.length ? items.map(warning).join('') : warning('Everything looks healthy.');
       }
 
       async function loadDashboard() {
@@ -96,17 +176,19 @@
         message.textContent = 'Loading dashboard...';
         message.className = 'admin-message';
         try {
-          const [health, status, diagnostics, coverage] = await Promise.all([
+          const [health, status, usersSummary, artistRecommendations, playlistIntelligence] = await Promise.all([
             CrateAdmin.requestJson('/health'),
             CrateAdmin.requestJson('/crate/admin/status'),
-            CrateAdmin.requestJson('/crate/admin/user-diagnostics'),
-            CrateAdmin.requestJson('/crate/admin/intelligence-coverage'),
+            CrateAdmin.requestJson('/crate/admin/users/summary'),
+            CrateAdmin.requestJson('/crate/admin/artist-intelligence/recommendations?confidence_min=85&limit=20'),
+            CrateAdmin.requestJson('/crate/admin/playlist-intelligence'),
           ]);
 
-          const users = diagnostics.users || [];
-          const liked = users.reduce((sum, user) => sum + Number(user.total_liked_tracks || 0), 0);
-          const matched = users.reduce((sum, user) => sum + Number(user.matched_tracks || 0), 0);
-          const unmatched = users.reduce((sum, user) => sum + Number(user.unmatched_tracks || user.total_unmatched_tracks || 0), 0);
+          const users = usersSummary.users || [];
+          const liked = users.reduce((sum, user) => sum + Number(user.total_songs || 0), 0);
+          const matched = users.reduce((sum, user) => sum + Number(user.matched || 0), 0);
+          const unmatched = users.reduce((sum, user) => sum + Number(user.unmatched || 0), 0);
+          const usersNeedingAttention = users.filter((user) => Number(user.unmatched || 0) > 0).length;
           const matchPct = liked ? Math.round((matched / liked) * 1000) / 10 + '%' : '-';
 
           healthStats.innerHTML = [
@@ -114,23 +196,25 @@
             stat('Uptime', health.uptime_seconds ? CrateAdmin.formatNumber(Math.round(health.uptime_seconds)) + 's' : '-'),
             stat('Environment', status.environment || '-'),
           ].join('');
+          await renderQuickActions({ users, artistRecommendations, playlistIntelligence });
           userStats.innerHTML = [
             stat('Users', users.length),
-            stat('Liked Songs', CrateAdmin.formatNumber(liked)),
+            stat('Need Attention', usersNeedingAttention),
             stat('Match Rate', matchPct),
           ].join('');
           libraryStats.innerHTML = [
+            stat('Liked Songs', CrateAdmin.formatNumber(liked)),
             stat('Matched', CrateAdmin.formatNumber(matched)),
             stat('Unmatched', CrateAdmin.formatNumber(unmatched)),
-            stat('Coverage Score', coverage.summary?.overall_readiness_score ?? coverage.readiness_progress?.current?.A ?? '-'),
+            stat('Pending Intelligence', CrateAdmin.formatNumber(artistRecommendations.count || 0)),
           ].join('');
           recentJobs.innerHTML = [
             compactJob('Latest Scan', latest(status.recent_scan_runs || status.scan_runs)),
             compactJob('Latest Sort', latest(status.recent_sort_runs || status.sort_runs)),
             compactJob('Latest Playlist Sync', latest(status.recent_playlist_sync_runs || status.playlist_sync_runs)),
           ].join('');
-          renderWarnings(status, diagnostics, coverage);
-          message.textContent = 'Dashboard loaded.';
+          renderWarnings(status, { users: users.map((user) => ({ unmatched_tracks: user.unmatched, total_liked_tracks: user.total_songs, matched_tracks: user.matched })) }, { summary: {} });
+          message.textContent = '';
         } catch (error) {
           message.textContent = error.message;
           message.className = 'admin-message error';

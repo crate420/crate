@@ -1,6 +1,7 @@
 const crypto = require("node:crypto");
 const express = require("express");
 const spotifyAuth = require("../spotify/auth");
+const config = require("../config");
 const users = require("../repositories/users");
 const { CURRENT_USER_COOKIE, getCurrentUser } = require("../utils/authSession");
 const { clearCookie, readSignedCookie, setSignedCookie } = require("../utils/cookies");
@@ -11,8 +12,32 @@ const router = express.Router();
 
 const OAUTH_STATE_COOKIE = "crate_spotify_oauth_state";
 
+function requestOrigin(req) {
+  const protocol = req.headers["x-forwarded-proto"] || req.protocol || "http";
+  return `${String(protocol).split(",")[0]}://${req.get("host")}`;
+}
+
+function configuredRedirectOrigin() {
+  try {
+    return new URL(config.spotify.redirectUri).origin;
+  } catch (err) {
+    return null;
+  }
+}
+
+function redirectToConfiguredAuthOrigin(req, res) {
+  const targetOrigin = configuredRedirectOrigin();
+  if (!targetOrigin || requestOrigin(req) === targetOrigin) return false;
+
+  const target = new URL(req.originalUrl || req.url, targetOrigin);
+  res.redirect(target.toString());
+  return true;
+}
+
 router.get("/spotify", (req, res, next) => {
   try {
+    if (redirectToConfiguredAuthOrigin(req, res)) return undefined;
+
     const state = crypto.randomBytes(32).toString("base64url");
     const authorizeUrl = spotifyAuth.buildAuthorizeUrl(state);
 

@@ -64,11 +64,20 @@
     return Number(value || 0).toLocaleString();
   }
 
+  function formatDateTime(value) {
+    if (!value) return "-";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return String(value);
+    const dateText = date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+    const timeText = date.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+    return `${dateText} • ${timeText}`;
+  }
+
   function escapeHtml(value) {
     return String(value ?? "").replace(/[&<>"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[char]));
   }
 
-  window.CrateAdmin = { requestJson, formatNumber, escapeHtml };
+  window.CrateAdmin = { requestJson, formatNumber, formatDateTime, escapeHtml };
 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", () => { renderShell(); initTabs(); });

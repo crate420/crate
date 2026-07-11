@@ -326,7 +326,7 @@ function getUserArtistCount(db, userId) {
 
 function getEmptyUserStatus(userId = null) {
   const playlistCategoryCounts = [];
-  const eraCounts = ERA_KEYS.map((era) => ({ era, count: 0 }));
+  const eraCounts = [];
 
   return {
     status: "ok",
@@ -373,6 +373,17 @@ function getUserCrateStatus(userId, options = {}) {
   const discovery = normalizeDiscoverySummary(lastSortRun?.summary?.discovery);
   const specialtySuggestionsVisible = Boolean(options.specialtySuggestionsVisible);
   const specialtyPreviewEnabled = Boolean(options.specialtyPreviewEnabled);
+
+  if (userTracksTotal === 0) {
+    return {
+      ...getEmptyUserStatus(userId),
+      last_sync_run: getLastCrateRunByStep(db, "syncLikedSongs", userId),
+      last_sort_run: lastSortRun,
+      last_playlist_sync_run: getLastPlaylistSyncRun(db, userId),
+      timestamp: new Date().toISOString(),
+    };
+  }
+
   const specialtySuggestions = specialtySuggestionsVisible ? getSpecialtySuggestionsForUser(userId) : [];
 
   console.log("[Crate Status] user dashboard counts", {

@@ -80,6 +80,13 @@ const { getLibraryInsightsForUser } = require("../crate/libraryInsights");
 const { getCrateStatus, getGlobalCrateStatus } = require("../crate/status");
 const { getAdminUserDiagnostics } = require("../crate/userDiagnostics");
 const { getAdminUserUnmatchedExport, refreshUserUnmatchedArtistIntelligence } = require("../crate/userUnmatchedExport");
+const adminSummaryCache = require("../crate/adminSummaryCache");
+const {
+  getUserRecoveryDetail,
+  getUserRecoverySummary,
+  readUsersSummary,
+  runUserRecoveryRescan,
+} = require("../crate/adminUserRecovery");
 const { getTopArtists } = require("../crate/topArtists");
 const { getSpecialtyPlaylistValidationReport } = require("../crate/specialtyPlaylistValidation");
 const { resolveSpecialtyTracksForUser } = require("../crate/specialtyTrackResolver");
@@ -382,11 +389,15 @@ router.get("/admin/genre-recommendations", requireCurrentUser, requireAdminUser,
 
 router.post("/admin/genre-recommendations/apply", requireCurrentUser, requireAdminUser, async (req, res, next) => {
   try {
-    return res.json(await approveGenreRecommendation({
+    const result = await approveGenreRecommendation({
       artist: req.body?.artist,
       playlistCode: req.body?.playlist_code || req.body?.playlistCode,
       adminUser: req.currentUser,
-    }));
+    });
+    adminSummaryCache.invalidate("admin-users-summary");
+    adminSummaryCache.invalidate("admin-user-recovery");
+    adminSummaryCache.invalidate("admin-intelligence");
+    return res.json(result);
   } catch (err) {
     if (err.statusCode) {
       return res.status(err.statusCode).json({ error: err.code || "genre_recommendation_approval_error", message: err.message });
@@ -397,10 +408,14 @@ router.post("/admin/genre-recommendations/apply", requireCurrentUser, requireAdm
 
 router.post("/admin/genre-recommendations/apply-selected", requireCurrentUser, requireAdminUser, async (req, res, next) => {
   try {
-    return res.json(await approveSelectedGenreRecommendations({
+    const result = await approveSelectedGenreRecommendations({
       selections: req.body?.selections,
       adminUser: req.currentUser,
-    }));
+    });
+    adminSummaryCache.invalidate("admin-users-summary");
+    adminSummaryCache.invalidate("admin-user-recovery");
+    adminSummaryCache.invalidate("admin-intelligence");
+    return res.json(result);
   } catch (err) {
     if (err.statusCode) {
       return res.status(err.statusCode).json({ error: err.code || "genre_recommendation_approval_error", message: err.message });
@@ -419,11 +434,14 @@ router.get("/admin/genre-recommendation-rescan", requireCurrentUser, requireAdmi
 
 router.post("/admin/genre-recommendation-rescan", requireCurrentUser, requireAdminUser, async (req, res, next) => {
   try {
-    return res.json(await runAdminGenreRecommendationRescan({
+    const result = await runAdminGenreRecommendationRescan({
       userIds: req.body?.user_ids || req.body?.userIds,
       manual: req.body?.manual === true || req.body?.manual === "true",
       adminUser: req.currentUser,
-    }));
+    });
+    adminSummaryCache.invalidate("admin-users-summary");
+    adminSummaryCache.invalidate("admin-user-recovery");
+    return res.json(result);
   } catch (err) {
     if (err.statusCode) {
       return res.status(err.statusCode).json({ error: err.code || "genre_recommendation_rescan_error", message: err.message });
@@ -596,6 +614,68 @@ router.get("/admin/status", requireCurrentUser, requireAdminUser, (req, res, nex
   try {
     return res.json(getGlobalCrateStatus());
   } catch (err) {
+    return next(err);
+  }
+});
+
+router.get("/admin/users/summary", requireCurrentUser, requireAdminUser, (req, res, next) => {
+  try {
+    return res.json(adminSummaryCache.getOrSet(
+      "admin-users-summary",
+      { admin_user_id: req.currentUser.id },
+      60,
+      () => readUsersSummary(),
+      req.query,
+    ));
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.get("/admin/users/:userId/recovery-summary", requireCurrentUser, requireAdminUser, async (req, res, next) => {
+  try {
+    return res.json(await adminSummaryCache.getOrSetAsync(
+      "admin-user-recovery-summary",
+      { user_id: req.params.userId },
+      30,
+      () => getUserRecoverySummary(req.params.userId),
+      req.query,
+    ));
+  } catch (err) {
+    if (err.statusCode) {
+      return res.status(err.statusCode).json({ error: err.code || "user_recovery_summary_error", message: err.message });
+    }
+    return next(err);
+  }
+});
+
+router.get("/admin/users/:userId/recovery-detail", requireCurrentUser, requireAdminUser, async (req, res, next) => {
+  try {
+    return res.json(await adminSummaryCache.getOrSetAsync(
+      "admin-user-recovery-detail",
+      { user_id: req.params.userId, section: req.query.section, limit: req.query.limit, offset: req.query.offset, search: req.query.search },
+      30,
+      () => getUserRecoveryDetail(req.params.userId, req.query),
+      req.query,
+    ));
+  } catch (err) {
+    if (err.statusCode) {
+      return res.status(err.statusCode).json({ error: err.code || "user_recovery_detail_error", message: err.message });
+    }
+    return next(err);
+  }
+});
+
+router.post("/admin/users/:userId/rescan", requireCurrentUser, requireAdminUser, async (req, res, next) => {
+  try {
+    const result = await runUserRecoveryRescan(req.params.userId);
+    adminSummaryCache.invalidate("admin-users-summary");
+    adminSummaryCache.invalidate("admin-user-recovery");
+    return res.json(result);
+  } catch (err) {
+    if (err.statusCode) {
+      return res.status(err.statusCode).json({ error: err.code || "user_recovery_rescan_error", message: err.message });
+    }
     return next(err);
   }
 });
@@ -1488,6 +1568,9 @@ router.post("/admin/artist-intelligence/recommendations/apply-bulk", requireCurr
     const noInsertReason = summary.genres_inserted === 0
       ? (summary.candidates_considered === 0 ? "No recommendations matched the bulk filters." : summary.duplicates_skipped === summary.candidates_considered ? "All matching recommendations already exist in artist_genres." : "No new artist_genres rows were inserted. Review rejected_count and errors.")
       : null;
+    adminSummaryCache.invalidate("admin-users-summary");
+    adminSummaryCache.invalidate("admin-user-recovery");
+    adminSummaryCache.invalidate("admin-intelligence");
     return res.json({ status: "ok", confidence_min: plan.confidence_min, support_min: plan.support_min, limit: plan.limit, artist_genres_before: artistGenresBefore, artist_genres_after: artistGenresAfter, artist_genres_delta: artistGenresAfter - artistGenresBefore, no_insert_reason: noInsertReason, ...summary });
   } catch (err) {
     return next(err);
@@ -1513,6 +1596,9 @@ router.post("/admin/artist-intelligence/recommendations/apply", requireCurrentUs
     const recommendation = findRecommendation(artistIntelligenceId, genre);
     if (!recommendation) return res.status(400).json({ error: "recommendation_not_found", message: "Genre is not a current approved Artist Intelligence recommendation." });
     const result = artistGenreRepo.insertArtistGenres({ artistName: detail.artist.artist_name, genres: [genre], source: "artist_intelligence_admin" });
+    adminSummaryCache.invalidate("admin-users-summary");
+    adminSummaryCache.invalidate("admin-user-recovery");
+    adminSummaryCache.invalidate("admin-intelligence");
     return res.json({ status: "ok", artist: detail.artist, genre, support_count: recommendation.support_count, supporting_sources: recommendation.sources, inserted_count: result.inserted });
   } catch (err) {
     return next(err);

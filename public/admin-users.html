@@ -3,28 +3,402 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Crate Admin Users</title>
+    <title>Crate Admin · User Recovery</title>
     <link rel="stylesheet" href="/admin.css">
+    <style>
+      .user-picker input { width: min(100%, 560px); }
+      .admin-table { border-collapse: collapse; width: 100%; }
+      .admin-table th, .admin-table td { border-bottom: 1px solid var(--admin-border); padding: 9px; text-align: left; vertical-align: top; }
+      .admin-table th { color: var(--admin-muted); text-transform: uppercase; }
+      .recovery-result { display: grid; gap: 12px; }
+      .track-list { margin: 6px 0 0; padding-left: 18px; }
+      @media (max-width: 760px) { .admin-main { padding: 14px; } }
+    </style>
   </head>
   <body data-admin-section="users">
     <main>
       <header class="admin-page-header">
-        <div><h1>Users</h1><p>Phase 2 home for user list, library status, unmatched detail, exports, and rescans.</p></div>
-      </header>
-      <section class="admin-panel">
-        <div class="admin-tabs">
-          <button class="admin-tab is-active" type="button">Overview</button>
-          <button class="admin-tab" type="button">Library</button>
-          <button class="admin-tab" type="button">Unmatched</button>
-          <button class="admin-tab" type="button">Export</button>
+        <div>
+          <h1>User Recovery</h1>
+          <p>Recover unmatched music for a single user.</p>
         </div>
-        <div class="admin-placeholder">Phase 2 will merge User Diagnostics, User Unmatched Export, and relevant unmatched diagnostics here.</div>
-        <div class="admin-link-grid" style="margin-top:14px">
-          <a class="admin-card" href="/admin-user-diagnostics.html"><h3>User Diagnostics</h3><p>Legacy page remains available.</p></a>
-          <a class="admin-card" href="/admin-user-unmatched-export.html"><h3>User Unmatched Export</h3><p>Legacy page remains available.</p></a>
+        <button id="forceRefreshButton" type="button">Force Refresh</button>
+      </header>
+
+      <section class="admin-panel">
+        <div class="user-picker">
+          <label>
+            User
+            <input id="userPicker" type="search" list="userOptions" placeholder="Search by name, email, or Spotify">
+            <datalist id="userOptions"></datalist>
+          </label>
         </div>
       </section>
+
+      <div class="admin-message" id="message">Loading users...</div>
+
+      <section class="admin-panel" id="workspace" hidden>
+        <div class="admin-panel-header">
+          <div>
+            <h2 id="selectedUserTitle">User</h2>
+            <p id="selectedUserMeta"></p>
+          </div>
+        </div>
+
+        <div class="admin-tabs" role="tablist">
+          <button class="admin-tab is-active" data-tab="overview" type="button">Overview</button>
+          <button class="admin-tab" data-tab="unmatched" type="button">Unmatched</button>
+          <button class="admin-tab" data-tab="fixes" type="button">Fixes</button>
+          <button class="admin-tab" data-tab="rescan" type="button">Rescan</button>
+          <button class="admin-tab" data-tab="history" type="button">History</button>
+        </div>
+
+        <section id="overviewPanel" data-panel="overview">
+          <div class="admin-stats" id="libraryStats"></div>
+          <div class="admin-grid two" style="margin-top:14px">
+            <div class="admin-card">
+              <h3>Top Unmatched Artists</h3>
+              <div id="topArtists"></div>
+            </div>
+            <div class="admin-card">
+              <h3>Suggested Fixes</h3>
+              <div id="overviewFixes"></div>
+            </div>
+          </div>
+          <div class="admin-card" style="margin-top:14px">
+            <h3>Latest Recovery</h3>
+            <div id="latestRecovery"></div>
+          </div>
+        </section>
+
+        <section id="unmatchedPanel" data-panel="unmatched" hidden>
+          <div class="admin-actions" style="margin-bottom:10px">
+            <input id="unmatchedSearch" type="search" placeholder="Search unmatched">
+            <button id="unmatchedSearchButton" type="button">Search</button>
+          </div>
+          <div id="unmatchedRows" class="admin-grid"></div>
+          <div class="admin-actions" style="margin-top:10px">
+            <button id="unmatchedMoreButton" type="button">Show More</button>
+          </div>
+        </section>
+
+        <section id="fixesPanel" data-panel="fixes" hidden>
+          <div id="fixRows"></div>
+        </section>
+
+        <section id="rescanPanel" data-panel="rescan" hidden>
+          <div class="admin-card">
+            <h3>Rescan User</h3>
+            <p>Runs sort for this user only. This does not scan Spotify, send playlists, or create playlists.</p>
+            <div class="admin-actions" style="margin-top:12px">
+              <button id="rescanButton" class="primary" type="button">Rescan User</button>
+            </div>
+          </div>
+          <div id="rescanResult" class="recovery-result" style="margin-top:14px"></div>
+        </section>
+
+        <section id="historyPanel" data-panel="history" hidden>
+          <div id="historyRows"></div>
+        </section>
+      </section>
     </main>
+
     <script src="/adminShell.js"></script>
+    <script>
+      const message = document.getElementById('message');
+      const forceRefreshButton = document.getElementById('forceRefreshButton');
+      const userPicker = document.getElementById('userPicker');
+      const userOptions = document.getElementById('userOptions');
+      const workspace = document.getElementById('workspace');
+      const selectedUserTitle = document.getElementById('selectedUserTitle');
+      const selectedUserMeta = document.getElementById('selectedUserMeta');
+      const libraryStats = document.getElementById('libraryStats');
+      const topArtists = document.getElementById('topArtists');
+      const overviewFixes = document.getElementById('overviewFixes');
+      const latestRecovery = document.getElementById('latestRecovery');
+      const unmatchedRows = document.getElementById('unmatchedRows');
+      const unmatchedSearch = document.getElementById('unmatchedSearch');
+      const unmatchedSearchButton = document.getElementById('unmatchedSearchButton');
+      const unmatchedMoreButton = document.getElementById('unmatchedMoreButton');
+      const fixRows = document.getElementById('fixRows');
+      const rescanButton = document.getElementById('rescanButton');
+      const rescanResult = document.getElementById('rescanResult');
+      const historyRows = document.getElementById('historyRows');
+
+      let users = [];
+      let selectedUserId = null;
+      let activeTab = 'overview';
+      let forceRefresh = false;
+      const loadedTabs = new Set();
+      const unmatchedState = { offset: 0, limit: 20, search: '' };
+      const userValueToId = new Map();
+
+      function setMessage(text, type = '') {
+        message.textContent = text;
+        message.className = 'admin-message' + (type ? ' ' + type : '');
+      }
+
+      function stat(label, value) {
+        return '<div class="admin-stat"><strong>' + CrateAdmin.escapeHtml(value ?? '-') + '</strong><span>' + CrateAdmin.escapeHtml(label) + '</span></div>';
+      }
+
+      function userLabel(user) {
+        return `${user.name || user.email || user.spotify_user_id || 'User #' + user.user_id} · ${CrateAdmin.formatNumber(user.unmatched)} unmatched`;
+      }
+
+      function renderUserOptions() {
+        userValueToId.clear();
+        userOptions.innerHTML = users.map((user) => {
+          const label = userLabel(user);
+          userValueToId.set(label, String(user.user_id));
+          return '<option value="' + CrateAdmin.escapeHtml(label) + '"></option>';
+        }).join('');
+        const selected = users.find((user) => String(user.user_id) === String(selectedUserId));
+        if (selected) userPicker.value = userLabel(selected);
+      }
+
+      async function loadUsers() {
+        setMessage('Loading users...');
+        const params = new URLSearchParams();
+        if (forceRefresh) params.set('force_refresh', 'true');
+        const payload = await CrateAdmin.requestJson('/crate/admin/users/summary?' + params);
+        users = payload.users || [];
+        const urlUser = new URLSearchParams(window.location.search).get('user_id');
+        selectedUserId = urlUser || selectedUserId || users[0]?.user_id || null;
+        renderUserOptions();
+        if (selectedUserId) await loadSelectedUser();
+        else setMessage('No users found.');
+      }
+
+      function priorityBadge(priority) {
+        if (priority === 'high') return '<span class="admin-badge danger">🔴 High Priority</span>';
+        if (priority === 'normal') return '<span class="admin-badge warn">🟡 Medium</span>';
+        return '<span class="admin-badge good">🟢 Healthy</span>';
+      }
+
+      function renderList(rows, valueKey, emptyText, clickable = false) {
+        return rows && rows.length
+          ? '<div class="admin-badges">' + rows.map((row) => {
+              const text = CrateAdmin.escapeHtml(row[valueKey]) + ' · ' + CrateAdmin.formatNumber(row.count);
+              return clickable
+                ? '<button class="admin-badge" type="button" data-artist-filter="' + CrateAdmin.escapeHtml(row[valueKey]) + '">' + text + '</button>'
+                : '<span class="admin-badge">' + text + '</span>';
+            }).join('') + '</div>'
+          : '<div class="admin-placeholder">' + CrateAdmin.escapeHtml(emptyText) + '</div>';
+      }
+
+      function renderFixSummary(fixes) {
+        if (!fixes || !fixes.length) return '<div class="admin-placeholder">No suggested fixes for current evidence.</div>';
+        return fixes.slice(0, 5).map((fix) => '<div class="admin-placeholder"><strong>' + CrateAdmin.escapeHtml(fix.artist) + '</strong> → ' + CrateAdmin.escapeHtml(fix.suggested_genre) + '<br><span class="admin-muted">Estimated recovery: ' + CrateAdmin.formatNumber(fix.estimated_recovery) + ' songs</span></div>').join('');
+      }
+
+      function renderOverview(payload) {
+        const library = payload.library || {};
+        const user = payload.user || {};
+        selectedUserTitle.textContent = user.name || `User #${user.user_id}`;
+        selectedUserMeta.textContent = [user.email, user.spotify_user_id ? `Spotify: ${user.spotify_user_id}` : ''].filter(Boolean).join(' · ');
+        const selectedFromList = users.find((item) => String(item.user_id) === String(user.user_id));
+        libraryStats.innerHTML = [
+          '<div class="admin-stat"><strong>' + priorityBadge(selectedFromList?.recovery_priority) + '</strong><span>Recovery Priority</span></div>',
+          stat('Total Songs', CrateAdmin.formatNumber(library.total_songs)),
+          stat('Matched', CrateAdmin.formatNumber(library.matched)),
+          stat('Unmatched', CrateAdmin.formatNumber(library.unmatched)),
+          stat('Match %', library.match_percent != null ? library.match_percent + '%' : '-'),
+          stat('Last Scan', CrateAdmin.formatDateTime(library.last_scan)),
+          stat('Last Sort', CrateAdmin.formatDateTime(library.last_sort)),
+        ].join('');
+        topArtists.innerHTML = renderList(payload.top_unmatched_artists || [], 'artist', 'No unmatched artists.', true);
+        overviewFixes.innerHTML = renderFixSummary(payload.suggested_fixes || []);
+        const recovery = payload.latest_recovery?.summary;
+        latestRecovery.innerHTML = recovery
+          ? '<div class="admin-stats">' + [
+              stat('Before', CrateAdmin.formatNumber(recovery.before_unmatched)),
+              stat('After', CrateAdmin.formatNumber(recovery.after_unmatched)),
+              stat('Recovered Songs', CrateAdmin.formatNumber(recovery.recovered_count || recovery.actual_gain || 0)),
+            ].join('') + '</div>'
+          : '<div class="admin-placeholder">No recent recovery run for this user.</div>';
+      }
+
+      async function loadSelectedUser() {
+        if (!selectedUserId) return;
+        const url = new URL(window.location.href);
+        url.searchParams.set('user_id', selectedUserId);
+        history.replaceState(null, '', url);
+        workspace.hidden = false;
+        loadedTabs.clear();
+        unmatchedState.offset = 0;
+        unmatchedRows.innerHTML = '';
+        fixRows.innerHTML = '';
+        historyRows.innerHTML = '';
+        rescanResult.innerHTML = '';
+        await loadOverview();
+        activateTab((window.location.hash || '').replace('#', '') || 'overview', { updateHash: false });
+      }
+
+      async function loadOverview() {
+        setMessage('Loading user summary...');
+        const params = new URLSearchParams();
+        if (forceRefresh) params.set('force_refresh', 'true');
+        const payload = await CrateAdmin.requestJson(`/crate/admin/users/${selectedUserId}/recovery-summary?${params}`);
+        renderOverview(payload);
+        loadedTabs.add('overview');
+        setMessage('');
+      }
+
+      async function loadUnmatched(reset = false) {
+        if (reset) {
+          unmatchedState.offset = 0;
+          unmatchedRows.innerHTML = '';
+        }
+        setMessage('Loading unmatched artists...');
+        const params = new URLSearchParams({ section: 'unmatched', limit: unmatchedState.limit, offset: unmatchedState.offset, search: unmatchedState.search });
+        if (forceRefresh) params.set('force_refresh', 'true');
+        const payload = await CrateAdmin.requestJson(`/crate/admin/users/${selectedUserId}/recovery-detail?${params}`);
+        const html = (payload.artists || []).map((row) => {
+          const tracks = (row.tracks || []).map((track) => '<li>' + CrateAdmin.escapeHtml(track.track_name) + ' <span class="admin-muted">(' + CrateAdmin.escapeHtml((track.artists || []).join(', ')) + ')</span></li>').join('');
+          return '<div class="admin-card"><h3>' + CrateAdmin.escapeHtml(row.artist) + ' · ' + CrateAdmin.formatNumber(row.count) + '</h3><ul class="track-list">' + tracks + '</ul></div>';
+        }).join('');
+        unmatchedRows.insertAdjacentHTML('beforeend', html || '<div class="admin-placeholder">No unmatched songs match this search.</div>');
+        unmatchedState.offset += payload.limit || unmatchedState.limit;
+        unmatchedMoreButton.disabled = unmatchedState.offset >= (payload.filtered_count || 0);
+        loadedTabs.add('unmatched');
+        setMessage('');
+      }
+
+      function renderFixRows(fixes) {
+        if (!fixes.length) {
+          fixRows.innerHTML = '<div class="admin-placeholder">No suggested fixes for current evidence.</div>';
+          return;
+        }
+        fixRows.innerHTML = '<table class="admin-table"><thead><tr><th>Artist</th><th>Suggested Fix</th><th>Evidence</th><th>Estimated Recovery</th><th>Action</th></tr></thead><tbody>' + fixes.map((fix) => {
+          const evidence = (fix.evidence || []).slice(0, 4).join(', ');
+          return '<tr><td><strong>' + CrateAdmin.escapeHtml(fix.artist) + '</strong></td><td>' + CrateAdmin.escapeHtml(fix.suggested_genre) + '</td><td>' + CrateAdmin.escapeHtml(evidence || 'Evidence available') + '</td><td>' + CrateAdmin.formatNumber(fix.estimated_recovery) + '</td><td><button type="button" data-action="approve" data-id="' + fix.artist_intelligence_id + '" data-genre="' + CrateAdmin.escapeHtml(fix.suggested_genre) + '">Approve</button></td></tr>';
+        }).join('') + '</tbody></table>';
+      }
+
+      async function loadFixes() {
+        setMessage('Loading suggested fixes...');
+        const params = new URLSearchParams({ section: 'fixes', limit: 50 });
+        if (forceRefresh) params.set('force_refresh', 'true');
+        const payload = await CrateAdmin.requestJson(`/crate/admin/users/${selectedUserId}/recovery-detail?${params}`);
+        renderFixRows(payload.fixes || []);
+        loadedTabs.add('fixes');
+        setMessage('');
+      }
+
+      async function approveFix(button) {
+        button.disabled = true;
+        const genre = button.dataset.genre;
+        setMessage('Approving ' + genre + '...');
+        try {
+          const payload = await CrateAdmin.requestJson('/crate/admin/artist-intelligence/recommendations/apply', {
+            method: 'POST',
+            body: JSON.stringify({ artist_intelligence_id: Number(button.dataset.id), genre }),
+          });
+          setMessage(`${payload.genre} approved for ${payload.artist.artist_name}. Rescan when ready.`);
+          forceRefresh = true;
+          await loadOverview();
+          await loadFixes();
+          forceRefresh = false;
+        } catch (error) {
+          button.disabled = false;
+          setMessage(error.message, 'error');
+        }
+      }
+
+      async function loadHistory() {
+        setMessage('Loading recovery history...');
+        const params = new URLSearchParams({ section: 'history' });
+        if (forceRefresh) params.set('force_refresh', 'true');
+        const payload = await CrateAdmin.requestJson(`/crate/admin/users/${selectedUserId}/recovery-detail?${params}`);
+        const rows = payload.history || [];
+        historyRows.innerHTML = rows.length ? rows.map((row) => {
+          const summary = row.summary || {};
+          return '<div class="admin-card"><h3>Run #' + CrateAdmin.escapeHtml(row.id) + ' · ' + CrateAdmin.escapeHtml(row.status) + '</h3><p>' + CrateAdmin.escapeHtml(CrateAdmin.formatDateTime(row.finished_at || row.updated_at || row.created_at)) + '</p><div class="admin-stats">' + [
+            stat('Before', CrateAdmin.formatNumber(summary.before_unmatched)),
+            stat('After', CrateAdmin.formatNumber(summary.after_unmatched)),
+            stat('Recovered', CrateAdmin.formatNumber(summary.recovered_count || summary.actual_gain || 0)),
+          ].join('') + '</div></div>';
+        }).join('') : '<div class="admin-placeholder">No recovery history for this user.</div>';
+        loadedTabs.add('history');
+        setMessage('');
+      }
+
+      async function runRescan() {
+        if (!confirm('Rescan this user now? This runs sort only and does not send anything to Spotify.')) return;
+        rescanButton.disabled = true;
+        setMessage('Running user rescan...');
+        try {
+          const payload = await CrateAdmin.requestJson(`/crate/admin/users/${selectedUserId}/rescan`, { method: 'POST', body: '{}' });
+          rescanResult.innerHTML = '<div class="admin-stats">' + [
+            stat('Before Unmatched', CrateAdmin.formatNumber(payload.before_unmatched)),
+            stat('After Unmatched', CrateAdmin.formatNumber(payload.after_unmatched)),
+            stat('Recovered Songs', CrateAdmin.formatNumber(payload.recovered_count)),
+            stat('Recovered Artists', CrateAdmin.formatNumber((payload.recovered_artists || []).length)),
+          ].join('') + '</div>' + ((payload.recovered_tracks || []).length ? '<div class="admin-card"><h3>Recovered Tracks</h3><ul class="track-list">' + payload.recovered_tracks.slice(0, 40).map((track) => '<li>' + CrateAdmin.escapeHtml(track.track_name) + ' <span class="admin-muted">→ ' + CrateAdmin.escapeHtml(track.playlist_code) + '</span></li>').join('') + '</ul></div>' : '<div class="admin-placeholder">No songs recovered in this run.</div>');
+          forceRefresh = true;
+          await loadOverview();
+          loadedTabs.delete('unmatched');
+          loadedTabs.delete('fixes');
+          loadedTabs.delete('history');
+          forceRefresh = false;
+          setMessage('Rescan complete.');
+        } catch (error) {
+          setMessage(error.message, 'error');
+        } finally {
+          rescanButton.disabled = false;
+        }
+      }
+
+      function activateTab(name, options = {}) {
+        if (!['overview', 'unmatched', 'fixes', 'rescan', 'history'].includes(name)) name = 'overview';
+        activeTab = name;
+        if (options.updateHash !== false) {
+          const url = new URL(window.location.href);
+          if (name === 'overview') url.hash = '';
+          else url.hash = name;
+          history.replaceState(null, '', url);
+        }
+        document.querySelectorAll('[data-tab]').forEach((tab) => tab.classList.toggle('is-active', tab.dataset.tab === name));
+        document.querySelectorAll('[data-panel]').forEach((panel) => { panel.hidden = panel.dataset.panel !== name; });
+        if (name === 'unmatched' && !loadedTabs.has('unmatched')) loadUnmatched(true);
+        if (name === 'fixes' && !loadedTabs.has('fixes')) loadFixes();
+        if (name === 'history' && !loadedTabs.has('history')) loadHistory();
+      }
+
+      document.querySelectorAll('[data-tab]').forEach((tab) => tab.addEventListener('click', () => activateTab(tab.dataset.tab)));
+      userPicker.addEventListener('change', () => {
+        const nextUserId = userValueToId.get(userPicker.value);
+        if (!nextUserId || String(nextUserId) === String(selectedUserId)) return;
+        selectedUserId = nextUserId;
+        loadSelectedUser();
+      });
+      userPicker.addEventListener('input', () => {
+        const nextUserId = userValueToId.get(userPicker.value);
+        if (!nextUserId || String(nextUserId) === String(selectedUserId)) return;
+        selectedUserId = nextUserId;
+        loadSelectedUser();
+      });
+      forceRefreshButton.addEventListener('click', async () => { forceRefresh = true; await loadUsers(); forceRefresh = false; });
+      unmatchedSearchButton.addEventListener('click', () => { unmatchedState.search = unmatchedSearch.value.trim(); loadUnmatched(true); });
+      unmatchedSearch.addEventListener('keydown', (event) => { if (event.key === 'Enter') { unmatchedState.search = unmatchedSearch.value.trim(); loadUnmatched(true); } });
+      unmatchedMoreButton.addEventListener('click', () => loadUnmatched(false));
+      fixRows.addEventListener('click', (event) => {
+        const button = event.target.closest('button[data-action="approve"]');
+        if (button) approveFix(button);
+      });
+      topArtists.addEventListener('click', (event) => {
+        const button = event.target.closest('[data-artist-filter]');
+        if (!button) return;
+        unmatchedSearch.value = button.dataset.artistFilter;
+        unmatchedState.search = button.dataset.artistFilter;
+        loadedTabs.add('unmatched');
+        activateTab('unmatched');
+        loadUnmatched(true);
+      });
+      rescanButton.addEventListener('click', runRescan);
+
+      loadUsers().catch((error) => setMessage(error.message, 'error'));
+    </script>
   </body>
 </html>

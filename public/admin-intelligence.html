@@ -11,12 +11,12 @@
       <header class="admin-page-header">
         <div>
           <h1>Intelligence Center</h1>
-          <p>One workspace for review, artist evidence, track evidence, playlist intelligence, coverage, and diagnostics.</p>
+          <p>Review evidence and approve recommendations.</p>
         </div>
         <button class="primary" id="refreshButton" type="button">Refresh</button>
       </header>
 
-      <div class="admin-message" id="message">Loading intelligence workspace...</div>
+      <div class="admin-message" id="message">Loading review workspace...</div>
 
       <section class="admin-panel" data-admin-tabs>
         <div class="admin-tabs" role="tablist">
@@ -32,14 +32,14 @@
           <div class="admin-panel-header">
             <div>
               <h2>Review Queue</h2>
-              <p>Approvals stay in the existing focused tools for Phase 1. This tab is the new front door.</p>
+              <p>Start here for recommendations that need review.</p>
             </div>
           </div>
           <div class="admin-stats" id="reviewStats"></div>
           <div class="admin-link-grid" style="margin-top:12px">
-            <a class="admin-card" href="/admin-artist-recommendations.html"><h3>Artist Recommendations</h3><p>Review Artist Intelligence and Playlist Intelligence evidence before writing artist genres.</p></a>
-            <a class="admin-card" href="/admin-genre-recommendations.html"><h3>Genre Recommendations</h3><p>Existing genre recommendation approval workflow.</p></a>
-            <a class="admin-card" href="/admin-recommendation-impact.html"><h3>Recommendation Impact</h3><p>Inspect approval value before running recovery work.</p></a>
+            <a class="admin-card" href="/admin-artist-recommendations.html"><h3>Artist Recommendations</h3><p>Approve artist genre fixes.</p></a>
+            <a class="admin-card" href="/admin-genre-recommendations.html"><h3>Genre Recommendations</h3><p>Review genre fixes.</p></a>
+            <a class="admin-card" href="/admin-recommendation-impact.html"><h3>Impact</h3><p>See likely recovery value.</p></a>
           </div>
         </div>
 
@@ -47,8 +47,8 @@
           <div class="admin-panel-header"><h2>Artist Intelligence</h2></div>
           <div class="admin-stats" id="artistStats"></div>
           <div class="admin-link-grid" style="margin-top:12px">
-            <a class="admin-card" href="/admin-artist-intelligence.html"><h3>Artist Intelligence Cache</h3><p>Inspect cached Spotify, Last.fm, and MusicBrainz evidence.</p></a>
-            <a class="admin-card" href="/admin-artist-gap-analysis.html"><h3>Artist Gaps</h3><p>Find high-impact missing artist evidence.</p></a>
+            <a class="admin-card" href="/admin-artist-intelligence.html"><h3>Artist Intelligence</h3><p>Inspect artist evidence.</p></a>
+            <a class="admin-card" href="/admin-artist-gap-analysis.html"><h3>Artist Gaps</h3><p>Find missing evidence.</p></a>
           </div>
         </div>
 
@@ -56,8 +56,8 @@
           <div class="admin-panel-header"><h2>Track Intelligence</h2></div>
           <div class="admin-stats" id="trackStats"></div>
           <div class="admin-link-grid" style="margin-top:12px">
-            <a class="admin-card" href="/admin-track-intelligence.html"><h3>Track Intelligence</h3><p>Review track-level evidence and playlist candidates.</p></a>
-            <a class="admin-card" href="/admin-era-diagnostics.html"><h3>Era Diagnostics</h3><p>Review remaster and release-year evidence.</p></a>
+            <a class="admin-card" href="/admin-track-intelligence.html"><h3>Track Intelligence</h3><p>Review track evidence.</p></a>
+            <a class="admin-card" href="/admin-era-diagnostics.html"><h3>Era Diagnostics</h3><p>Review release years.</p></a>
           </div>
         </div>
 
@@ -65,7 +65,7 @@
           <div class="admin-panel-header"><h2>Playlist Intelligence</h2></div>
           <div class="admin-stats" id="playlistStats"></div>
           <div class="admin-link-grid" style="margin-top:12px">
-            <a class="admin-card" href="/admin-playlist-intelligence.html"><h3>Playlist Intelligence</h3><p>Review collection definitions, source playlists, consensus artists, and tracks.</p></a>
+            <a class="admin-card" href="/admin-playlist-intelligence.html"><h3>Playlist Intelligence</h3><p>Review collection evidence.</p></a>
           </div>
         </div>
 
@@ -73,17 +73,17 @@
           <div class="admin-panel-header"><h2>Coverage</h2></div>
           <div class="admin-stats" id="coverageStats"></div>
           <div class="admin-link-grid" style="margin-top:12px">
-            <a class="admin-card" href="/admin-intelligence-coverage.html"><h3>Intelligence Coverage</h3><p>Read-only coverage and readiness report.</p></a>
-            <a class="admin-card" href="/admin-dna-evidence-quality.html"><h3>DNA Evidence Quality</h3><p>Playlist evidence quality and readiness ranking.</p></a>
+            <a class="admin-card" href="/admin-intelligence-coverage.html"><h3>Coverage</h3><p>Review evidence coverage.</p></a>
+            <a class="admin-card" href="/admin-dna-evidence-quality.html"><h3>DNA Quality</h3><p>Review playlist evidence quality.</p></a>
           </div>
         </div>
 
         <div data-tab-panel="diagnostics" hidden>
           <div class="admin-panel-header"><h2>Diagnostics</h2></div>
           <div class="admin-link-grid">
-            <a class="admin-card" href="/admin-unmatched-diagnostics.html"><h3>Unmatched Forensics</h3><p>Track-level unmatched diagnostics.</p></a>
-            <a class="admin-card" href="/admin-learning.html"><h3>Learning Signals</h3><p>Existing learning signal reports.</p></a>
-            <a class="admin-card" href="/admin-playlist-dna-validation.html"><h3>Playlist DNA Validation</h3><p>Validate playlist DNA behavior.</p></a>
+            <a class="admin-card" href="/admin-unmatched-diagnostics.html"><h3>Unmatched</h3><p>Inspect unmatched songs.</p></a>
+            <a class="admin-card" href="/admin-learning.html"><h3>Learning</h3><p>Review learning signals.</p></a>
+            <a class="admin-card" href="/admin-playlist-dna-validation.html"><h3>DNA Validation</h3><p>Validate playlist DNA.</p></a>
           </div>
         </div>
       </section>
@@ -110,7 +110,7 @@
 
       async function loadIntelligence() {
         refreshButton.disabled = true;
-        message.textContent = 'Loading intelligence workspace...';
+        message.textContent = 'Loading review workspace...';
         message.className = 'admin-message';
         try {
           const [artistRecommendations, genreRecommendations, artistIntelligence, trackIntelligence, playlistIntelligence, coverage] = await Promise.all([
@@ -147,7 +147,7 @@
             stat('Total Tracks', CrateAdmin.formatNumber(coverage.summary?.total_tracks || coverage.track_coverage?.total_tracks || 0)),
             stat('Recoverable', CrateAdmin.formatNumber(coverage.summary?.estimated_recoverable_tracks || 0)),
           ].join('');
-          message.textContent = 'Intelligence workspace loaded.';
+          message.textContent = '';
         } catch (error) {
           message.textContent = error.message;
           message.className = 'admin-message error';

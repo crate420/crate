@@ -84,7 +84,7 @@ function buildDiscoverySummary(counters) {
   };
 }
 
-async function sortTracks(userId) {
+async function sortTracks(userId, options = {}) {
   const sortStartedAt = process.hrtime.bigint();
   console.log("[Crate Sort] sort started", { user_id: userId });
   progress.updateProgress(userId, {
@@ -140,18 +140,20 @@ async function sortTracks(userId) {
   });
 
   const artistFetchStartedAt = process.hrtime.bigint();
-  const artistsById = await spotifyArtists.getArtistsByIds(userId, artistIds, {
-    onProgress: ({ batchesCompleted, batches, artistsLoaded }) => {
-      progress.updateProgress(userId, {
-        stage: "sort_artists",
-        title: "Finding Artists",
-        body: "Reading artist signals from your songs.",
-        detail: batches ? `${artistsLoaded.toLocaleString()} artists loaded (${batchesCompleted}/${batches})` : `${artistsLoaded.toLocaleString()} artists loaded`,
-        artists_found: Math.max(uniqueArtistNames.length, artistsLoaded),
-        sorted_total: unsortedTracks.length,
-      });
-    },
-  });
+  const artistsById = options.skipSpotifyArtistFetch
+    ? new Map()
+    : await spotifyArtists.getArtistsByIds(userId, artistIds, {
+      onProgress: ({ batchesCompleted, batches, artistsLoaded }) => {
+        progress.updateProgress(userId, {
+          stage: "sort_artists",
+          title: "Finding Artists",
+          body: "Reading artist signals from your songs.",
+          detail: batches ? `${artistsLoaded.toLocaleString()} artists loaded (${batchesCompleted}/${batches})` : `${artistsLoaded.toLocaleString()} artists loaded`,
+          artists_found: Math.max(uniqueArtistNames.length, artistsLoaded),
+          sorted_total: unsortedTracks.length,
+        });
+      },
+    });
   const artistFetchMs = elapsedMs(artistFetchStartedAt);
 
   const fallbackStartedAt = process.hrtime.bigint();
