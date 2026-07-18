@@ -192,6 +192,10 @@ p { color: var(--admin-muted); font-size: var(--admin-font-body); line-height: 1
 
 .admin-tab-panel[hidden] { display: none; }
 
+.admin-subtabs {
+  margin-top: 4px;
+}
+
 .admin-actions {
   display: flex;
   flex-wrap: wrap;
@@ -245,6 +249,17 @@ button:disabled { cursor: wait; opacity: .6; }
 .admin-message.error { color: var(--admin-danger); }
 
 .admin-muted { color: var(--admin-muted); }
+
+.admin-table-scroll {
+  overflow-x: auto;
+}
+
+.admin-toolbar {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
 
 .admin-link-grid {
   display: grid;
@@ -304,6 +319,22 @@ pre {
   color: var(--admin-muted);
   font-size: var(--admin-font-secondary);
   padding: 18px;
+}
+
+.admin-detail-panel {
+  background: var(--admin-panel-soft);
+  border: 1px solid var(--admin-border);
+  border-radius: 8px;
+  margin-top: 14px;
+  padding: 14px;
+}
+
+.admin-clickable-row {
+  cursor: pointer;
+}
+
+.admin-clickable-row:hover td {
+  background: var(--admin-action-soft);
 }
 
 .admin-badges {

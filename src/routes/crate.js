@@ -64,15 +64,26 @@ const {
   addArtistToCollection,
   addSourceToCollection,
   addTrackToCollection,
+  applyPlaylistIntelligenceCsvImport,
   createPlaylistIntelligenceCollection,
   deleteRow: deletePlaylistIntelligenceRow,
   getPlaylistIntelligenceCollection,
   listPlaylistIntelligenceCollections,
+  previewPlaylistIntelligenceCsvImport,
   updateArtist: updatePlaylistIntelligenceArtist,
   updatePlaylistIntelligenceCollection,
   updateSource: updatePlaylistIntelligenceSource,
   updateTrack: updatePlaylistIntelligenceTrack,
 } = require("../crate/playlistIntelligence");
+const {
+  approveReviewQueueBulk,
+  approveReviewQueueItem,
+  getIntelligenceReviewQueue,
+  getPlaylistIntelligenceWorkflowDetail,
+  getPlaylistIntelligenceWorkflowSummary,
+  getTrackGapDetail,
+  getTrackGapOverview,
+} = require("../crate/adminIntelligenceWorkflows");
 const { fetchAllPlaylistSeeds, fetchPlaylistSeed } = require("../crate/playlistSeedFetcher");
 const { getMissingArtistGenres } = require("../crate/missingArtistGenres");
 const { fetchAndCacheMusicBrainzArtistIntelligence } = require("../crate/musicbrainzArtistIntelligence");
@@ -989,6 +1000,106 @@ router.get("/admin/playlist-intelligence", requireCurrentUser, requireAdminUser,
   try {
     return res.json(listPlaylistIntelligenceCollections());
   } catch (err) {
+    return next(err);
+  }
+});
+
+router.get("/admin/intelligence/review-queue", requireCurrentUser, requireAdminUser, async (req, res, next) => {
+  try {
+    return res.json(await getIntelligenceReviewQueue({
+      limit: req.query.limit,
+      offset: req.query.offset,
+      confidence_min: req.query.confidence_min,
+    }));
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.post("/admin/intelligence/review-queue/approve", requireCurrentUser, requireAdminUser, async (req, res, next) => {
+  try {
+    const result = await approveReviewQueueItem(req.body?.item || req.body || {}, req.currentUser);
+    adminSummaryCache.invalidate("admin-users-summary");
+    adminSummaryCache.invalidate("admin-user-recovery");
+    adminSummaryCache.invalidate("admin-intelligence");
+    return res.json(result);
+  } catch (err) {
+    if (err.statusCode) return res.status(err.statusCode).json({ error: err.code || "intelligence_review_queue_error", message: err.message });
+    return next(err);
+  }
+});
+
+router.post("/admin/intelligence/review-queue/approve-bulk", requireCurrentUser, requireAdminUser, async (req, res, next) => {
+  try {
+    const result = await approveReviewQueueBulk(req.body?.items || [], req.currentUser);
+    adminSummaryCache.invalidate("admin-users-summary");
+    adminSummaryCache.invalidate("admin-user-recovery");
+    adminSummaryCache.invalidate("admin-intelligence");
+    return res.json(result);
+  } catch (err) {
+    if (err.statusCode) return res.status(err.statusCode).json({ error: err.code || "intelligence_review_queue_error", message: err.message });
+    return next(err);
+  }
+});
+
+router.post("/admin/intelligence/review-queue/reject", requireCurrentUser, requireAdminUser, (req, res) => {
+  return res.json({
+    status: "ok",
+    message: "Item hidden for this review session. Source evidence was not changed.",
+    item: req.body?.item || null,
+  });
+});
+
+router.get("/admin/intelligence/playlist-intelligence", requireCurrentUser, requireAdminUser, (req, res, next) => {
+  try {
+    return res.json(getPlaylistIntelligenceWorkflowSummary());
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.get("/admin/intelligence/playlist-intelligence/:collectionCode", requireCurrentUser, requireAdminUser, (req, res, next) => {
+  try {
+    return res.json(getPlaylistIntelligenceWorkflowDetail(req.params.collectionCode));
+  } catch (err) {
+    if (err.statusCode) return res.status(err.statusCode).json({ error: err.code || "playlist_intelligence_error", message: err.message });
+    return next(err);
+  }
+});
+
+router.post("/admin/intelligence/playlist-intelligence/:collectionCode/import-preview", requireCurrentUser, requireAdminUser, (req, res, next) => {
+  try {
+    return res.json(previewPlaylistIntelligenceCsvImport(req.params.collectionCode, req.body || {}));
+  } catch (err) {
+    if (err.statusCode) return res.status(err.statusCode).json({ error: err.code || "playlist_intelligence_import_error", message: err.message });
+    return next(err);
+  }
+});
+
+router.post("/admin/intelligence/playlist-intelligence/:collectionCode/import", requireCurrentUser, requireAdminUser, (req, res, next) => {
+  try {
+    const result = applyPlaylistIntelligenceCsvImport(req.params.collectionCode, req.body || {});
+    adminSummaryCache.invalidate("admin-intelligence");
+    return res.json(result);
+  } catch (err) {
+    if (err.statusCode) return res.status(err.statusCode).json({ error: err.code || "playlist_intelligence_import_error", message: err.message });
+    return next(err);
+  }
+});
+
+router.get("/admin/intelligence/track-gaps", requireCurrentUser, requireAdminUser, (req, res, next) => {
+  try {
+    return res.json(getTrackGapOverview({ userId: req.currentUser.id, limit: req.query.limit }));
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.get("/admin/intelligence/track-gaps/:type/:value", requireCurrentUser, requireAdminUser, (req, res, next) => {
+  try {
+    return res.json(getTrackGapDetail(req.params.type, req.params.value, { limit: req.query.limit }));
+  } catch (err) {
+    if (err.statusCode) return res.status(err.statusCode).json({ error: err.code || "track_gap_error", message: err.message });
     return next(err);
   }
 });

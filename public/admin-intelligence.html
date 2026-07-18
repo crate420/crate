@@ -1,163 +1,609 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Crate Intelligence Center</title>
-    <link rel="stylesheet" href="/admin.css">
-  </head>
-  <body data-admin-section="intelligence">
-    <main>
-      <header class="admin-page-header">
-        <div>
-          <h1>Intelligence Center</h1>
-          <p>Review evidence and approve recommendations.</p>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Crate Admin - Intelligence</title>
+  <link rel="stylesheet" href="/admin.css">
+</head>
+<body data-admin-section="intelligence">
+  <main>
+    <header class="admin-page-header">
+      <div>
+        <h1>Intelligence Center</h1>
+        <p>The daily workspace for approving evidence and finding Crate's biggest learning gaps.</p>
+      </div>
+      <a class="admin-button" href="/admin.html">Dashboard</a>
+    </header>
+
+    <section class="admin-panel" data-admin-tabs>
+      <div class="admin-tabs" role="tablist">
+        <button class="admin-tab is-active" data-tab-target="review" type="button">Review Queue</button>
+        <button class="admin-tab" data-tab-target="playlist" type="button">Playlist Intelligence</button>
+        <button class="admin-tab" data-tab-target="track" type="button">Track Intelligence</button>
+        <button class="admin-tab" data-tab-target="coverage" type="button">Coverage</button>
+        <button class="admin-tab" data-tab-target="diagnostics" type="button">Diagnostics</button>
+      </div>
+
+      <div data-tab-panel="review">
+        <div class="admin-panel-header">
+          <div>
+            <h2>Review Queue</h2>
+            <p>What should I approve?</p>
+          </div>
+          <div class="admin-actions">
+            <button id="reviewRefresh" type="button">Refresh</button>
+            <button id="bulkApprove" class="primary" type="button" disabled>Approve Selected</button>
+          </div>
         </div>
-        <button class="primary" id="refreshButton" type="button">Refresh</button>
-      </header>
+        <div id="reviewMessage" class="admin-message">Loading review queue...</div>
+        <div class="admin-table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th><input id="selectAllReview" type="checkbox" aria-label="Select all review items"></th>
+                <th>Artist</th>
+                <th>Suggested Genre</th>
+                <th>Evidence</th>
+                <th>Playlist Intelligence</th>
+                <th>Affected Users</th>
+                <th>Estimated Recovery</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="reviewRows">
+              <tr><td colspan="9" class="admin-muted">Loading...</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div id="evidencePanel" class="admin-detail-panel" hidden></div>
+      </div>
 
-      <div class="admin-message" id="message">Loading review workspace...</div>
+      <div data-tab-panel="playlist" hidden>
+        <div class="admin-panel-header">
+          <div>
+            <h2>Playlist Intelligence</h2>
+            <p>What should Crate learn?</p>
+          </div>
+          <button id="playlistRefresh" type="button">Refresh</button>
+        </div>
+        <div class="admin-tabs admin-subtabs" role="tablist">
+          <button class="admin-tab is-active" data-pi-tab="collections" type="button">Collections</button>
+          <button class="admin-tab" data-pi-tab="import" type="button">Import</button>
+          <button class="admin-tab" data-pi-tab="review" type="button">Review</button>
+          <button class="admin-tab" data-pi-tab="sources" type="button">Sources</button>
+        </div>
+        <div id="playlistMessage" class="admin-message">Open this tab to load Playlist Intelligence.</div>
 
-      <section class="admin-panel" data-admin-tabs>
-        <div class="admin-tabs" role="tablist">
-          <button class="admin-tab is-active" data-tab-target="review" type="button">Review Queue</button>
-          <button class="admin-tab" data-tab-target="artist" type="button">Artist Intelligence</button>
-          <button class="admin-tab" data-tab-target="track" type="button">Track Intelligence</button>
-          <button class="admin-tab" data-tab-target="playlist" type="button">Playlist Intelligence</button>
-          <button class="admin-tab" data-tab-target="coverage" type="button">Coverage</button>
-          <button class="admin-tab" data-tab-target="diagnostics" type="button">Diagnostics</button>
+        <div data-pi-panel="collections">
+          <div class="admin-table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Collection</th>
+                  <th>Status</th>
+                  <th>Sources</th>
+                  <th>Artists</th>
+                  <th>Tracks</th>
+                  <th>User Library Matches</th>
+                  <th>Unmatched Matches</th>
+                  <th>Recovery Value</th>
+                </tr>
+              </thead>
+              <tbody id="collectionRows">
+                <tr><td colspan="8" class="admin-muted">Not loaded yet.</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div id="collectionDetail" class="admin-detail-panel" hidden></div>
         </div>
 
-        <div data-tab-panel="review">
-          <div class="admin-panel-header">
-            <div>
-              <h2>Review Queue</h2>
-              <p>Start here for recommendations that need review.</p>
+        <div data-pi-panel="import" hidden>
+          <div class="admin-grid two">
+            <div class="admin-card">
+              <h3>Upload CSVs</h3>
+              <label>Collection</label>
+              <select id="importCollection"></select>
+              <label>CSV files</label>
+              <input id="importFiles" type="file" accept=".csv,text/csv" multiple>
+              <div class="admin-actions">
+                <button id="previewImport" type="button">Preview</button>
+                <button id="applyImport" class="primary" type="button" disabled>Import</button>
+              </div>
+              <p>Preview first. Import preserves approved, rejected, and ignored evidence statuses.</p>
+            </div>
+            <div class="admin-card">
+              <h3>Summary</h3>
+              <div id="importSummary" class="admin-placeholder">No CSV preview yet.</div>
             </div>
           </div>
-          <div class="admin-stats" id="reviewStats"></div>
-          <div class="admin-link-grid" style="margin-top:12px">
-            <a class="admin-card" href="/admin-artist-recommendations.html"><h3>Artist Recommendations</h3><p>Approve artist genre fixes.</p></a>
-            <a class="admin-card" href="/admin-genre-recommendations.html"><h3>Genre Recommendations</h3><p>Review genre fixes.</p></a>
-            <a class="admin-card" href="/admin-recommendation-impact.html"><h3>Impact</h3><p>See likely recovery value.</p></a>
-          </div>
         </div>
 
-        <div data-tab-panel="artist" hidden>
-          <div class="admin-panel-header"><h2>Artist Intelligence</h2></div>
-          <div class="admin-stats" id="artistStats"></div>
-          <div class="admin-link-grid" style="margin-top:12px">
-            <a class="admin-card" href="/admin-artist-intelligence.html"><h3>Artist Intelligence</h3><p>Inspect artist evidence.</p></a>
-            <a class="admin-card" href="/admin-artist-gap-analysis.html"><h3>Artist Gaps</h3><p>Find missing evidence.</p></a>
-          </div>
+        <div data-pi-panel="review" hidden>
+          <div id="playlistReview" class="admin-placeholder">Select a collection to review approved, pending, and rejected evidence.</div>
         </div>
 
-        <div data-tab-panel="track" hidden>
-          <div class="admin-panel-header"><h2>Track Intelligence</h2></div>
-          <div class="admin-stats" id="trackStats"></div>
-          <div class="admin-link-grid" style="margin-top:12px">
-            <a class="admin-card" href="/admin-track-intelligence.html"><h3>Track Intelligence</h3><p>Review track evidence.</p></a>
-            <a class="admin-card" href="/admin-era-diagnostics.html"><h3>Era Diagnostics</h3><p>Review release years.</p></a>
+        <div data-pi-panel="sources" hidden>
+          <div id="playlistSources" class="admin-placeholder">Select a collection to review source playlists.</div>
+        </div>
+      </div>
+
+      <div data-tab-panel="track" hidden>
+        <div class="admin-panel-header">
+          <div>
+            <h2>Track Intelligence</h2>
+            <p>Where are our biggest gaps?</p>
+          </div>
+          <button id="trackRefresh" type="button">Refresh</button>
+        </div>
+        <div id="trackMessage" class="admin-message">Open this tab to load gap data.</div>
+        <div class="admin-grid two">
+          <div class="admin-card">
+            <h3>Top Unmatched Genres</h3>
+            <div class="admin-table-scroll">
+              <table>
+                <thead><tr><th>Genre</th><th>Users</th><th>Occurrences</th></tr></thead>
+                <tbody id="gapGenreRows"><tr><td colspan="3" class="admin-muted">Not loaded yet.</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="admin-card">
+            <h3>Top Unmatched Artists</h3>
+            <div class="admin-table-scroll">
+              <table>
+                <thead><tr><th>Artist</th><th>Users</th><th>Occurrences</th></tr></thead>
+                <tbody id="gapArtistRows"><tr><td colspan="3" class="admin-muted">Not loaded yet.</td></tr></tbody>
+              </table>
+            </div>
           </div>
         </div>
-
-        <div data-tab-panel="playlist" hidden>
-          <div class="admin-panel-header"><h2>Playlist Intelligence</h2></div>
-          <div class="admin-stats" id="playlistStats"></div>
-          <div class="admin-link-grid" style="margin-top:12px">
-            <a class="admin-card" href="/admin-playlist-intelligence.html"><h3>Playlist Intelligence</h3><p>Review collection evidence.</p></a>
+        <div class="admin-grid two">
+          <div class="admin-card">
+            <h3>Learning Signals</h3>
+            <div id="learningSignals" class="admin-badges"></div>
+          </div>
+          <div class="admin-card">
+            <h3>Era Issues</h3>
+            <div id="eraIssues" class="admin-muted">No era issues loaded.</div>
           </div>
         </div>
+        <div id="gapDetail" class="admin-detail-panel" hidden></div>
+      </div>
 
-        <div data-tab-panel="coverage" hidden>
-          <div class="admin-panel-header"><h2>Coverage</h2></div>
-          <div class="admin-stats" id="coverageStats"></div>
-          <div class="admin-link-grid" style="margin-top:12px">
-            <a class="admin-card" href="/admin-intelligence-coverage.html"><h3>Coverage</h3><p>Review evidence coverage.</p></a>
-            <a class="admin-card" href="/admin-dna-evidence-quality.html"><h3>DNA Quality</h3><p>Review playlist evidence quality.</p></a>
+      <div data-tab-panel="coverage" hidden>
+        <div class="admin-panel-header">
+          <div>
+            <h2>Coverage</h2>
+            <p>Evidence coverage across Crate intelligence.</p>
+          </div>
+          <button id="coverageRefresh" type="button">Load Coverage</button>
+        </div>
+        <div id="coverageBody" class="admin-placeholder">Coverage loads only when requested.</div>
+      </div>
+
+      <div data-tab-panel="diagnostics" hidden>
+        <div class="admin-panel-header">
+          <div>
+            <h2>Diagnostics</h2>
+            <p>Quick links for deep investigation.</p>
           </div>
         </div>
-
-        <div data-tab-panel="diagnostics" hidden>
-          <div class="admin-panel-header"><h2>Diagnostics</h2></div>
-          <div class="admin-link-grid">
-            <a class="admin-card" href="/admin-unmatched-diagnostics.html"><h3>Unmatched</h3><p>Inspect unmatched songs.</p></a>
-            <a class="admin-card" href="/admin-learning.html"><h3>Learning</h3><p>Review learning signals.</p></a>
-            <a class="admin-card" href="/admin-playlist-dna-validation.html"><h3>DNA Validation</h3><p>Validate playlist DNA.</p></a>
-          </div>
+        <div class="admin-link-grid">
+          <a class="admin-card" href="/admin-artist-intelligence.html"><h3>Artist Intelligence</h3><p>Legacy deep-dive.</p></a>
+          <a class="admin-card" href="/admin-track-intelligence.html"><h3>Track Intelligence</h3><p>Legacy report.</p></a>
+          <a class="admin-card" href="/admin-intelligence-coverage.html"><h3>Coverage Report</h3><p>Full coverage details.</p></a>
         </div>
-      </section>
-    </main>
+      </div>
+    </section>
+  </main>
 
-    <script src="/adminShell.js"></script>
-    <script>
-      const message = document.getElementById('message');
-      const refreshButton = document.getElementById('refreshButton');
-      const reviewStats = document.getElementById('reviewStats');
-      const artistStats = document.getElementById('artistStats');
-      const trackStats = document.getElementById('trackStats');
-      const playlistStats = document.getElementById('playlistStats');
-      const coverageStats = document.getElementById('coverageStats');
+  <script src="/adminShell.js"></script>
+  <script>
+    (function () {
+      const $ = (id) => document.getElementById(id);
+      const state = {
+        reviewRows: [],
+        selectedReviewKeys: new Set(),
+        rejectedReviewKeys: new Set(),
+        playlistLoaded: false,
+        playlistPayload: null,
+        selectedCollectionCode: null,
+        selectedCollectionDetail: null,
+        importFiles: null,
+        trackLoaded: false,
+      };
+      const api = () => window.CrateAdmin;
+      const esc = (value) => api().escapeHtml(value);
+      const num = (value) => api().formatNumber(value);
 
-      function stat(label, value) {
-        return '<div class="admin-stat"><strong>' + CrateAdmin.escapeHtml(value ?? '-') + '</strong><span>' + CrateAdmin.escapeHtml(label) + '</span></div>';
+      function badge(label, variant) {
+        return `<span class="admin-badge ${variant || ""}">${esc(label)}</span>`;
       }
 
-      async function maybe(url) {
-        try { return await CrateAdmin.requestJson(url); }
-        catch (error) { return { error: error.message }; }
+      function setMessage(id, text, isError) {
+        const node = $(id);
+        if (!node) return;
+        node.textContent = text;
+        node.classList.toggle("error", Boolean(isError));
       }
 
-      async function loadIntelligence() {
-        refreshButton.disabled = true;
-        message.textContent = 'Loading review workspace...';
-        message.className = 'admin-message';
+      function reviewPayload(row) {
+        return {
+          source_type: row.source_type,
+          artist_intelligence_id: row.artist_intelligence_id,
+          artist: row.artist,
+          playlist_code: row.playlist_code,
+          suggested_genre: row.suggested_genre,
+        };
+      }
+
+      function selectedReviewRows() {
+        return state.reviewRows.filter((row) => state.selectedReviewKeys.has(row.key));
+      }
+
+      function renderReviewRows() {
+        const visibleRows = state.reviewRows.filter((row) => !state.rejectedReviewKeys.has(row.key));
+        $("bulkApprove").disabled = selectedReviewRows().length === 0;
+        $("selectAllReview").checked = visibleRows.length > 0 && visibleRows.every((row) => state.selectedReviewKeys.has(row.key));
+        $("reviewRows").innerHTML = visibleRows.length ? visibleRows.map((row) => `
+          <tr>
+            <td><input class="review-select" type="checkbox" data-key="${esc(row.key)}" ${state.selectedReviewKeys.has(row.key) ? "checked" : ""} aria-label="Select ${esc(row.artist)}"></td>
+            <td><strong>${esc(row.artist)}</strong><div class="admin-muted">${esc(row.source_type.replace(/_/g, " "))}</div></td>
+            <td>${esc(row.suggested_genre)}</td>
+            <td><div class="admin-badges">${(row.evidence || []).map((item) => badge(item)).join("") || badge("Manual")}</div></td>
+            <td>${row.playlist_intelligence ? badge("Included", "good") : badge("No", "")}</td>
+            <td>${num(row.affected_users)}</td>
+            <td>${row.estimated_recovery > 0 ? badge(`+${num(row.estimated_recovery)} tracks`, "good") : badge("No direct recovery")}</td>
+            <td>${badge(row.status || "candidate", "warn")}</td>
+            <td>
+              <div class="admin-actions">
+                <button class="approve-review primary" type="button" data-key="${esc(row.key)}">Approve</button>
+                <button class="reject-review danger" type="button" data-key="${esc(row.key)}">Reject</button>
+                <button class="view-evidence" type="button" data-key="${esc(row.key)}">View Evidence</button>
+              </div>
+            </td>
+          </tr>
+        `).join("") : '<tr><td colspan="9" class="admin-muted">No review items need approval.</td></tr>';
+      }
+
+      async function loadReviewQueue() {
+        setMessage("reviewMessage", "Loading review queue...");
         try {
-          const [artistRecommendations, genreRecommendations, artistIntelligence, trackIntelligence, playlistIntelligence, coverage] = await Promise.all([
-            maybe('/crate/admin/artist-intelligence/recommendations?confidence_min=85&limit=50'),
-            maybe('/crate/admin/genre-recommendations?limit=50'),
-            maybe('/crate/admin/artist-intelligence?limit=1'),
-            maybe('/crate/admin/track-intelligence?limit=1'),
-            maybe('/crate/admin/playlist-intelligence'),
-            maybe('/crate/admin/intelligence-coverage'),
-          ]);
-
-          reviewStats.innerHTML = [
-            stat('Artist Review Candidates', CrateAdmin.formatNumber(artistRecommendations.count || 0)),
-            stat('Genre Recommendations', CrateAdmin.formatNumber(genreRecommendations.recommendation_count || genreRecommendations.count || 0)),
-            stat('Approval Tools', 3),
-          ].join('');
-          artistStats.innerHTML = [
-            stat('Artist Rows', CrateAdmin.formatNumber(artistIntelligence.summary?.total || artistIntelligence.summary?.total_artists || 0)),
-            stat('Pending', CrateAdmin.formatNumber(artistIntelligence.summary?.pending || 0)),
-            stat('Sources', 'Spotify / Last.fm / MB'),
-          ].join('');
-          trackStats.innerHTML = [
-            stat('Track Rows', CrateAdmin.formatNumber(trackIntelligence.summary?.total || trackIntelligence.count || 0)),
-            stat('Profiles', CrateAdmin.formatNumber(trackIntelligence.summary?.profile_count || 0)),
-            stat('Era Evidence', 'Diagnostics'),
-          ].join('');
-          playlistStats.innerHTML = [
-            stat('Collections', CrateAdmin.formatNumber(playlistIntelligence.summary?.collection_count || 0)),
-            stat('Sources', CrateAdmin.formatNumber(playlistIntelligence.summary?.source_playlist_count || 0)),
-            stat('Approved Artists', CrateAdmin.formatNumber(playlistIntelligence.summary?.approved_artist_count || 0)),
-          ].join('');
-          coverageStats.innerHTML = [
-            stat('Total Artists', CrateAdmin.formatNumber(coverage.summary?.total_artists || coverage.overall_coverage?.total_artists || 0)),
-            stat('Total Tracks', CrateAdmin.formatNumber(coverage.summary?.total_tracks || coverage.track_coverage?.total_tracks || 0)),
-            stat('Recoverable', CrateAdmin.formatNumber(coverage.summary?.estimated_recoverable_tracks || 0)),
-          ].join('');
-          message.textContent = '';
+          const payload = await api().requestJson("/crate/admin/intelligence/review-queue?limit=75");
+          state.reviewRows = payload.rows || [];
+          renderReviewRows();
+          setMessage("reviewMessage", `Loaded ${num(payload.total_count)} review item(s). Already-approved recommendations are excluded.`);
         } catch (error) {
-          message.textContent = error.message;
-          message.className = 'admin-message error';
-        } finally {
-          refreshButton.disabled = false;
+          setMessage("reviewMessage", error.message, true);
         }
       }
 
-      refreshButton.addEventListener('click', loadIntelligence);
-      loadIntelligence();
-    </script>
-  </body>
+      function showEvidence(key) {
+        const row = state.reviewRows.find((item) => item.key === key);
+        if (!row) return;
+        $("evidencePanel").hidden = false;
+        $("evidencePanel").innerHTML = `
+          <div class="admin-panel-header">
+            <div>
+              <h3>${esc(row.artist)} -> ${esc(row.suggested_genre)}</h3>
+              <p>${row.estimated_recovery > 0 ? `Expected to recover ${num(row.estimated_recovery)} unmatched track(s).` : "No direct unmatched recovery estimate."}</p>
+            </div>
+          </div>
+          <pre>${esc(JSON.stringify({ evidence: row.evidence_details || [], sample_tracks: row.sample_tracks || [] }, null, 2))}</pre>
+        `;
+      }
+
+      async function approveSingle(key) {
+        const row = state.reviewRows.find((item) => item.key === key);
+        if (!row) return;
+        setMessage("reviewMessage", `Approving ${row.artist}...`);
+        try {
+          await api().requestJson("/crate/admin/intelligence/review-queue/approve", {
+            method: "POST",
+            body: JSON.stringify({ item: reviewPayload(row) }),
+          });
+          state.reviewRows = state.reviewRows.filter((item) => item.key !== key);
+          state.selectedReviewKeys.delete(key);
+          renderReviewRows();
+          setMessage("reviewMessage", `Approved ${row.artist} -> ${row.suggested_genre}.`);
+        } catch (error) {
+          setMessage("reviewMessage", error.message, true);
+        }
+      }
+
+      async function rejectSingle(key) {
+        const row = state.reviewRows.find((item) => item.key === key);
+        if (!row) return;
+        try {
+          await api().requestJson("/crate/admin/intelligence/review-queue/reject", {
+            method: "POST",
+            body: JSON.stringify({ item: reviewPayload(row) }),
+          });
+          state.rejectedReviewKeys.add(key);
+          state.selectedReviewKeys.delete(key);
+          renderReviewRows();
+          setMessage("reviewMessage", `${row.artist} hidden from this review session.`);
+        } catch (error) {
+          setMessage("reviewMessage", error.message, true);
+        }
+      }
+
+      async function approveBulk() {
+        const rows = selectedReviewRows();
+        if (!rows.length) return;
+        setMessage("reviewMessage", `Approving ${num(rows.length)} item(s)...`);
+        try {
+          await api().requestJson("/crate/admin/intelligence/review-queue/approve-bulk", {
+            method: "POST",
+            body: JSON.stringify({ items: rows.map(reviewPayload) }),
+          });
+          const approved = new Set(rows.map((row) => row.key));
+          state.reviewRows = state.reviewRows.filter((row) => !approved.has(row.key));
+          state.selectedReviewKeys.clear();
+          renderReviewRows();
+          setMessage("reviewMessage", `Approved ${num(rows.length)} selected item(s).`);
+        } catch (error) {
+          setMessage("reviewMessage", error.message, true);
+        }
+      }
+
+      function renderCollections() {
+        const collections = state.playlistPayload?.collections || [];
+        $("importCollection").innerHTML = collections.map((collection) => `<option value="${esc(collection.collection_code)}">${esc(collection.collection_name)}</option>`).join("");
+        $("collectionRows").innerHTML = collections.length ? collections.map((collection) => `
+          <tr class="admin-clickable-row" data-collection="${esc(collection.collection_code)}">
+            <td><strong>${esc(collection.collection_name)}</strong><div class="admin-muted">${esc(collection.collection_code)}</div></td>
+            <td>${badge(collection.research_status || "research", collection.research_status === "active" ? "good" : "warn")}</td>
+            <td>${num(collection.source_playlist_count)}<div class="admin-muted">${num(collection.excluded_source_playlist_count)} excluded</div></td>
+            <td>${num(collection.artist_evidence_count)}<div class="admin-muted">${num(collection.approved_artist_count)} approved</div></td>
+            <td>${num(collection.track_evidence_count)}<div class="admin-muted">${num(collection.approved_track_count)} approved</div></td>
+            <td>${num(collection.user_library_matches)}</td>
+            <td>${num(collection.unmatched_matches)}</td>
+            <td>${collection.recovery_value > 0 ? badge(`+${num(collection.recovery_value)}`, "good") : badge("Stored evidence")}</td>
+          </tr>
+        `).join("") : '<tr><td colspan="8" class="admin-muted">No collections found.</td></tr>';
+      }
+
+      async function loadPlaylistIntelligence(force) {
+        if (state.playlistLoaded && !force) return;
+        setMessage("playlistMessage", "Loading Playlist Intelligence...");
+        try {
+          state.playlistPayload = await api().requestJson("/crate/admin/intelligence/playlist-intelligence");
+          state.playlistLoaded = true;
+          renderCollections();
+          setMessage("playlistMessage", `Loaded ${num(state.playlistPayload.summary?.collection_count)} collection(s).`);
+        } catch (error) {
+          setMessage("playlistMessage", error.message, true);
+        }
+      }
+
+      function renderCollectionDetail() {
+        const detail = state.selectedCollectionDetail;
+        if (!detail) return;
+        const collection = detail.collection || {};
+        const artists = detail.consensus_artists || [];
+        const tracks = detail.consensus_tracks || [];
+        const sources = detail.source_playlists || [];
+        $("collectionDetail").hidden = false;
+        $("collectionDetail").innerHTML = `
+          <div class="admin-panel-header">
+            <div>
+              <h3>${esc(collection.collection_name)}</h3>
+              <p>${esc(collection.identity_description || "No identity description.")}</p>
+            </div>
+            <div class="admin-badges">
+              ${badge(`${num(detail.overlap?.user_library_matches)} library matches`)}
+              ${badge(`${num(detail.overlap?.unmatched_matches)} unmatched matches`, detail.overlap?.unmatched_matches ? "good" : "")}
+              ${badge(`${num(detail.overlap?.recovery_value)} recovery value`, detail.overlap?.recovery_value ? "good" : "")}
+            </div>
+          </div>
+          <div class="admin-grid two">
+            <div><h3>Consensus Artists</h3><p>${artists.slice(0, 12).map((row) => `${esc(row.artist_name)} (${esc(row.review_status)})`).join("<br>") || "No artist evidence."}</p></div>
+            <div><h3>Consensus Tracks</h3><p>${tracks.slice(0, 12).map((row) => `${esc(row.track_name)} - ${esc(row.artist_name)} (${esc(row.review_status)})`).join("<br>") || "No track evidence."}</p></div>
+          </div>
+        `;
+        $("playlistReview").innerHTML = `
+          <div class="admin-stats">
+            <div class="admin-stat"><strong>${num(artists.filter((row) => row.review_status === "approved").length)}</strong><span>Approved Artists</span></div>
+            <div class="admin-stat"><strong>${num(artists.filter((row) => row.review_status === "candidate").length)}</strong><span>Pending Artists</span></div>
+            <div class="admin-stat"><strong>${num(artists.filter((row) => row.review_status === "rejected").length)}</strong><span>Rejected Artists</span></div>
+            <div class="admin-stat"><strong>${num(tracks.length)}</strong><span>Track Evidence</span></div>
+          </div>
+        `;
+        $("playlistSources").innerHTML = sources.length ? `
+          <div class="admin-table-scroll"><table><thead><tr><th>Playlist</th><th>Type</th><th>Status</th><th>Trust</th><th>Use</th></tr></thead>
+          <tbody>${sources.map((row) => `<tr><td>${esc(row.playlist_name)}</td><td>${esc(row.source_type)}</td><td>${esc(row.review_status)}</td><td>${esc(row.trust_level)}</td><td>${row.include_in_consensus ? "Yes" : "No"}</td></tr>`).join("")}</tbody></table></div>
+        ` : '<div class="admin-placeholder">No sources for this collection.</div>';
+      }
+
+      async function loadCollectionDetail(code) {
+        state.selectedCollectionCode = code;
+        setMessage("playlistMessage", `Loading ${code}...`);
+        try {
+          state.selectedCollectionDetail = await api().requestJson(`/crate/admin/intelligence/playlist-intelligence/${encodeURIComponent(code)}`);
+          renderCollectionDetail();
+          setMessage("playlistMessage", `Loaded ${state.selectedCollectionDetail.collection.collection_name}.`);
+        } catch (error) {
+          setMessage("playlistMessage", error.message, true);
+        }
+      }
+
+      function renderImportSummary(payload, title) {
+        if (!payload) {
+          $("importSummary").textContent = "No CSV preview yet.";
+          return;
+        }
+        $("importSummary").innerHTML = `
+          <h3>${esc(title)}</h3>
+          <div class="admin-stats">
+            <div class="admin-stat"><strong>${num(payload.playlists || payload.files_processed)}</strong><span>Playlists</span></div>
+            <div class="admin-stat"><strong>${num(payload.artists || payload.artists_inserted + payload.artists_updated)}</strong><span>Artists</span></div>
+            <div class="admin-stat"><strong>${num(payload.tracks || payload.tracks_inserted + payload.tracks_updated)}</strong><span>Tracks</span></div>
+            <div class="admin-stat"><strong>${num(payload.duplicates)}</strong><span>Duplicates</span></div>
+          </div>
+          <pre>${esc(JSON.stringify(payload, null, 2))}</pre>
+        `;
+      }
+
+      async function readImportFiles() {
+        const files = [...($("importFiles").files || [])];
+        return Promise.all(files.map((file) => file.text().then((content) => ({ name: file.name, content }))));
+      }
+
+      async function previewImport() {
+        const collectionCode = $("importCollection").value;
+        const files = await readImportFiles();
+        if (!collectionCode || !files.length) {
+          setMessage("playlistMessage", "Choose a collection and at least one CSV file.", true);
+          return;
+        }
+        setMessage("playlistMessage", "Previewing import...");
+        try {
+          const payload = await api().requestJson(`/crate/admin/intelligence/playlist-intelligence/${encodeURIComponent(collectionCode)}/import-preview`, {
+            method: "POST",
+            body: JSON.stringify({ files }),
+          });
+          state.importFiles = files;
+          renderImportSummary(payload, "Preview");
+          $("applyImport").disabled = false;
+          setMessage("playlistMessage", `Preview ready: ${num(payload.new_artists)} new artist(s), ${num(payload.new_tracks)} new track(s).`);
+        } catch (error) {
+          $("applyImport").disabled = true;
+          setMessage("playlistMessage", error.message, true);
+        }
+      }
+
+      async function applyImport() {
+        const collectionCode = $("importCollection").value;
+        const files = state.importFiles || await readImportFiles();
+        setMessage("playlistMessage", "Importing Playlist Intelligence CSVs...");
+        try {
+          const payload = await api().requestJson(`/crate/admin/intelligence/playlist-intelligence/${encodeURIComponent(collectionCode)}/import`, {
+            method: "POST",
+            body: JSON.stringify({ files }),
+          });
+          renderImportSummary(payload, "Import Result");
+          $("applyImport").disabled = true;
+          state.playlistLoaded = false;
+          await loadPlaylistIntelligence(true);
+          setMessage("playlistMessage", `Imported ${num(payload.imported)} evidence row(s).`);
+        } catch (error) {
+          setMessage("playlistMessage", error.message, true);
+        }
+      }
+
+      function renderTrackOverview(payload) {
+        $("gapGenreRows").innerHTML = (payload.top_unmatched_genres || []).length ? payload.top_unmatched_genres.map((row) => `
+          <tr class="admin-clickable-row" data-gap-type="genre" data-gap-value="${esc(row.normalized_genre)}">
+            <td><strong>${esc(row.genre)}</strong></td><td>${num(row.user_count)}</td><td>${num(row.occurrence_count)}</td>
+          </tr>
+        `).join("") : '<tr><td colspan="3" class="admin-muted">No unmatched genre gaps.</td></tr>';
+        $("gapArtistRows").innerHTML = (payload.top_unmatched_artists || []).length ? payload.top_unmatched_artists.map((row) => `
+          <tr class="admin-clickable-row" data-gap-type="artist" data-gap-value="${esc(row.normalized_artist_name)}">
+            <td><strong>${esc(row.artist_name)}</strong></td><td>${num(row.user_count)}</td><td>${num(row.occurrence_count)}</td>
+          </tr>
+        `).join("") : '<tr><td colspan="3" class="admin-muted">No unmatched artist gaps.</td></tr>';
+        $("learningSignals").innerHTML = (payload.learning_signals || []).map((row) => badge(`${row.label}: ${num(row.occurrence_count)}`)).join("") || '<span class="admin-muted">No learning signals.</span>';
+        $("eraIssues").textContent = (payload.era_issues || []).length ? `${payload.era_issues.length} issue(s)` : "No era issues found.";
+      }
+
+      async function loadTrackGaps(force) {
+        if (state.trackLoaded && !force) return;
+        setMessage("trackMessage", "Loading track intelligence gaps...");
+        try {
+          const payload = await api().requestJson("/crate/admin/intelligence/track-gaps?limit=25");
+          state.trackLoaded = true;
+          renderTrackOverview(payload);
+          setMessage("trackMessage", "Loaded top unmatched genres and artists.");
+        } catch (error) {
+          setMessage("trackMessage", error.message, true);
+        }
+      }
+
+      async function loadGapDetail(type, value) {
+        setMessage("trackMessage", `Loading ${type} detail...`);
+        try {
+          const payload = await api().requestJson(`/crate/admin/intelligence/track-gaps/${encodeURIComponent(type)}/${encodeURIComponent(value)}?limit=100`);
+          $("gapDetail").hidden = false;
+          $("gapDetail").innerHTML = `
+            <div class="admin-panel-header">
+              <div>
+                <h3>${esc(payload.value)}</h3>
+                <p>${num(payload.affected_users)} affected user(s), ${num(payload.occurrences)} occurrence(s).</p>
+              </div>
+            </div>
+            <div class="admin-grid two">
+              <div><h3>Artists</h3><p>${(payload.artists || []).slice(0, 20).map((row) => `${esc(row.artist_name)} - ${(row.existing_mappings || []).map(esc).join(", ") || "no mapping"}`).join("<br>") || "No artists."}</p></div>
+              <div><h3>Tracks</h3><p>${(payload.tracks || []).slice(0, 20).map((row) => `${esc(row.track_name || "Unknown")} - ${esc(row.artist_name)}`).join("<br>") || "No tracks."}</p></div>
+            </div>
+          `;
+          setMessage("trackMessage", `Loaded ${payload.value}.`);
+        } catch (error) {
+          setMessage("trackMessage", error.message, true);
+        }
+      }
+
+      async function loadCoverage() {
+        $("coverageBody").textContent = "Loading coverage...";
+        try {
+          const payload = await api().requestJson("/crate/admin/intelligence-coverage");
+          $("coverageBody").innerHTML = `<pre>${esc(JSON.stringify(payload.summary || payload, null, 2))}</pre>`;
+        } catch (error) {
+          $("coverageBody").textContent = error.message;
+        }
+      }
+
+      document.addEventListener("click", (event) => {
+        const tab = event.target.closest("[data-tab-target]");
+        if (tab?.dataset.tabTarget === "playlist") loadPlaylistIntelligence(false);
+        if (tab?.dataset.tabTarget === "track") loadTrackGaps(false);
+
+        const piTab = event.target.closest("[data-pi-tab]");
+        if (piTab) {
+          document.querySelectorAll("[data-pi-tab]").forEach((item) => item.classList.toggle("is-active", item === piTab));
+          document.querySelectorAll("[data-pi-panel]").forEach((panel) => { panel.hidden = panel.dataset.piPanel !== piTab.dataset.piTab; });
+        }
+
+        const select = event.target.closest(".review-select");
+        if (select) {
+          if (select.checked) state.selectedReviewKeys.add(select.dataset.key);
+          else state.selectedReviewKeys.delete(select.dataset.key);
+          renderReviewRows();
+        }
+
+        const approve = event.target.closest(".approve-review");
+        if (approve) approveSingle(approve.dataset.key);
+        const reject = event.target.closest(".reject-review");
+        if (reject) rejectSingle(reject.dataset.key);
+        const evidence = event.target.closest(".view-evidence");
+        if (evidence) showEvidence(evidence.dataset.key);
+
+        const collection = event.target.closest("[data-collection]");
+        if (collection) loadCollectionDetail(collection.dataset.collection);
+
+        const gap = event.target.closest("[data-gap-type]");
+        if (gap) loadGapDetail(gap.dataset.gapType, gap.dataset.gapValue);
+      });
+
+      $("selectAllReview").addEventListener("change", (event) => {
+        const visibleRows = state.reviewRows.filter((row) => !state.rejectedReviewKeys.has(row.key));
+        visibleRows.forEach((row) => {
+          if (event.target.checked) state.selectedReviewKeys.add(row.key);
+          else state.selectedReviewKeys.delete(row.key);
+        });
+        renderReviewRows();
+      });
+      $("reviewRefresh").addEventListener("click", loadReviewQueue);
+      $("bulkApprove").addEventListener("click", approveBulk);
+      $("playlistRefresh").addEventListener("click", () => loadPlaylistIntelligence(true));
+      $("previewImport").addEventListener("click", previewImport);
+      $("applyImport").addEventListener("click", applyImport);
+      $("trackRefresh").addEventListener("click", () => loadTrackGaps(true));
+      $("coverageRefresh").addEventListener("click", loadCoverage);
+
+      loadReviewQueue();
+    })();
+  </script>
+</body>
 </html>

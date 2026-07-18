@@ -30,7 +30,7 @@ function createApp() {
     app.set("trust proxy", 1);
   }
 
-  app.use(express.json({ limit: "1mb" }));
+  app.use(express.json({ limit: "8mb" }));
 
   app.get("/admin.html", requireAdminPage, (req, res) => {
     res.sendFile(path.join(config.rootDir, "public/admin.html"));

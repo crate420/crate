@@ -581,6 +581,347 @@ function importArtistEvidenceCsvToCollection(codeOrId, body = {}) {
   return summary;
 }
 
+const PROTECTED_REVIEW_STATUSES = new Set(["approved", "rejected", "ignored"]);
+
+function splitArtistNames(value) {
+  return cleanText(value)
+    .split(/\s*(?:,|;|\+)\s*/g)
+    .map(cleanText)
+    .filter(Boolean);
+}
+
+function trackEvidenceFromCsvRow(row, defaults = {}) {
+  const trackName = firstCsvValue(row, ["track_name", "title", "song", "track", "name"]);
+  const artistNames = splitArtistNames(firstCsvValue(row, [
+    "artist_name",
+    "artist_names",
+    "artist_name_s",
+    "artist",
+    "artists",
+    "main_artist",
+    "primary_artist",
+    "artist_names_s",
+  ]));
+  return {
+    track_name: cleanText(trackName),
+    artist_names: artistNames,
+    review_status: defaults.review_status || defaults.reviewStatus || "candidate",
+  };
+}
+
+function normalizeCsvFiles(files) {
+  const normalized = Array.isArray(files) ? files : [];
+  return normalized.map((file, index) => ({
+    name: cleanText(file?.name || file?.filename || `playlist-${index + 1}.csv`),
+    content: String(file?.content || file?.csv || file?.csvText || ""),
+  })).filter((file) => file.name && file.content.trim());
+}
+
+function collectPlaylistCsvEvidence(files, defaults = {}) {
+  const artists = new Map();
+  const tracks = new Map();
+  const errors = [];
+  const summary = {
+    files_processed: 0,
+    rows_read: 0,
+    skipped_rows: 0,
+    duplicate_artist_rows: 0,
+    duplicate_track_rows: 0,
+  };
+
+  for (const file of files) {
+    let rows = [];
+    try {
+      rows = csvObjectRows(file.content);
+    } catch (err) {
+      errors.push({ file_name: file.name, message: err.message });
+      continue;
+    }
+    summary.files_processed += 1;
+    summary.rows_read += rows.length;
+    rows.forEach((row, index) => {
+      const trackPayload = trackEvidenceFromCsvRow(row, defaults);
+      if (!trackPayload.artist_names.length && !trackPayload.track_name) {
+        summary.skipped_rows += 1;
+        return;
+      }
+      if (!trackPayload.artist_names.length) {
+        summary.skipped_rows += 1;
+        errors.push({ file_name: file.name, row_number: index + 2, message: "Artist name is required." });
+        return;
+      }
+
+      for (const artistName of trackPayload.artist_names) {
+        const artistKey = artistName.toLowerCase();
+        const artist = artists.get(artistKey) || {
+          artist_name: artistName,
+          appearance_count: 0,
+          evidence_count: 0,
+          source_names: new Set(),
+          notes: new Set(),
+        };
+        if (artist.source_names.has(file.name)) summary.duplicate_artist_rows += 1;
+        artist.appearance_count += 1;
+        artist.evidence_count += 1;
+        artist.source_names.add(file.name);
+        artist.notes.add(file.name);
+        artists.set(artistKey, artist);
+
+        if (trackPayload.track_name) {
+          const trackKey = `${trackPayload.track_name.toLowerCase()}::${artistKey}`;
+          const track = tracks.get(trackKey) || {
+            track_name: trackPayload.track_name,
+            artist_name: artistName,
+            appearance_count: 0,
+            evidence_count: 0,
+            source_names: new Set(),
+            notes: new Set(),
+          };
+          if (track.source_names.has(file.name)) summary.duplicate_track_rows += 1;
+          track.appearance_count += 1;
+          track.evidence_count += 1;
+          track.source_names.add(file.name);
+          track.notes.add(file.name);
+          tracks.set(trackKey, track);
+        }
+      }
+    });
+  }
+
+  return { artists, tracks, errors, summary };
+}
+
+function confidenceForEvidence(row, fallback = 70) {
+  const sourceCount = Number(row.source_names?.size || row.source_count || 0);
+  return Math.min(90, Math.max(fallback, 65 + sourceCount * 5));
+}
+
+function existingEvidenceCounts(db, collectionId, artists, tracks) {
+  const artistExisting = new Set();
+  const trackExisting = new Set();
+  const artistRows = db.prepare("SELECT lower(artist_name) AS key FROM playlist_collection_artists WHERE collection_id = ?").all(collectionId);
+  const trackRows = db.prepare("SELECT lower(track_name) || '::' || lower(artist_name) AS key FROM playlist_collection_tracks WHERE collection_id = ?").all(collectionId);
+  for (const row of artistRows) artistExisting.add(row.key);
+  for (const row of trackRows) trackExisting.add(row.key);
+  return {
+    existing_artists: [...artists.keys()].filter((key) => artistExisting.has(key)).length,
+    existing_tracks: [...tracks.keys()].filter((key) => trackExisting.has(key)).length,
+    new_artists: [...artists.keys()].filter((key) => !artistExisting.has(key)).length,
+    new_tracks: [...tracks.keys()].filter((key) => !trackExisting.has(key)).length,
+  };
+}
+
+function previewPlaylistIntelligenceCsvImport(codeOrId, body = {}) {
+  const db = openDatabase();
+  const collection = requireCollection(db, codeOrId);
+  const files = normalizeCsvFiles(body.files);
+  if (!files.length) {
+    const error = new Error("At least one CSV file is required.");
+    error.statusCode = 400;
+    error.code = "missing_playlist_intelligence_csv";
+    throw error;
+  }
+  const evidence = collectPlaylistCsvEvidence(files, body.defaults || body);
+  const existing = existingEvidenceCounts(db, collection.id, evidence.artists, evidence.tracks);
+  return {
+    status: "ok",
+    dry_run: true,
+    collection_code: collection.collection_code,
+    collection_name: collection.collection_name,
+    playlists: files.length,
+    artists: evidence.artists.size,
+    tracks: evidence.tracks.size,
+    duplicates: evidence.summary.duplicate_artist_rows + evidence.summary.duplicate_track_rows + existing.existing_artists + existing.existing_tracks,
+    new_artists: existing.new_artists,
+    new_tracks: existing.new_tracks,
+    skipped_rows: evidence.summary.skipped_rows,
+    rows_read: evidence.summary.rows_read,
+    files_processed: evidence.summary.files_processed,
+    existing_artists: existing.existing_artists,
+    existing_tracks: existing.existing_tracks,
+    errors: evidence.errors,
+    sample_artists: [...evidence.artists.values()].slice(0, 12).map((row) => ({
+      artist_name: row.artist_name,
+      evidence_count: row.evidence_count,
+      source_count: row.source_names.size,
+    })),
+    sample_tracks: [...evidence.tracks.values()].slice(0, 12).map((row) => ({
+      track_name: row.track_name,
+      artist_name: row.artist_name,
+      evidence_count: row.evidence_count,
+      source_count: row.source_names.size,
+    })),
+  };
+}
+
+function applyPlaylistIntelligenceCsvImport(codeOrId, body = {}) {
+  const db = openDatabase();
+  const collection = requireCollection(db, codeOrId);
+  const files = normalizeCsvFiles(body.files);
+  if (!files.length) {
+    const error = new Error("At least one CSV file is required.");
+    error.statusCode = 400;
+    error.code = "missing_playlist_intelligence_csv";
+    throw error;
+  }
+  const evidence = collectPlaylistCsvEvidence(files, body.defaults || body);
+  const before = existingEvidenceCounts(db, collection.id, evidence.artists, evidence.tracks);
+  const summary = {
+    status: "ok",
+    collection_code: collection.collection_code,
+    collection_name: collection.collection_name,
+    files_processed: evidence.summary.files_processed,
+    rows_read: evidence.summary.rows_read,
+    skipped_rows: evidence.summary.skipped_rows,
+    source_playlists_inserted: 0,
+    source_playlists_updated: 0,
+    artists_inserted: 0,
+    artists_updated: 0,
+    artists_preserved_status: 0,
+    tracks_inserted: 0,
+    tracks_updated: 0,
+    tracks_preserved_status: 0,
+    duplicates: evidence.summary.duplicate_artist_rows + evidence.summary.duplicate_track_rows + before.existing_artists + before.existing_tracks,
+    estimated_recovery_impact: 0,
+    collections_updated: 1,
+    errors: evidence.errors,
+  };
+
+  const importRows = db.transaction(() => {
+    for (const file of files) {
+      const payload = sourcePayload({
+        playlist_name: file.name.replace(/\.csv$/i, ""),
+        source_type: body.source_type || body.sourceType || "manual",
+        review_status: body.review_status || body.reviewStatus || "candidate",
+        trust_level: body.trust_level || body.trustLevel || "medium",
+        source_name: file.name,
+        include_in_consensus: body.include_in_consensus ?? body.includeInConsensus ?? true,
+        active: true,
+        notes: body.notes || "",
+      });
+      const existing = db.prepare(`
+        SELECT * FROM playlist_collection_sources
+        WHERE collection_id = ? AND lower(playlist_name) = lower(?) AND source_type = ?
+      `).get(collection.id, payload.playlist_name, payload.source_type);
+      if (existing) {
+        db.prepare(`
+          UPDATE playlist_collection_sources
+          SET source_name = @source_name,
+              trust_level = @trust_level,
+              weight = @weight,
+              include_in_consensus = @include_in_consensus,
+              active = @active,
+              notes = @notes,
+              updated_at = CURRENT_TIMESTAMP
+          WHERE id = @id
+        `).run({ ...payload, review_status: existing.review_status, id: existing.id });
+        summary.source_playlists_updated += 1;
+      } else {
+        db.prepare(`
+          INSERT INTO playlist_collection_sources
+            (collection_id, playlist_name, source_type, review_status, trust_level, source_name, source_author, source_url, spotify_playlist_id, weight, include_in_consensus, active, notes)
+          VALUES
+            (@collection_id, @playlist_name, @source_type, @review_status, @trust_level, @source_name, @source_author, @source_url, @spotify_playlist_id, @weight, @include_in_consensus, @active, @notes)
+        `).run({ ...payload, collection_id: collection.id });
+        summary.source_playlists_inserted += 1;
+      }
+    }
+
+    for (const artist of evidence.artists.values()) {
+      const existing = db.prepare(`
+        SELECT * FROM playlist_collection_artists
+        WHERE collection_id = ? AND lower(artist_name) = lower(?)
+      `).get(collection.id, artist.artist_name);
+      const payload = {
+        artist_name: artist.artist_name,
+        appearance_count: artist.appearance_count,
+        evidence_count: artist.evidence_count,
+        source_count: artist.source_names.size,
+        review_status: body.review_status || body.reviewStatus || "candidate",
+        confidence_score: confidenceForEvidence(artist),
+        approved: 0,
+        notes: [...artist.notes].join("\n"),
+      };
+      if (existing) {
+        const reviewStatus = PROTECTED_REVIEW_STATUSES.has(existing.review_status) ? existing.review_status : payload.review_status;
+        if (PROTECTED_REVIEW_STATUSES.has(existing.review_status)) summary.artists_preserved_status += 1;
+        db.prepare(`
+          UPDATE playlist_collection_artists
+          SET artist_name = @artist_name,
+              appearance_count = appearance_count + @appearance_count,
+              evidence_count = evidence_count + @evidence_count,
+              source_count = MAX(source_count, @source_count),
+              review_status = @review_status,
+              confidence_score = MAX(confidence_score, @confidence_score),
+              approved = @approved,
+              notes = CASE WHEN notes = '' THEN @notes ELSE notes || char(10) || @notes END,
+              updated_at = CURRENT_TIMESTAMP
+          WHERE id = @id
+        `).run({ ...payload, review_status: reviewStatus, approved: reviewStatus === "approved" ? 1 : 0, id: existing.id });
+        summary.artists_updated += 1;
+      } else {
+        db.prepare(`
+          INSERT INTO playlist_collection_artists
+            (collection_id, artist_name, appearance_count, evidence_count, source_count, review_status, confidence_score, approved, notes)
+          VALUES
+            (@collection_id, @artist_name, @appearance_count, @evidence_count, @source_count, @review_status, @confidence_score, @approved, @notes)
+        `).run({ ...payload, collection_id: collection.id });
+        summary.artists_inserted += 1;
+      }
+    }
+
+    for (const track of evidence.tracks.values()) {
+      const existing = db.prepare(`
+        SELECT * FROM playlist_collection_tracks
+        WHERE collection_id = ? AND lower(track_name) = lower(?) AND lower(artist_name) = lower(?)
+      `).get(collection.id, track.track_name, track.artist_name);
+      const payload = {
+        track_name: track.track_name,
+        artist_name: track.artist_name,
+        appearance_count: track.appearance_count,
+        evidence_count: track.evidence_count,
+        source_count: track.source_names.size,
+        review_status: body.review_status || body.reviewStatus || "candidate",
+        confidence_score: confidenceForEvidence(track),
+        approved: 0,
+        notes: [...track.notes].join("\n"),
+      };
+      if (existing) {
+        const reviewStatus = PROTECTED_REVIEW_STATUSES.has(existing.review_status) ? existing.review_status : payload.review_status;
+        if (PROTECTED_REVIEW_STATUSES.has(existing.review_status)) summary.tracks_preserved_status += 1;
+        db.prepare(`
+          UPDATE playlist_collection_tracks
+          SET track_name = @track_name,
+              artist_name = @artist_name,
+              appearance_count = appearance_count + @appearance_count,
+              evidence_count = evidence_count + @evidence_count,
+              source_count = MAX(source_count, @source_count),
+              review_status = @review_status,
+              confidence_score = MAX(confidence_score, @confidence_score),
+              approved = @approved,
+              notes = CASE WHEN notes = '' THEN @notes ELSE notes || char(10) || @notes END,
+              updated_at = CURRENT_TIMESTAMP
+          WHERE id = @id
+        `).run({ ...payload, review_status: reviewStatus, approved: reviewStatus === "approved" ? 1 : 0, id: existing.id });
+        summary.tracks_updated += 1;
+      } else {
+        db.prepare(`
+          INSERT INTO playlist_collection_tracks
+            (collection_id, track_name, artist_name, appearance_count, evidence_count, source_count, review_status, confidence_score, approved, notes)
+          VALUES
+            (@collection_id, @track_name, @artist_name, @appearance_count, @evidence_count, @source_count, @review_status, @confidence_score, @approved, @notes)
+        `).run({ ...payload, collection_id: collection.id });
+        summary.tracks_inserted += 1;
+      }
+    }
+  });
+
+  importRows();
+  summary.imported = summary.artists_inserted + summary.artists_updated + summary.tracks_inserted + summary.tracks_updated;
+  summary.skipped = summary.skipped_rows + evidence.errors.length;
+  return summary;
+}
+
 function updateArtist(id, body = {}) {
   const db = openDatabase();
   const existing = db.prepare("SELECT * FROM playlist_collection_artists WHERE id = ?").get(id);
@@ -687,11 +1028,13 @@ module.exports = {
   addArtistToCollection,
   addSourceToCollection,
   addTrackToCollection,
+  applyPlaylistIntelligenceCsvImport,
   createPlaylistIntelligenceCollection,
   deleteRow,
   getPlaylistIntelligenceCollection,
   importArtistEvidenceCsvToCollection,
   listPlaylistIntelligenceCollections,
+  previewPlaylistIntelligenceCsvImport,
   updateArtist,
   updatePlaylistIntelligenceCollection,
   updateSource,
