@@ -205,7 +205,8 @@ p { color: var(--admin-muted); font-size: var(--admin-font-body); line-height: 1
 button,
 .admin-button,
 input,
-select {
+select,
+textarea {
   border: 1px solid var(--admin-border);
   border-radius: 6px;
   color: var(--admin-text);
@@ -213,6 +214,21 @@ select {
   font-size: var(--admin-font-body);
   min-height: 34px;
   padding: 7px 10px;
+}
+
+textarea {
+  min-height: 78px;
+  resize: vertical;
+  width: 100%;
+}
+
+label {
+  color: #475467;
+  display: block;
+  font-size: var(--admin-font-table-header);
+  font-weight: 800;
+  margin: 8px 0 4px;
+  text-transform: uppercase;
 }
 
 button,
@@ -335,6 +351,30 @@ pre {
 
 .admin-clickable-row:hover td {
   background: var(--admin-action-soft);
+}
+
+.admin-dialog {
+  border: 0;
+  border-radius: 10px;
+  max-width: 760px;
+  padding: 0;
+  width: min(760px, calc(100vw - 28px));
+}
+
+.admin-dialog::backdrop {
+  background: rgba(17, 24, 39, .45);
+}
+
+.admin-dialog-card {
+  background: var(--admin-panel);
+  display: grid;
+  gap: 12px;
+  padding: 18px;
+}
+
+.admin-dialog-card input,
+.admin-dialog-card select {
+  width: 100%;
 }
 
 .admin-badges {

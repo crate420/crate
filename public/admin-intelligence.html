@@ -44,16 +44,17 @@
                 <th><input id="selectAllReview" type="checkbox" aria-label="Select all review items"></th>
                 <th>Artist</th>
                 <th>Suggested Genre</th>
+                <th>Confidence</th>
+                <th>Recovery</th>
                 <th>Evidence</th>
                 <th>Playlist Intelligence</th>
                 <th>Affected Users</th>
-                <th>Estimated Recovery</th>
                 <th>Status</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody id="reviewRows">
-              <tr><td colspan="9" class="admin-muted">Loading...</td></tr>
+              <tr><td colspan="10" class="admin-muted">Loading...</td></tr>
             </tbody>
           </table>
         </div>
@@ -66,7 +67,10 @@
             <h2>Playlist Intelligence</h2>
             <p>What should Crate learn?</p>
           </div>
-          <button id="playlistRefresh" type="button">Refresh</button>
+          <div class="admin-actions">
+            <button id="newCollectionButton" class="primary" type="button">New Collection</button>
+            <button id="playlistRefresh" type="button">Refresh</button>
+          </div>
         </div>
         <div class="admin-tabs admin-subtabs" role="tablist">
           <button class="admin-tab is-active" data-pi-tab="collections" type="button">Collections</button>
@@ -89,10 +93,11 @@
                   <th>User Library Matches</th>
                   <th>Unmatched Matches</th>
                   <th>Recovery Value</th>
+                  <th>Last Updated</th>
                 </tr>
               </thead>
               <tbody id="collectionRows">
-                <tr><td colspan="8" class="admin-muted">Not loaded yet.</td></tr>
+                <tr><td colspan="9" class="admin-muted">Not loaded yet.</td></tr>
               </tbody>
             </table>
           </div>
@@ -104,7 +109,8 @@
             <div class="admin-card">
               <h3>Upload CSVs</h3>
               <label>Collection</label>
-              <select id="importCollection"></select>
+              <input id="importCollection" list="importCollectionOptions" placeholder="shoegaze">
+              <datalist id="importCollectionOptions"></datalist>
               <label>CSV files</label>
               <input id="importFiles" type="file" accept=".csv,text/csv" multiple>
               <div class="admin-actions">
@@ -198,6 +204,79 @@
     </section>
   </main>
 
+  <dialog id="editDialog" class="admin-dialog">
+    <form method="dialog" class="admin-dialog-card">
+      <div class="admin-panel-header">
+        <div>
+          <h2>Edit Recommendation</h2>
+          <p>Approve the right genre and hide the incorrect suggestion.</p>
+        </div>
+        <button id="closeEditDialog" type="button">Close</button>
+      </div>
+      <div class="admin-grid two">
+        <div>
+          <label>Artist</label>
+          <input id="editArtist" type="text" readonly>
+        </div>
+        <div>
+          <label>Suggested Genre</label>
+          <input id="editSuggestedGenre" type="text" readonly>
+        </div>
+        <div>
+          <label>Confidence</label>
+          <input id="editConfidence" type="text" readonly>
+        </div>
+        <div>
+          <label>Approved Genre</label>
+          <input id="editApprovedGenre" list="approvedGenreOptions" placeholder="Search genres">
+          <datalist id="approvedGenreOptions"></datalist>
+        </div>
+      </div>
+      <label>Evidence</label>
+      <pre id="editEvidence"></pre>
+      <label>Notes</label>
+      <textarea id="editNotes" rows="3" placeholder="Optional"></textarea>
+      <div class="admin-actions">
+        <button id="saveEdit" class="primary" type="button">Save</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="newCollectionDialog" class="admin-dialog">
+    <form method="dialog" class="admin-dialog-card">
+      <div class="admin-panel-header">
+        <div>
+          <h2>New Collection</h2>
+          <p>Create a Playlist Intelligence collection.</p>
+        </div>
+        <button id="closeNewCollectionDialog" type="button">Close</button>
+      </div>
+      <div class="admin-grid two">
+        <div>
+          <label>Collection Name</label>
+          <input id="newCollectionName" type="text" placeholder="Indie Pop">
+        </div>
+        <div>
+          <label>Collection Code</label>
+          <input id="newCollectionCode" type="text" placeholder="indie_pop">
+        </div>
+        <div>
+          <label>Status</label>
+          <select id="newCollectionStatus">
+            <option value="active">Active</option>
+            <option value="research">Research</option>
+            <option value="retired">Retired</option>
+          </select>
+        </div>
+      </div>
+      <label>Description</label>
+      <textarea id="newCollectionDescription" rows="3" placeholder="Optional"></textarea>
+      <div class="admin-actions">
+        <button id="saveNewCollection" class="primary" type="button">Create Collection</button>
+      </div>
+    </form>
+  </dialog>
+
   <script src="/adminShell.js"></script>
   <script>
     (function () {
@@ -212,6 +291,9 @@
         selectedCollectionDetail: null,
         importFiles: null,
         trackLoaded: false,
+        genreOptions: [],
+        editingReviewKey: null,
+        pendingImportAfterCreate: null,
       };
       const api = () => window.CrateAdmin;
       const esc = (value) => api().escapeHtml(value);
@@ -219,6 +301,64 @@
 
       function badge(label, variant) {
         return `<span class="admin-badge ${variant || ""}">${esc(label)}</span>`;
+      }
+
+      function confidenceBadge(value) {
+        const score = Number(value || 0);
+        const variant = score >= 90 ? "good" : score >= 75 ? "warn" : "danger";
+        return badge(`${num(score)}%`, variant);
+      }
+
+      function recoveryBadge(value) {
+        const count = Number(value || 0);
+        if (count >= 10) return badge(`+${num(count)} tracks`, "good");
+        if (count > 0) return badge(`+${num(count)} tracks`, "warn");
+        return badge("No direct recovery");
+      }
+
+      function recoveryValueBadge(collection) {
+        const recovery = Number(collection.recovery_value || 0);
+        const unmatched = Number(collection.unmatched_matches || 0);
+        if (recovery > 0) return badge("Active Recovery", "good");
+        if (unmatched > 0 || Number(collection.user_library_matches || 0) > 0) return badge("Recovery Candidate", "warn");
+        return badge("Archive Only");
+      }
+
+      function titleFromCode(code) {
+        return String(code || "")
+          .trim()
+          .replace(/[_-]+/g, " ")
+          .replace(/\b\w/g, (letter) => letter.toUpperCase());
+      }
+
+      function codeFromName(name) {
+        return String(name || "")
+          .trim()
+          .toLowerCase()
+          .replace(/&/g, "b")
+          .replace(/[^a-z0-9]+/g, "_")
+          .replace(/^_+|_+$/g, "");
+      }
+
+      function evidenceLabel(source) {
+        const raw = String(source?.source_type || source?.source || "").toLowerCase();
+        if (raw.includes("spotify")) return "Spotify";
+        if (raw.includes("last.fm") || raw.includes("lastfm")) return "Last.fm";
+        if (raw.includes("musicbrainz")) return "MusicBrainz";
+        if (raw.includes("playlist_intelligence") || String(source?.source || "").includes("Playlist Intelligence")) return "Playlist Intelligence";
+        return "Manual";
+      }
+
+      function evidenceSummary(row) {
+        const details = row.evidence_details || [];
+        const groups = {};
+        details.forEach((detail) => {
+          const label = evidenceLabel(detail);
+          groups[label] = groups[label] || [];
+          groups[label].push(detail.signal || detail.source || detail.collection_name || detail.matched_signal || JSON.stringify(detail));
+        });
+        if (!Object.keys(groups).length) groups.Manual = ["No detailed source payload."];
+        return groups;
       }
 
       function setMessage(id, text, isError) {
@@ -235,6 +375,8 @@
           artist: row.artist,
           playlist_code: row.playlist_code,
           suggested_genre: row.suggested_genre,
+          confidence_score: row.confidence_score,
+          evidence_details: row.evidence_details || [],
         };
       }
 
@@ -251,20 +393,21 @@
             <td><input class="review-select" type="checkbox" data-key="${esc(row.key)}" ${state.selectedReviewKeys.has(row.key) ? "checked" : ""} aria-label="Select ${esc(row.artist)}"></td>
             <td><strong>${esc(row.artist)}</strong><div class="admin-muted">${esc(row.source_type.replace(/_/g, " "))}</div></td>
             <td>${esc(row.suggested_genre)}</td>
-            <td><div class="admin-badges">${(row.evidence || []).map((item) => badge(item)).join("") || badge("Manual")}</div></td>
+            <td>${confidenceBadge(row.confidence_score)}</td>
+            <td>${recoveryBadge(row.estimated_recovery)}</td>
+            <td><button class="admin-badge view-evidence" type="button" data-key="${esc(row.key)}">${(row.evidence || []).length ? esc((row.evidence || []).join(" + ")) : "Manual"}</button></td>
             <td>${row.playlist_intelligence ? badge("Included", "good") : badge("No", "")}</td>
             <td>${num(row.affected_users)}</td>
-            <td>${row.estimated_recovery > 0 ? badge(`+${num(row.estimated_recovery)} tracks`, "good") : badge("No direct recovery")}</td>
             <td>${badge(row.status || "candidate", "warn")}</td>
             <td>
               <div class="admin-actions">
                 <button class="approve-review primary" type="button" data-key="${esc(row.key)}">Approve</button>
+                <button class="edit-review" type="button" data-key="${esc(row.key)}">Edit</button>
                 <button class="reject-review danger" type="button" data-key="${esc(row.key)}">Reject</button>
-                <button class="view-evidence" type="button" data-key="${esc(row.key)}">View Evidence</button>
               </div>
             </td>
           </tr>
-        `).join("") : '<tr><td colspan="9" class="admin-muted">No review items need approval.</td></tr>';
+        `).join("") : '<tr><td colspan="10" class="admin-muted">No review items need approval.</td></tr>';
       }
 
       async function loadReviewQueue() {
@@ -272,11 +415,19 @@
         try {
           const payload = await api().requestJson("/crate/admin/intelligence/review-queue?limit=75");
           state.reviewRows = payload.rows || [];
+          state.genreOptions = payload.genre_options || state.genreOptions || [];
+          renderGenreOptions();
           renderReviewRows();
           setMessage("reviewMessage", `Loaded ${num(payload.total_count)} review item(s). Already-approved recommendations are excluded.`);
         } catch (error) {
           setMessage("reviewMessage", error.message, true);
         }
+      }
+
+      function renderGenreOptions() {
+        $("approvedGenreOptions").innerHTML = (state.genreOptions || [])
+          .map((genre) => `<option value="${esc(genre.value)}">${esc(genre.label || genre.value)}</option>`)
+          .join("");
       }
 
       function showEvidence(key) {
@@ -290,8 +441,61 @@
               <p>${row.estimated_recovery > 0 ? `Expected to recover ${num(row.estimated_recovery)} unmatched track(s).` : "No direct unmatched recovery estimate."}</p>
             </div>
           </div>
+          <div class="admin-grid two">
+            ${Object.entries(evidenceSummary(row)).map(([label, values]) => `
+              <div class="admin-card">
+                <h3>${esc(label)}</h3>
+                <p>${[...new Set(values)].map(esc).join("<br>")}</p>
+              </div>
+            `).join("")}
+          </div>
           <pre>${esc(JSON.stringify({ evidence: row.evidence_details || [], sample_tracks: row.sample_tracks || [] }, null, 2))}</pre>
         `;
+      }
+
+      function openEditDialog(key) {
+        const row = state.reviewRows.find((item) => item.key === key);
+        if (!row) return;
+        state.editingReviewKey = key;
+        $("editArtist").value = row.artist;
+        $("editSuggestedGenre").value = row.suggested_genre;
+        $("editConfidence").value = `${Number(row.confidence_score || 0)}%`;
+        $("editApprovedGenre").value = row.suggested_genre;
+        $("editNotes").value = "";
+        $("editEvidence").textContent = JSON.stringify({
+          grouped_evidence: evidenceSummary(row),
+          evidence: row.evidence_details || [],
+          sample_tracks: row.sample_tracks || [],
+        }, null, 2);
+        $("editDialog").showModal();
+      }
+
+      async function saveEdit() {
+        const row = state.reviewRows.find((item) => item.key === state.editingReviewKey);
+        if (!row) return;
+        const approvedGenre = $("editApprovedGenre").value.trim();
+        if (!approvedGenre) {
+          setMessage("reviewMessage", "Choose an approved genre before saving.", true);
+          return;
+        }
+        setMessage("reviewMessage", `Saving edited recommendation for ${row.artist}...`);
+        try {
+          await api().requestJson("/crate/admin/intelligence/review-queue/edit", {
+            method: "POST",
+            body: JSON.stringify({
+              item: reviewPayload(row),
+              approved_genre: approvedGenre,
+              notes: $("editNotes").value,
+            }),
+          });
+          $("editDialog").close();
+          state.reviewRows = state.reviewRows.filter((item) => item.key !== row.key);
+          state.selectedReviewKeys.delete(row.key);
+          renderReviewRows();
+          setMessage("reviewMessage", `Approved ${row.artist} -> ${approvedGenre}. Hidden: ${row.suggested_genre}.`);
+        } catch (error) {
+          setMessage("reviewMessage", error.message, true);
+        }
       }
 
       async function approveSingle(key) {
@@ -323,7 +527,7 @@
           state.rejectedReviewKeys.add(key);
           state.selectedReviewKeys.delete(key);
           renderReviewRows();
-          setMessage("reviewMessage", `${row.artist} hidden from this review session.`);
+          setMessage("reviewMessage", `${row.artist} -> ${row.suggested_genre} rejected and hidden.`);
         } catch (error) {
           setMessage("reviewMessage", error.message, true);
         }
@@ -350,7 +554,8 @@
 
       function renderCollections() {
         const collections = state.playlistPayload?.collections || [];
-        $("importCollection").innerHTML = collections.map((collection) => `<option value="${esc(collection.collection_code)}">${esc(collection.collection_name)}</option>`).join("");
+        $("importCollectionOptions").innerHTML = collections.map((collection) => `<option value="${esc(collection.collection_code)}">${esc(collection.collection_name)}</option>`).join("");
+        if (!$("importCollection").value && collections[0]) $("importCollection").value = collections[0].collection_code;
         $("collectionRows").innerHTML = collections.length ? collections.map((collection) => `
           <tr class="admin-clickable-row" data-collection="${esc(collection.collection_code)}">
             <td><strong>${esc(collection.collection_name)}</strong><div class="admin-muted">${esc(collection.collection_code)}</div></td>
@@ -360,9 +565,10 @@
             <td>${num(collection.track_evidence_count)}<div class="admin-muted">${num(collection.approved_track_count)} approved</div></td>
             <td>${num(collection.user_library_matches)}</td>
             <td>${num(collection.unmatched_matches)}</td>
-            <td>${collection.recovery_value > 0 ? badge(`+${num(collection.recovery_value)}`, "good") : badge("Stored evidence")}</td>
+            <td>${recoveryValueBadge(collection)}<div class="admin-muted">${num(collection.recovery_value)} track value</div></td>
+            <td>${api().formatDateTime(collection.updated_at)}</td>
           </tr>
-        `).join("") : '<tr><td colspan="8" class="admin-muted">No collections found.</td></tr>';
+        `).join("") : '<tr><td colspan="9" class="admin-muted">No collections found.</td></tr>';
       }
 
       async function loadPlaylistIntelligence(force) {
@@ -429,6 +635,72 @@
         }
       }
 
+      function openNewCollectionDialog(defaults = {}) {
+        $("newCollectionName").value = defaults.name || "";
+        $("newCollectionCode").value = defaults.code || "";
+        $("newCollectionDescription").value = defaults.description || "";
+        $("newCollectionStatus").value = defaults.status || "active";
+        $("newCollectionDialog").showModal();
+      }
+
+      async function saveNewCollection() {
+        const collectionName = $("newCollectionName").value.trim();
+        const collectionCode = $("newCollectionCode").value.trim() || codeFromName(collectionName);
+        if (!collectionName || !collectionCode) {
+          setMessage("playlistMessage", "Collection name and code are required.", true);
+          return null;
+        }
+        setMessage("playlistMessage", `Creating ${collectionName}...`);
+        try {
+          const payload = await api().requestJson("/crate/admin/intelligence/playlist-intelligence", {
+            method: "POST",
+            body: JSON.stringify({
+              collection_name: collectionName,
+              collection_code: collectionCode,
+              identity_description: $("newCollectionDescription").value,
+              research_status: $("newCollectionStatus").value,
+            }),
+          });
+          $("newCollectionDialog").close();
+          $("importCollection").value = payload.collection?.collection_code || payload.collection_code || collectionCode;
+          state.playlistLoaded = false;
+          await loadPlaylistIntelligence(true);
+          if (state.pendingImportAfterCreate?.collectionCode === collectionCode) {
+            const files = state.pendingImportAfterCreate.files;
+            state.pendingImportAfterCreate = null;
+            const preview = await requestImportPreview(collectionCode, files);
+            state.importFiles = files;
+            renderImportSummary(preview, "Preview");
+            $("applyImport").disabled = false;
+            setMessage("playlistMessage", `Created ${collectionName}. Preview ready: ${num(preview.new_artists)} new artist(s), ${num(preview.new_tracks)} new track(s).`);
+            return payload;
+          }
+          setMessage("playlistMessage", `Created ${collectionName}.`);
+          return payload;
+        } catch (error) {
+          setMessage("playlistMessage", error.message, true);
+          return null;
+        }
+      }
+
+      async function requestImportPreview(collectionCode, files) {
+        const response = await fetch(`/crate/admin/intelligence/playlist-intelligence/${encodeURIComponent(collectionCode)}/import-preview`, {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ files }),
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          const message = payload.message || payload.error || `Request failed: ${response.status}`;
+          const error = new Error(message);
+          error.statusCode = response.status;
+          error.payload = payload;
+          throw error;
+        }
+        return payload;
+      }
+
       function renderImportSummary(payload, title) {
         if (!payload) {
           $("importSummary").textContent = "No CSV preview yet.";
@@ -460,15 +732,19 @@
         }
         setMessage("playlistMessage", "Previewing import...");
         try {
-          const payload = await api().requestJson(`/crate/admin/intelligence/playlist-intelligence/${encodeURIComponent(collectionCode)}/import-preview`, {
-            method: "POST",
-            body: JSON.stringify({ files }),
-          });
+          const payload = await requestImportPreview(collectionCode, files);
           state.importFiles = files;
           renderImportSummary(payload, "Preview");
           $("applyImport").disabled = false;
           setMessage("playlistMessage", `Preview ready: ${num(payload.new_artists)} new artist(s), ${num(payload.new_tracks)} new track(s).`);
         } catch (error) {
+          if (error.statusCode === 404) {
+            const proposedName = titleFromCode(collectionCode);
+            if (window.confirm(`Collection "${proposedName}" doesn't exist. Create it?`)) {
+              state.pendingImportAfterCreate = { collectionCode, files };
+              openNewCollectionDialog({ name: proposedName, code: collectionCode, status: "active" });
+            }
+          }
           $("applyImport").disabled = true;
           setMessage("playlistMessage", error.message, true);
         }
@@ -574,6 +850,8 @@
 
         const approve = event.target.closest(".approve-review");
         if (approve) approveSingle(approve.dataset.key);
+        const edit = event.target.closest(".edit-review");
+        if (edit) openEditDialog(edit.dataset.key);
         const reject = event.target.closest(".reject-review");
         if (reject) rejectSingle(reject.dataset.key);
         const evidence = event.target.closest(".view-evidence");
@@ -596,7 +874,15 @@
       });
       $("reviewRefresh").addEventListener("click", loadReviewQueue);
       $("bulkApprove").addEventListener("click", approveBulk);
+      $("saveEdit").addEventListener("click", saveEdit);
+      $("closeEditDialog").addEventListener("click", () => $("editDialog").close());
       $("playlistRefresh").addEventListener("click", () => loadPlaylistIntelligence(true));
+      $("newCollectionButton").addEventListener("click", () => openNewCollectionDialog());
+      $("saveNewCollection").addEventListener("click", saveNewCollection);
+      $("closeNewCollectionDialog").addEventListener("click", () => $("newCollectionDialog").close());
+      $("newCollectionName").addEventListener("input", () => {
+        if (!$("newCollectionCode").value.trim()) $("newCollectionCode").value = codeFromName($("newCollectionName").value);
+      });
       $("previewImport").addEventListener("click", previewImport);
       $("applyImport").addEventListener("click", applyImport);
       $("trackRefresh").addEventListener("click", () => loadTrackGaps(true));

@@ -13,13 +13,36 @@ const {
   getAdminGenreRecommendations,
 } = require("./genreRecommendations");
 const {
+  createPlaylistIntelligenceCollection,
   getPlaylistIntelligenceCollection,
   listPlaylistIntelligenceCollections,
 } = require("./playlistIntelligence");
+const { ACTIVE_PLAYLIST_DEFINITIONS } = require("./playlistDefinitions");
 const { getArtistNames, parseRawTrack } = require("./trackContext");
 
 const DEFAULT_REVIEW_LIMIT = 50;
 const MAX_REVIEW_LIMIT = 200;
+const EDITABLE_GENRE_EXTRAS = [
+  "acoustic pop",
+  "alt r&b",
+  "alternative r&b",
+  "alternative rock",
+  "baroque pop",
+  "bedroom pop",
+  "britpop",
+  "college rock",
+  "dance pop",
+  "dream pop",
+  "folk pop",
+  "indie folk",
+  "indie pop",
+  "indie rock",
+  "neo soul",
+  "shoegaze",
+  "singer-songwriter",
+  "sunshine pop",
+  "synthpop",
+];
 
 function normalizeArtistName(value) {
   return String(value || "").trim().toLowerCase();
@@ -32,6 +55,118 @@ function normalizeLimit(value, fallback = DEFAULT_REVIEW_LIMIT, max = MAX_REVIEW
 
 function tableExists(db, tableName) {
   return Boolean(db.prepare("SELECT 1 AS found FROM sqlite_master WHERE type = 'table' AND name = ?").get(tableName));
+}
+
+function reviewDecisionTableExists(db = openDatabase()) {
+  return tableExists(db, "admin_intelligence_review_decisions");
+}
+
+function normalizeDecisionSourceType(value) {
+  return String(value || "artist_intelligence").trim().toLowerCase();
+}
+
+function decisionKeyForItem(item = {}) {
+  return {
+    normalized_artist_name: normalizeArtistName(item.artist),
+    normalized_suggested_genre: normalizeGenre(item.suggested_genre || item.genre),
+    source_type: normalizeDecisionSourceType(item.source_type),
+  };
+}
+
+function getReviewDecisionKeys(db = openDatabase()) {
+  const keys = new Set();
+  if (!reviewDecisionTableExists(db)) return keys;
+  const rows = db.prepare(`
+    SELECT normalized_artist_name, normalized_suggested_genre, source_type
+    FROM admin_intelligence_review_decisions
+    WHERE decision IN ('rejected', 'edited')
+  `).all();
+  for (const row of rows) {
+    keys.add(`${row.normalized_artist_name}::${row.normalized_suggested_genre}::${row.source_type}`);
+    keys.add(`${row.normalized_artist_name}::${row.normalized_suggested_genre}::*`);
+  }
+  return keys;
+}
+
+function isReviewDecisionRejected(item, keys) {
+  const key = decisionKeyForItem(item);
+  return keys.has(`${key.normalized_artist_name}::${key.normalized_suggested_genre}::${key.source_type}`)
+    || keys.has(`${key.normalized_artist_name}::${key.normalized_suggested_genre}::*`);
+}
+
+function recordReviewDecision(item = {}, decision, options = {}) {
+  const db = openDatabase();
+  if (!reviewDecisionTableExists(db)) {
+    const error = new Error("Admin review decision table is missing. Run migrations first.");
+    error.statusCode = 500;
+    error.code = "admin_review_decision_schema_missing";
+    throw error;
+  }
+  const key = decisionKeyForItem(item);
+  if (!key.normalized_artist_name || !key.normalized_suggested_genre) {
+    const error = new Error("Artist and suggested genre are required.");
+    error.statusCode = 400;
+    error.code = "missing_review_decision_fields";
+    throw error;
+  }
+  const now = new Date().toISOString();
+  db.prepare(`
+    INSERT INTO admin_intelligence_review_decisions (
+      normalized_artist_name,
+      artist_name,
+      suggested_genre,
+      normalized_suggested_genre,
+      source_type,
+      decision,
+      approved_genre,
+      normalized_approved_genre,
+      notes,
+      evidence_json,
+      admin_user_id,
+      admin_spotify_user_id,
+      created_at,
+      updated_at
+    ) VALUES (
+      @normalized_artist_name,
+      @artist_name,
+      @suggested_genre,
+      @normalized_suggested_genre,
+      @source_type,
+      @decision,
+      @approved_genre,
+      @normalized_approved_genre,
+      @notes,
+      @evidence_json,
+      @admin_user_id,
+      @admin_spotify_user_id,
+      @now,
+      @now
+    )
+    ON CONFLICT(normalized_artist_name, normalized_suggested_genre, source_type) DO UPDATE SET
+      artist_name = excluded.artist_name,
+      suggested_genre = excluded.suggested_genre,
+      decision = excluded.decision,
+      approved_genre = excluded.approved_genre,
+      normalized_approved_genre = excluded.normalized_approved_genre,
+      notes = excluded.notes,
+      evidence_json = excluded.evidence_json,
+      admin_user_id = excluded.admin_user_id,
+      admin_spotify_user_id = excluded.admin_spotify_user_id,
+      updated_at = excluded.updated_at
+  `).run({
+    ...key,
+    artist_name: String(item.artist || "").trim(),
+    suggested_genre: String(item.suggested_genre || item.genre || "").trim(),
+    decision,
+    approved_genre: options.approvedGenre || null,
+    normalized_approved_genre: options.approvedGenre ? normalizeGenre(options.approvedGenre) : null,
+    notes: String(options.notes || "").trim(),
+    evidence_json: JSON.stringify(options.evidence || item.evidence_details || {}),
+    admin_user_id: options.adminUser?.id || null,
+    admin_spotify_user_id: options.adminUser?.spotify_user_id || null,
+    now,
+  });
+  return { status: "ok", decision };
 }
 
 function sourceLabel(source = {}) {
@@ -110,6 +245,7 @@ function reviewRowFromArtistIntelligence(row, recommendation, stats) {
     support_weight: recommendation.support_weight || 0,
     evidence_details: evidence,
     sample_tracks: artistStats?.sample_tracks || [],
+    can_edit: true,
   };
 }
 
@@ -119,6 +255,7 @@ function reviewRowFromGenreRecommendation(row) {
   return {
     key: `genre_recommendation:${row.normalized_artist_name}:${row.recommended_playlist_code}`,
     source_type: "genre_recommendation",
+    artist_intelligence_id: row.artist_intelligence_id || null,
     artist: row.artist,
     playlist_code: row.recommended_playlist_code,
     suggested_genre: row.approved_genre,
@@ -132,6 +269,7 @@ function reviewRowFromGenreRecommendation(row) {
     support_weight: row.source_agreement || 0,
     evidence_details: evidence,
     sample_tracks: row.sample_tracks || [],
+    can_edit: true,
   };
 }
 
@@ -163,9 +301,11 @@ async function getIntelligenceReviewQueue(options = {}) {
     if (!current || row.estimated_recovery > current.estimated_recovery || row.playlist_intelligence) deduped.set(key, row);
   }
 
-  const sorted = [...deduped.values()].sort((left, right) => {
-    if (right.estimated_recovery !== left.estimated_recovery) return right.estimated_recovery - left.estimated_recovery;
+  const rejectedKeys = getReviewDecisionKeys();
+  const visible = [...deduped.values()].filter((row) => !isReviewDecisionRejected(row, rejectedKeys));
+  const sorted = visible.sort((left, right) => {
     if (right.confidence_score !== left.confidence_score) return right.confidence_score - left.confidence_score;
+    if (right.estimated_recovery !== left.estimated_recovery) return right.estimated_recovery - left.estimated_recovery;
     return left.artist.localeCompare(right.artist);
   });
 
@@ -176,6 +316,7 @@ async function getIntelligenceReviewQueue(options = {}) {
     limit,
     offset,
     rows: sorted.slice(offset, offset + limit),
+    genre_options: getApprovedGenreOptions(),
   };
 }
 
@@ -216,6 +357,7 @@ function approveReviewQueueItem(item, adminUser) {
     genres: [genre],
     source: "artist_intelligence_admin",
   });
+  markArtistIntelligenceReviewed(artistIntelligenceId);
   return {
     status: "ok",
     mode: "single",
@@ -228,6 +370,20 @@ function approveReviewQueueItem(item, adminUser) {
     },
     message: "Approval saved. Run a separate future sort/rescan to apply the estimated match gain.",
   };
+}
+
+function markArtistIntelligenceReviewed(artistIntelligenceId) {
+  const parsedId = Number.parseInt(artistIntelligenceId, 10);
+  if (!Number.isInteger(parsedId) || parsedId <= 0) return { changed: 0 };
+  const db = openDatabase();
+  if (!tableExists(db, "artist_intelligence")) return { changed: 0 };
+  const result = db.prepare(`
+    UPDATE artist_intelligence
+    SET review_status = 'reviewed',
+        updated_at = CURRENT_TIMESTAMP
+    WHERE id = ?
+  `).run(parsedId);
+  return { changed: result.changes };
 }
 
 async function approveReviewQueueBulk(items, adminUser) {
@@ -281,6 +437,74 @@ async function approveReviewQueueBulk(items, adminUser) {
   };
 }
 
+function rejectReviewQueueItem(item, adminUser) {
+  return {
+    ...recordReviewDecision(item, "rejected", { adminUser, evidence: item.evidence_details || {} }),
+    item,
+    message: "Recommendation rejected and hidden from the default review queue.",
+  };
+}
+
+function editReviewQueueItem(item, options = {}) {
+  const approvedGenre = normalizeGenre(options.approved_genre || options.approvedGenre);
+  if (!approvedGenre) {
+    const error = new Error("Approved genre is required.");
+    error.statusCode = 400;
+    error.code = "missing_approved_genre";
+    throw error;
+  }
+  const artistName = String(item?.artist || "").trim();
+  if (!artistName) {
+    const error = new Error("Artist is required.");
+    error.statusCode = 400;
+    error.code = "missing_artist";
+    throw error;
+  }
+  const db = openDatabase();
+  const run = db.transaction(() => {
+    const result = artistGenreRepo.insertArtistGenres({
+      artistName,
+      genres: [approvedGenre],
+      source: "admin_intelligence_edit",
+    });
+    recordReviewDecision(item, "edited", {
+      adminUser: options.adminUser,
+      approvedGenre,
+      notes: options.notes,
+      evidence: item.evidence_details || {},
+    });
+    if (item.artist_intelligence_id) markArtistIntelligenceReviewed(item.artist_intelligence_id);
+    return result;
+  });
+  const result = run();
+  return {
+    status: "ok",
+    mode: "edit",
+    artist: artistName,
+    rejected_genre: item.suggested_genre || item.genre,
+    approved_genre: approvedGenre,
+    inserted_count: result.inserted,
+    message: "Edited recommendation approved. The original suggestion will stay hidden from the default review queue.",
+  };
+}
+
+function getApprovedGenreOptions() {
+  const db = openDatabase();
+  const genres = new Set(EDITABLE_GENRE_EXTRAS);
+  for (const definition of ACTIVE_PLAYLIST_DEFINITIONS) {
+    genres.add(definition.playlistCode.replace(/_/g, " "));
+    if (definition.shortLabel) genres.add(String(definition.shortLabel).trim().toLowerCase());
+  }
+  if (tableExists(db, "artist_genres")) {
+    const rows = db.prepare("SELECT DISTINCT lower(trim(genre)) AS genre FROM artist_genres WHERE trim(genre) != '' ORDER BY genre").all();
+    for (const row of rows) genres.add(row.genre);
+  }
+  return [...genres].filter(Boolean).sort((a, b) => a.localeCompare(b)).map((genre) => ({
+    value: genre,
+    label: genre.replace(/\b\w/g, (letter) => letter.toUpperCase()),
+  }));
+}
+
 function playlistIntelligenceMatches(collectionCode) {
   const db = openDatabase();
   const collection = getPlaylistIntelligenceCollection(collectionCode);
@@ -323,6 +547,16 @@ function getPlaylistIntelligenceWorkflowSummary() {
       ...playlistIntelligenceMatches(collection.collection_code),
     })),
   };
+}
+
+function createPlaylistIntelligenceWorkflowCollection(body = {}) {
+  return createPlaylistIntelligenceCollection({
+    collection_name: body.collection_name || body.collectionName,
+    collection_code: body.collection_code || body.collectionCode,
+    identity_description: body.identity_description || body.identityDescription || "",
+    research_status: body.research_status || body.researchStatus || "active",
+    notes: body.notes || "",
+  });
 }
 
 function getPlaylistIntelligenceWorkflowDetail(collectionCode) {
@@ -403,9 +637,13 @@ function getTrackGapDetail(type, value, options = {}) {
 module.exports = {
   approveReviewQueueBulk,
   approveReviewQueueItem,
+  createPlaylistIntelligenceWorkflowCollection,
+  editReviewQueueItem,
+  getApprovedGenreOptions,
   getIntelligenceReviewQueue,
   getPlaylistIntelligenceWorkflowDetail,
   getPlaylistIntelligenceWorkflowSummary,
   getTrackGapDetail,
   getTrackGapOverview,
+  rejectReviewQueueItem,
 };

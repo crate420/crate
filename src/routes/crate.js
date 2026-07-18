@@ -78,11 +78,15 @@ const {
 const {
   approveReviewQueueBulk,
   approveReviewQueueItem,
+  createPlaylistIntelligenceWorkflowCollection,
+  editReviewQueueItem,
+  getApprovedGenreOptions,
   getIntelligenceReviewQueue,
   getPlaylistIntelligenceWorkflowDetail,
   getPlaylistIntelligenceWorkflowSummary,
   getTrackGapDetail,
   getTrackGapOverview,
+  rejectReviewQueueItem,
 } = require("../crate/adminIntelligenceWorkflows");
 const { fetchAllPlaylistSeeds, fetchPlaylistSeed } = require("../crate/playlistSeedFetcher");
 const { getMissingArtistGenres } = require("../crate/missingArtistGenres");
@@ -1042,18 +1046,57 @@ router.post("/admin/intelligence/review-queue/approve-bulk", requireCurrentUser,
   }
 });
 
-router.post("/admin/intelligence/review-queue/reject", requireCurrentUser, requireAdminUser, (req, res) => {
-  return res.json({
-    status: "ok",
-    message: "Item hidden for this review session. Source evidence was not changed.",
-    item: req.body?.item || null,
-  });
+router.post("/admin/intelligence/review-queue/edit", requireCurrentUser, requireAdminUser, (req, res, next) => {
+  try {
+    const result = editReviewQueueItem(req.body?.item || {}, {
+      approvedGenre: req.body?.approved_genre || req.body?.approvedGenre,
+      notes: req.body?.notes,
+      adminUser: req.currentUser,
+    });
+    adminSummaryCache.invalidate("admin-users-summary");
+    adminSummaryCache.invalidate("admin-user-recovery");
+    adminSummaryCache.invalidate("admin-intelligence");
+    return res.json(result);
+  } catch (err) {
+    if (err.statusCode) return res.status(err.statusCode).json({ error: err.code || "intelligence_review_queue_error", message: err.message });
+    return next(err);
+  }
+});
+
+router.post("/admin/intelligence/review-queue/reject", requireCurrentUser, requireAdminUser, (req, res, next) => {
+  try {
+    const result = rejectReviewQueueItem(req.body?.item || {}, req.currentUser);
+    adminSummaryCache.invalidate("admin-intelligence");
+    return res.json(result);
+  } catch (err) {
+    if (err.statusCode) return res.status(err.statusCode).json({ error: err.code || "intelligence_review_queue_error", message: err.message });
+    return next(err);
+  }
+});
+
+router.get("/admin/intelligence/genre-options", requireCurrentUser, requireAdminUser, (req, res, next) => {
+  try {
+    return res.json({ status: "ok", genres: getApprovedGenreOptions() });
+  } catch (err) {
+    return next(err);
+  }
 });
 
 router.get("/admin/intelligence/playlist-intelligence", requireCurrentUser, requireAdminUser, (req, res, next) => {
   try {
     return res.json(getPlaylistIntelligenceWorkflowSummary());
   } catch (err) {
+    return next(err);
+  }
+});
+
+router.post("/admin/intelligence/playlist-intelligence", requireCurrentUser, requireAdminUser, (req, res, next) => {
+  try {
+    const result = createPlaylistIntelligenceWorkflowCollection(req.body || {});
+    adminSummaryCache.invalidate("admin-intelligence");
+    return res.status(201).json(result);
+  } catch (err) {
+    if (err.statusCode) return res.status(err.statusCode).json({ error: err.code || "playlist_intelligence_error", message: err.message });
     return next(err);
   }
 });
