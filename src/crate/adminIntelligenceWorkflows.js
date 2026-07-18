@@ -538,6 +538,39 @@ function playlistIntelligenceMatches(collectionCode) {
   return { user_library_matches: userLibraryMatches, unmatched_matches: unmatchedMatches, recovery_value: recoveryValue };
 }
 
+function readImportHistory(collectionId, limit = 5) {
+  const db = openDatabase();
+  if (!tableExists(db, "playlist_intelligence_import_logs")) return [];
+  return db.prepare(`
+    SELECT *
+    FROM playlist_intelligence_import_logs
+    WHERE collection_id = ?
+    ORDER BY created_at DESC, id DESC
+    LIMIT ?
+  `).all(collectionId, limit).map((row) => ({
+    id: row.id,
+    collection_id: row.collection_id,
+    collection_code: row.collection_code,
+    collection_name: row.collection_name,
+    imported_by_user_id: row.imported_by_user_id,
+    imported_by_spotify_user_id: row.imported_by_spotify_user_id,
+    file_count: Number(row.file_count || 0),
+    row_count: Number(row.row_count || 0),
+    artists_processed: Number(row.artists_processed || 0),
+    artists_inserted: Number(row.artists_inserted || 0),
+    artists_updated: Number(row.artists_updated || 0),
+    tracks_processed: Number(row.tracks_processed || 0),
+    tracks_inserted: Number(row.tracks_inserted || 0),
+    tracks_updated: Number(row.tracks_updated || 0),
+    duplicates_skipped: Number(row.duplicates_skipped || 0),
+    skipped_rows: Number(row.skipped_rows || 0),
+    error_count: Number(row.error_count || 0),
+    estimated_recoverable_songs: Number(row.estimated_recoverable_songs || 0),
+    unmatched_artist_overlap: Number(row.unmatched_artist_overlap || 0),
+    created_at: row.created_at,
+  }));
+}
+
 function getPlaylistIntelligenceWorkflowSummary() {
   const payload = listPlaylistIntelligenceCollections();
   return {
@@ -545,6 +578,7 @@ function getPlaylistIntelligenceWorkflowSummary() {
     collections: (payload.collections || []).map((collection) => ({
       ...collection,
       ...playlistIntelligenceMatches(collection.collection_code),
+      last_import: readImportHistory(collection.id, 1)[0] || null,
     })),
   };
 }
@@ -564,6 +598,7 @@ function getPlaylistIntelligenceWorkflowDetail(collectionCode) {
   return {
     ...detail,
     overlap: playlistIntelligenceMatches(detail.collection.collection_code),
+    import_history: readImportHistory(detail.collection.id, 10),
   };
 }
 

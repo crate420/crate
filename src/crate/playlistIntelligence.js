@@ -21,6 +21,10 @@ function boolToInt(value) {
   return value === true || value === 1 || value === "1" || value === "true" ? 1 : 0;
 }
 
+function tableExists(db, tableName) {
+  return Boolean(db.prepare("SELECT 1 AS found FROM sqlite_master WHERE type = 'table' AND name = ?").get(tableName));
+}
+
 function numberInRange(value, { min = 0, max = 100, fallback = 0 } = {}) {
   const parsed = Number(value);
   if (!Number.isFinite(parsed)) return fallback;
@@ -181,6 +185,27 @@ function serializeTrack(row) {
 
 function listPlaylistIntelligenceCollections() {
   const db = openDatabase();
+  const importJoin = tableExists(db, "playlist_intelligence_import_logs")
+    ? `LEFT JOIN (
+         SELECT
+           collection_id,
+           MAX(created_at) AS last_import_at,
+           COUNT(*) AS import_count,
+           SUM(artists_inserted) AS total_imported_artists,
+           SUM(tracks_inserted) AS total_imported_tracks
+         FROM playlist_intelligence_import_logs
+         GROUP BY collection_id
+       ) import_logs ON import_logs.collection_id = definitions.id`
+    : "";
+  const importSelect = tableExists(db, "playlist_intelligence_import_logs")
+    ? `MAX(import_logs.last_import_at) AS last_import_at,
+       MAX(import_logs.import_count) AS import_count,
+       MAX(import_logs.total_imported_artists) AS total_imported_artists,
+       MAX(import_logs.total_imported_tracks) AS total_imported_tracks`
+    : `NULL AS last_import_at,
+       0 AS import_count,
+       0 AS total_imported_artists,
+       0 AS total_imported_tracks`;
   const rows = db.prepare(`
     SELECT
       definitions.*,
@@ -190,11 +215,13 @@ function listPlaylistIntelligenceCollections() {
       COUNT(DISTINCT CASE WHEN artists.review_status = 'approved' THEN artists.id END) AS approved_artist_count,
       COUNT(DISTINCT artists.id) AS artist_evidence_count,
       COUNT(DISTINCT CASE WHEN tracks.review_status = 'approved' THEN tracks.id END) AS approved_track_count,
-      COUNT(DISTINCT tracks.id) AS track_evidence_count
+      COUNT(DISTINCT tracks.id) AS track_evidence_count,
+      ${importSelect}
     FROM playlist_collection_definitions definitions
     LEFT JOIN playlist_collection_sources sources ON sources.collection_id = definitions.id
     LEFT JOIN playlist_collection_artists artists ON artists.collection_id = definitions.id
     LEFT JOIN playlist_collection_tracks tracks ON tracks.collection_id = definitions.id
+    ${importJoin}
     GROUP BY definitions.id
     ORDER BY
       CASE definitions.research_status
@@ -214,6 +241,10 @@ function listPlaylistIntelligenceCollections() {
     artist_evidence_count: Number(row.artist_evidence_count || 0),
     approved_track_count: Number(row.approved_track_count || 0),
     track_evidence_count: Number(row.track_evidence_count || 0),
+    last_import_at: row.last_import_at || null,
+    import_count: Number(row.import_count || 0),
+    total_imported_artists: Number(row.total_imported_artists || 0),
+    total_imported_tracks: Number(row.total_imported_tracks || 0),
   }));
 
   return {
@@ -711,18 +742,118 @@ function existingEvidenceCounts(db, collectionId, artists, tracks) {
   };
 }
 
+function playlistNameFromFileName(fileName) {
+  return cleanText(fileName).replace(/\.csv$/i, "");
+}
+
+function existingSourceFileNames(db, collectionId, files, sourceType = "manual") {
+  const existing = new Set();
+  if (!files.length) return existing;
+  const source = cleanText(sourceType || "manual");
+  const rows = db.prepare(`
+    SELECT lower(playlist_name) AS playlist_name
+    FROM playlist_collection_sources
+    WHERE collection_id = ? AND source_type = ?
+  `).all(collectionId, source);
+  const existingNames = new Set(rows.map((row) => row.playlist_name));
+  for (const file of files) {
+    const playlistName = playlistNameFromFileName(file.name).toLowerCase();
+    if (existingNames.has(playlistName)) existing.add(file.name);
+  }
+  return existing;
+}
+
+function artistNamesFromTrackRow(row) {
+  const names = new Set();
+  try {
+    const parsed = JSON.parse(row.artist_names || "[]");
+    if (Array.isArray(parsed)) parsed.forEach((artist) => {
+      const name = cleanText(typeof artist === "string" ? artist : artist?.name);
+      if (name) names.add(name.toLowerCase());
+    });
+  } catch (err) {
+    // Fall back to raw_json below.
+  }
+  try {
+    const raw = JSON.parse(row.raw_json || "{}");
+    if (Array.isArray(raw.artists)) raw.artists.forEach((artist) => {
+      const name = cleanText(artist?.name);
+      if (name) names.add(name.toLowerCase());
+    });
+  } catch (err) {
+    // Missing raw JSON should not block import summaries.
+  }
+  return [...names];
+}
+
+function estimateRecoveryImpact(db, artists) {
+  const artistNames = new Set([...artists.keys()]);
+  const impact = {
+    unmatched_artist_overlap: 0,
+    estimated_recoverable_songs: 0,
+    estimate_type: "best_available",
+  };
+  if (!artistNames.size || !tableExists(db, "user_tracks") || !tableExists(db, "tracks")) return impact;
+
+  const matchedArtists = new Set();
+  const matchedTracks = new Set();
+  const rows = db.prepare(`
+    SELECT tracks.id AS track_id, tracks.artist_names, tracks.raw_json
+    FROM user_tracks
+    INNER JOIN tracks ON tracks.id = user_tracks.track_id
+    WHERE user_tracks.playlist_code IS NULL
+  `).all();
+  for (const row of rows) {
+    for (const artistName of artistNamesFromTrackRow(row)) {
+      if (!artistNames.has(artistName)) continue;
+      matchedArtists.add(artistName);
+      matchedTracks.add(row.track_id);
+    }
+  }
+  impact.unmatched_artist_overlap = matchedArtists.size;
+  impact.estimated_recoverable_songs = matchedTracks.size;
+  return impact;
+}
+
+function latestImportLog(db, collectionId) {
+  if (!tableExists(db, "playlist_intelligence_import_logs")) return null;
+  return db.prepare(`
+    SELECT *
+    FROM playlist_intelligence_import_logs
+    WHERE collection_id = ?
+    ORDER BY created_at DESC, id DESC
+    LIMIT 1
+  `).get(collectionId) || null;
+}
+
 function previewPlaylistIntelligenceCsvImport(codeOrId, body = {}) {
   const db = openDatabase();
   const collection = requireCollection(db, codeOrId);
   const files = normalizeCsvFiles(body.files);
   if (!files.length) {
-    const error = new Error("At least one CSV file is required.");
+    const submittedFiles = Array.isArray(body.files) ? body.files.length : 0;
+    const error = new Error(submittedFiles ? "Empty file. Upload at least one CSV with playlist rows." : "At least one CSV file is required.");
     error.statusCode = 400;
     error.code = "missing_playlist_intelligence_csv";
     throw error;
   }
+  const sourceType = body.source_type || body.sourceType || "manual";
+  const duplicateFiles = existingSourceFileNames(db, collection.id, files, sourceType);
   const evidence = collectPlaylistCsvEvidence(files, body.defaults || body);
+  if (evidence.summary.files_processed === 0) {
+    const error = new Error("No playlists found. Upload at least one non-empty CSV file.");
+    error.statusCode = 400;
+    error.code = "no_playlist_csv_rows";
+    throw error;
+  }
+  if (evidence.artists.size === 0) {
+    const error = new Error("CSV format not recognized. No artists were detected.");
+    error.statusCode = 400;
+    error.code = "no_playlist_artists_detected";
+    throw error;
+  }
   const existing = existingEvidenceCounts(db, collection.id, evidence.artists, evidence.tracks);
+  const impact = estimateRecoveryImpact(db, evidence.artists);
   return {
     status: "ok",
     dry_run: true,
@@ -732,6 +863,8 @@ function previewPlaylistIntelligenceCsvImport(codeOrId, body = {}) {
     artists: evidence.artists.size,
     tracks: evidence.tracks.size,
     duplicates: evidence.summary.duplicate_artist_rows + evidence.summary.duplicate_track_rows + existing.existing_artists + existing.existing_tracks,
+    duplicate_upload: duplicateFiles.size === files.length,
+    duplicate_files: [...duplicateFiles],
     new_artists: existing.new_artists,
     new_tracks: existing.new_tracks,
     skipped_rows: evidence.summary.skipped_rows,
@@ -739,6 +872,9 @@ function previewPlaylistIntelligenceCsvImport(codeOrId, body = {}) {
     files_processed: evidence.summary.files_processed,
     existing_artists: existing.existing_artists,
     existing_tracks: existing.existing_tracks,
+    unmatched_artist_overlap: impact.unmatched_artist_overlap,
+    estimated_recoverable_songs: impact.estimated_recoverable_songs,
+    estimate_type: impact.estimate_type,
     errors: evidence.errors,
     sample_artists: [...evidence.artists.values()].slice(0, 12).map((row) => ({
       artist_name: row.artist_name,
@@ -759,13 +895,37 @@ function applyPlaylistIntelligenceCsvImport(codeOrId, body = {}) {
   const collection = requireCollection(db, codeOrId);
   const files = normalizeCsvFiles(body.files);
   if (!files.length) {
-    const error = new Error("At least one CSV file is required.");
+    const submittedFiles = Array.isArray(body.files) ? body.files.length : 0;
+    const error = new Error(submittedFiles ? "Empty file. Upload at least one CSV with playlist rows." : "At least one CSV file is required.");
     error.statusCode = 400;
     error.code = "missing_playlist_intelligence_csv";
     throw error;
   }
-  const evidence = collectPlaylistCsvEvidence(files, body.defaults || body);
+  const sourceType = body.source_type || body.sourceType || "manual";
+  const duplicateFiles = existingSourceFileNames(db, collection.id, files, sourceType);
+  const filesToImport = files.filter((file) => !duplicateFiles.has(file.name));
+  if (!filesToImport.length) {
+    const error = new Error("Duplicate upload. These playlist CSVs were already imported for this collection.");
+    error.statusCode = 409;
+    error.code = "duplicate_playlist_intelligence_upload";
+    throw error;
+  }
+  const evidence = collectPlaylistCsvEvidence(filesToImport, body.defaults || body);
+  if (evidence.summary.files_processed === 0) {
+    const error = new Error("No playlists found. Upload at least one non-empty CSV file.");
+    error.statusCode = 400;
+    error.code = "no_playlist_csv_rows";
+    throw error;
+  }
+  if (evidence.artists.size === 0) {
+    const error = new Error("CSV format not recognized. No artists were detected.");
+    error.statusCode = 400;
+    error.code = "no_playlist_artists_detected";
+    throw error;
+  }
   const before = existingEvidenceCounts(db, collection.id, evidence.artists, evidence.tracks);
+  const impact = estimateRecoveryImpact(db, evidence.artists);
+  const importCompletedAt = new Date().toISOString();
   const summary = {
     status: "ok",
     collection_code: collection.collection_code,
@@ -785,13 +945,19 @@ function applyPlaylistIntelligenceCsvImport(codeOrId, body = {}) {
     estimated_recovery_impact: 0,
     collections_updated: 1,
     errors: evidence.errors,
+    duplicate_files: [...duplicateFiles],
+    unmatched_artist_overlap: impact.unmatched_artist_overlap,
+    estimated_recoverable_songs: impact.estimated_recoverable_songs,
+    estimate_type: impact.estimate_type,
+    last_updated: null,
+    last_import: null,
   };
 
   const importRows = db.transaction(() => {
-    for (const file of files) {
+    for (const file of filesToImport) {
       const payload = sourcePayload({
-        playlist_name: file.name.replace(/\.csv$/i, ""),
-        source_type: body.source_type || body.sourceType || "manual",
+        playlist_name: playlistNameFromFileName(file.name),
+        source_type: sourceType,
         review_status: body.review_status || body.reviewStatus || "candidate",
         trust_level: body.trust_level || body.trustLevel || "medium",
         source_name: file.name,
@@ -914,11 +1080,99 @@ function applyPlaylistIntelligenceCsvImport(codeOrId, body = {}) {
         summary.tracks_inserted += 1;
       }
     }
+
+    db.prepare(`
+      UPDATE playlist_collection_definitions
+      SET updated_at = ?
+      WHERE id = ?
+    `).run(importCompletedAt, collection.id);
+
+    if (tableExists(db, "playlist_intelligence_import_logs")) {
+      const logSummary = {
+        ...summary,
+        artists_processed: evidence.artists.size,
+        tracks_processed: evidence.tracks.size,
+      };
+      db.prepare(`
+        INSERT INTO playlist_intelligence_import_logs (
+          collection_id,
+          collection_code,
+          collection_name,
+          imported_by_user_id,
+          imported_by_spotify_user_id,
+          file_count,
+          row_count,
+          artists_processed,
+          artists_inserted,
+          artists_updated,
+          tracks_processed,
+          tracks_inserted,
+          tracks_updated,
+          duplicates_skipped,
+          skipped_rows,
+          error_count,
+          estimated_recoverable_songs,
+          unmatched_artist_overlap,
+          summary_json
+        ) VALUES (
+          @collection_id,
+          @collection_code,
+          @collection_name,
+          @imported_by_user_id,
+          @imported_by_spotify_user_id,
+          @file_count,
+          @row_count,
+          @artists_processed,
+          @artists_inserted,
+          @artists_updated,
+          @tracks_processed,
+          @tracks_inserted,
+          @tracks_updated,
+          @duplicates_skipped,
+          @skipped_rows,
+          @error_count,
+          @estimated_recoverable_songs,
+          @unmatched_artist_overlap,
+          @summary_json
+        )
+      `).run({
+        collection_id: collection.id,
+        collection_code: collection.collection_code,
+        collection_name: collection.collection_name,
+        imported_by_user_id: body.imported_by_user_id || body.importedByUserId || null,
+        imported_by_spotify_user_id: body.imported_by_spotify_user_id || body.importedBySpotifyUserId || null,
+        file_count: filesToImport.length,
+        row_count: evidence.summary.rows_read,
+        artists_processed: evidence.artists.size,
+        artists_inserted: summary.artists_inserted,
+        artists_updated: summary.artists_updated,
+        tracks_processed: evidence.tracks.size,
+        tracks_inserted: summary.tracks_inserted,
+        tracks_updated: summary.tracks_updated,
+        duplicates_skipped: summary.duplicates,
+        skipped_rows: summary.skipped_rows,
+        error_count: evidence.errors.length,
+        estimated_recoverable_songs: impact.estimated_recoverable_songs,
+        unmatched_artist_overlap: impact.unmatched_artist_overlap,
+        summary_json: JSON.stringify(logSummary),
+      });
+    }
   });
 
   importRows();
+  const updatedDetail = getPlaylistIntelligenceCollection(collection.collection_code);
+  summary.artists_processed = evidence.artists.size;
+  summary.tracks_processed = evidence.tracks.size;
   summary.imported = summary.artists_inserted + summary.artists_updated + summary.tracks_inserted + summary.tracks_updated;
   summary.skipped = summary.skipped_rows + evidence.errors.length;
+  summary.collection_counts = {
+    sources: updatedDetail.source_playlists.length,
+    artists: updatedDetail.consensus_artists.length,
+    tracks: updatedDetail.consensus_tracks.length,
+  };
+  const updatedCollection = db.prepare("SELECT updated_at FROM playlist_collection_definitions WHERE id = ?").get(collection.id);
+  summary.last_updated = updatedCollection?.updated_at || null;
+  summary.last_import = latestImportLog(db, collection.id);
   return summary;
 }
 

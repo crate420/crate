@@ -1121,7 +1121,11 @@ router.post("/admin/intelligence/playlist-intelligence/:collectionCode/import-pr
 
 router.post("/admin/intelligence/playlist-intelligence/:collectionCode/import", requireCurrentUser, requireAdminUser, (req, res, next) => {
   try {
-    const result = applyPlaylistIntelligenceCsvImport(req.params.collectionCode, req.body || {});
+    const result = applyPlaylistIntelligenceCsvImport(req.params.collectionCode, {
+      ...(req.body || {}),
+      imported_by_user_id: req.currentUser?.id || null,
+      imported_by_spotify_user_id: req.currentUser?.spotify_user_id || null,
+    });
     adminSummaryCache.invalidate("admin-intelligence");
     return res.json(result);
   } catch (err) {

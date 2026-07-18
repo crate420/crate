@@ -353,6 +353,39 @@ pre {
   background: var(--admin-action-soft);
 }
 
+.admin-row-highlight td {
+  background: #fff7ed;
+  transition: background .2s ease;
+}
+
+.admin-import-progress {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.admin-import-stage {
+  align-items: center;
+  color: var(--admin-muted);
+  display: flex;
+  gap: 8px;
+  font-size: var(--admin-font-secondary);
+}
+
+.admin-import-stage.done {
+  color: var(--admin-good);
+}
+
+.admin-import-stage.active {
+  color: var(--admin-action);
+}
+
+.admin-import-stage span {
+  display: inline-flex;
+  justify-content: center;
+  width: 18px;
+}
+
 .admin-dialog {
   border: 0;
   border-radius: 10px;

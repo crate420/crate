@@ -121,7 +121,13 @@
             </div>
             <div class="admin-card">
               <h3>Summary</h3>
+              <div id="importProgress" class="admin-import-progress" hidden></div>
               <div id="importSummary" class="admin-placeholder">No CSV preview yet.</div>
+              <div id="importResultActions" class="admin-actions" hidden>
+                <button id="reviewImportedIntelligence" class="primary" type="button">Review Intelligence</button>
+                <button id="viewImportedCollection" type="button">View Collection</button>
+                <button id="importAnother" type="button">Import Another</button>
+              </div>
             </div>
           </div>
         </div>
@@ -294,6 +300,8 @@
         genreOptions: [],
         editingReviewKey: null,
         pendingImportAfterCreate: null,
+        highlightedCollectionCode: null,
+        lastImportResult: null,
       };
       const api = () => window.CrateAdmin;
       const esc = (value) => api().escapeHtml(value);
@@ -322,6 +330,37 @@
         if (recovery > 0) return badge("Active Recovery", "good");
         if (unmatched > 0 || Number(collection.user_library_matches || 0) > 0) return badge("Recovery Candidate", "warn");
         return badge("Archive Only");
+      }
+
+      function importStages(activeIndex, complete) {
+        const stages = [
+          "Upload received",
+          "Parsing playlist",
+          "Comparing existing intelligence",
+          "Saving artists",
+          "Saving tracks",
+          "Updating collection",
+          "Complete",
+        ];
+        return stages.map((label, index) => ({
+          label,
+          state: complete || index < activeIndex ? "done" : index === activeIndex ? "active" : "pending",
+        }));
+      }
+
+      function renderImportProgress(activeIndex, complete) {
+        $("importProgress").hidden = false;
+        $("importProgress").innerHTML = importStages(activeIndex, complete).map((stage) => `
+          <div class="admin-import-stage ${stage.state}">
+            <span>${stage.state === "done" ? "✓" : stage.state === "active" ? "→" : "○"}</span>
+            <strong>${esc(stage.label)}</strong>
+          </div>
+        `).join("");
+      }
+
+      async function visibleStage(index) {
+        renderImportProgress(index, false);
+        await new Promise((resolve) => setTimeout(resolve, 120));
       }
 
       function titleFromCode(code) {
@@ -557,7 +596,7 @@
         $("importCollectionOptions").innerHTML = collections.map((collection) => `<option value="${esc(collection.collection_code)}">${esc(collection.collection_name)}</option>`).join("");
         if (!$("importCollection").value && collections[0]) $("importCollection").value = collections[0].collection_code;
         $("collectionRows").innerHTML = collections.length ? collections.map((collection) => `
-          <tr class="admin-clickable-row" data-collection="${esc(collection.collection_code)}">
+          <tr class="admin-clickable-row ${state.highlightedCollectionCode === collection.collection_code ? "admin-row-highlight" : ""}" data-collection="${esc(collection.collection_code)}">
             <td><strong>${esc(collection.collection_name)}</strong><div class="admin-muted">${esc(collection.collection_code)}</div></td>
             <td>${badge(collection.research_status || "research", collection.research_status === "active" ? "good" : "warn")}</td>
             <td>${num(collection.source_playlist_count)}<div class="admin-muted">${num(collection.excluded_source_playlist_count)} excluded</div></td>
@@ -566,7 +605,7 @@
             <td>${num(collection.user_library_matches)}</td>
             <td>${num(collection.unmatched_matches)}</td>
             <td>${recoveryValueBadge(collection)}<div class="admin-muted">${num(collection.recovery_value)} track value</div></td>
-            <td>${api().formatDateTime(collection.updated_at)}</td>
+            <td>${api().formatDateTime(collection.updated_at)}<div class="admin-muted">Import: ${api().formatDateTime(collection.last_import_at || collection.last_import?.created_at)}</div></td>
           </tr>
         `).join("") : '<tr><td colspan="9" class="admin-muted">No collections found.</td></tr>';
       }
@@ -591,6 +630,7 @@
         const artists = detail.consensus_artists || [];
         const tracks = detail.consensus_tracks || [];
         const sources = detail.source_playlists || [];
+        const history = detail.import_history || [];
         $("collectionDetail").hidden = false;
         $("collectionDetail").innerHTML = `
           <div class="admin-panel-header">
@@ -607,6 +647,13 @@
           <div class="admin-grid two">
             <div><h3>Consensus Artists</h3><p>${artists.slice(0, 12).map((row) => `${esc(row.artist_name)} (${esc(row.review_status)})`).join("<br>") || "No artist evidence."}</p></div>
             <div><h3>Consensus Tracks</h3><p>${tracks.slice(0, 12).map((row) => `${esc(row.track_name)} - ${esc(row.artist_name)} (${esc(row.review_status)})`).join("<br>") || "No track evidence."}</p></div>
+          </div>
+          <div class="admin-detail-panel">
+            <h3>Import History</h3>
+            ${history.length ? `
+              <div class="admin-table-scroll"><table><thead><tr><th>Imported</th><th>By</th><th>Files</th><th>Artists</th><th>Tracks</th><th>Recovery</th><th>Errors</th></tr></thead>
+              <tbody>${history.map((row) => `<tr><td>${api().formatDateTime(row.created_at)}</td><td>${esc(row.imported_by_spotify_user_id || row.imported_by_user_id || "-")}</td><td>${num(row.file_count)}</td><td>${num(row.artists_inserted)} new / ${num(row.artists_updated)} existing</td><td>${num(row.tracks_inserted)} new / ${num(row.tracks_updated)} existing</td><td>${num(row.estimated_recoverable_songs)}</td><td>${num(row.error_count)}</td></tr>`).join("")}</tbody></table></div>
+            ` : '<p>No imports logged yet.</p>'}
           </div>
         `;
         $("playlistReview").innerHTML = `
@@ -704,18 +751,28 @@
       function renderImportSummary(payload, title) {
         if (!payload) {
           $("importSummary").textContent = "No CSV preview yet.";
+          $("importResultActions").hidden = true;
           return;
         }
+        const isComplete = title === "Import Complete" || title === "Import Result";
+        const artistsProcessed = payload.artists || payload.artists_processed || payload.artists_inserted + payload.artists_updated || 0;
+        const tracksProcessed = payload.tracks || payload.tracks_processed || payload.tracks_inserted + payload.tracks_updated || 0;
         $("importSummary").innerHTML = `
           <h3>${esc(title)}</h3>
           <div class="admin-stats">
             <div class="admin-stat"><strong>${num(payload.playlists || payload.files_processed)}</strong><span>Playlists</span></div>
-            <div class="admin-stat"><strong>${num(payload.artists || payload.artists_inserted + payload.artists_updated)}</strong><span>Artists</span></div>
-            <div class="admin-stat"><strong>${num(payload.tracks || payload.tracks_inserted + payload.tracks_updated)}</strong><span>Tracks</span></div>
-            <div class="admin-stat"><strong>${num(payload.duplicates)}</strong><span>Duplicates</span></div>
+            <div class="admin-stat"><strong>${num(artistsProcessed)}</strong><span>Artists Processed</span></div>
+            <div class="admin-stat"><strong>${num(payload.new_artists ?? payload.artists_inserted)}</strong><span>New Artists</span></div>
+            <div class="admin-stat"><strong>${num(payload.existing_artists ?? payload.artists_updated)}</strong><span>Existing Artists</span></div>
+            <div class="admin-stat"><strong>${num(tracksProcessed)}</strong><span>Tracks Processed</span></div>
+            <div class="admin-stat"><strong>${num(payload.duplicates)}</strong><span>Duplicates Skipped</span></div>
+            <div class="admin-stat"><strong>${num(payload.unmatched_artist_overlap)}</strong><span>Unmatched Artist Overlap</span></div>
+            <div class="admin-stat"><strong>${num(payload.estimated_recoverable_songs)}</strong><span>Estimated Recoverable Songs</span></div>
           </div>
+          ${isComplete ? `<p><strong>Collection:</strong> ${esc(payload.collection_name)}<br><strong>Collection updated:</strong> ${api().formatDateTime(payload.last_updated)}<br><strong>Last import:</strong> ${api().formatDateTime(payload.last_import?.created_at)}</p>` : ""}
           <pre>${esc(JSON.stringify(payload, null, 2))}</pre>
         `;
+        $("importResultActions").hidden = !isComplete;
       }
 
       async function readImportFiles() {
@@ -730,13 +787,19 @@
           setMessage("playlistMessage", "Choose a collection and at least one CSV file.", true);
           return;
         }
+        $("importResultActions").hidden = true;
+        renderImportProgress(0, false);
         setMessage("playlistMessage", "Previewing import...");
         try {
+          await visibleStage(1);
           const payload = await requestImportPreview(collectionCode, files);
+          renderImportProgress(2, true);
           state.importFiles = files;
           renderImportSummary(payload, "Preview");
           $("applyImport").disabled = false;
-          setMessage("playlistMessage", `Preview ready: ${num(payload.new_artists)} new artist(s), ${num(payload.new_tracks)} new track(s).`);
+          setMessage("playlistMessage", payload.duplicate_upload
+            ? "Preview ready. This looks like a duplicate upload and will be rejected if imported again."
+            : `Preview ready: ${num(payload.new_artists)} new artist(s), ${num(payload.new_tracks)} new track(s).`);
         } catch (error) {
           if (error.statusCode === 404) {
             const proposedName = titleFromCode(collectionCode);
@@ -755,18 +818,56 @@
         const files = state.importFiles || await readImportFiles();
         setMessage("playlistMessage", "Importing Playlist Intelligence CSVs...");
         try {
-          const payload = await api().requestJson(`/crate/admin/intelligence/playlist-intelligence/${encodeURIComponent(collectionCode)}/import`, {
+          await visibleStage(0);
+          await visibleStage(1);
+          await visibleStage(2);
+          const importPromise = api().requestJson(`/crate/admin/intelligence/playlist-intelligence/${encodeURIComponent(collectionCode)}/import`, {
             method: "POST",
             body: JSON.stringify({ files }),
           });
-          renderImportSummary(payload, "Import Result");
+          await visibleStage(3);
+          await visibleStage(4);
+          const payload = await importPromise;
+          renderImportProgress(6, true);
+          state.lastImportResult = payload;
+          renderImportSummary(payload, "Import Complete");
           $("applyImport").disabled = true;
+          state.highlightedCollectionCode = payload.collection_code;
           state.playlistLoaded = false;
           await loadPlaylistIntelligence(true);
-          setMessage("playlistMessage", `Imported ${num(payload.imported)} evidence row(s).`);
+          setMessage("playlistMessage", `Import complete. ${payload.collection_name} updated.`);
+          setTimeout(() => {
+            if (state.highlightedCollectionCode === payload.collection_code) {
+              state.highlightedCollectionCode = null;
+              renderCollections();
+            }
+          }, 5000);
         } catch (error) {
+          renderImportProgress(0, false);
           setMessage("playlistMessage", error.message, true);
         }
+      }
+
+      function activatePiPanel(name) {
+        document.querySelectorAll("[data-pi-tab]").forEach((item) => item.classList.toggle("is-active", item.dataset.piTab === name));
+        document.querySelectorAll("[data-pi-panel]").forEach((panel) => { panel.hidden = panel.dataset.piPanel !== name; });
+      }
+
+      async function viewImportedCollection(review) {
+        const code = state.lastImportResult?.collection_code || $("importCollection").value;
+        if (!code) return;
+        activatePiPanel(review ? "review" : "collections");
+        await loadCollectionDetail(code);
+      }
+
+      function resetImportForm() {
+        $("importFiles").value = "";
+        state.importFiles = null;
+        state.lastImportResult = null;
+        $("applyImport").disabled = true;
+        $("importProgress").hidden = true;
+        renderImportSummary(null);
+        setMessage("playlistMessage", "Ready for another import.");
       }
 
       function renderTrackOverview(payload) {
@@ -837,8 +938,7 @@
 
         const piTab = event.target.closest("[data-pi-tab]");
         if (piTab) {
-          document.querySelectorAll("[data-pi-tab]").forEach((item) => item.classList.toggle("is-active", item === piTab));
-          document.querySelectorAll("[data-pi-panel]").forEach((panel) => { panel.hidden = panel.dataset.piPanel !== piTab.dataset.piTab; });
+          activatePiPanel(piTab.dataset.piTab);
         }
 
         const select = event.target.closest(".review-select");
@@ -885,6 +985,9 @@
       });
       $("previewImport").addEventListener("click", previewImport);
       $("applyImport").addEventListener("click", applyImport);
+      $("reviewImportedIntelligence").addEventListener("click", () => viewImportedCollection(true));
+      $("viewImportedCollection").addEventListener("click", () => viewImportedCollection(false));
+      $("importAnother").addEventListener("click", resetImportForm);
       $("trackRefresh").addEventListener("click", () => loadTrackGaps(true));
       $("coverageRefresh").addEventListener("click", loadCoverage);
 
