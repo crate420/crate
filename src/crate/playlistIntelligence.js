@@ -235,10 +235,10 @@ function listPlaylistIntelligenceCollections() {
        ) import_logs ON import_logs.collection_id = definitions.id`
     : "";
   const importSelect = tableExists(db, "playlist_intelligence_import_logs")
-    ? `MAX(import_logs.last_import_at) AS last_import_at,
-       MAX(import_logs.import_count) AS import_count,
-       MAX(import_logs.total_imported_artists) AS total_imported_artists,
-       MAX(import_logs.total_imported_tracks) AS total_imported_tracks`
+    ? `import_logs.last_import_at AS last_import_at,
+       import_logs.import_count AS import_count,
+       import_logs.total_imported_artists AS total_imported_artists,
+       import_logs.total_imported_tracks AS total_imported_tracks`
     : `NULL AS last_import_at,
        0 AS import_count,
        0 AS total_imported_artists,
