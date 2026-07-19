@@ -17,6 +17,7 @@ const {
   updateArtist,
   updateTrack,
 } = require("../src/crate/playlistIntelligence");
+const { listArtistIntelligenceRecommendations } = require("../src/crate/artistIntelligenceRecommendations");
 
 applyMigrations();
 
@@ -140,4 +141,36 @@ test("approving Playlist Intelligence track evidence updates production track in
       AND sources.source = ?
   `).get(`playlist_intelligence:${collectionCode}`);
   assert.ok(source);
+});
+
+test("candidate Playlist Intelligence evidence appears in recommendations before approval", () => {
+  const db = openDatabase();
+  db.prepare(`
+    INSERT INTO artist_intelligence (normalized_artist_name, display_artist_name, confidence_score)
+    VALUES ('clairo', 'Clairo', 60)
+  `).run();
+  addArtistToCollection("bedroom_pop", {
+    artist_name: "Clairo",
+    review_status: "candidate",
+    confidence_score: 90,
+    source_count: 5,
+    evidence_count: 43,
+  });
+  addTrackToCollection("bedroom_pop", {
+    track_name: "Bags",
+    artist_name: "Clairo",
+    review_status: "candidate",
+    confidence_score: 90,
+    evidence_count: 12,
+  });
+
+  const recommendations = listArtistIntelligenceRecommendations({ confidenceMin: 85, limit: 25 });
+  const clairo = recommendations.find((row) => row.artist.artist_name === "Clairo");
+  assert.ok(clairo);
+  const bedroomPop = clairo.recommendations.find((row) => row.genre === "bedroom pop");
+  assert.ok(bedroomPop);
+  assert.equal(bedroomPop.playlist_intelligence_collections[0].collection_name, "Bedroom Pop");
+  assert.equal(bedroomPop.playlist_intelligence_consensus_count, 5);
+  assert.equal(bedroomPop.playlist_intelligence_supporting_tracks, 1);
+  assert.ok(bedroomPop.confidence_score >= 85);
 });

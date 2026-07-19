@@ -331,6 +331,18 @@
         return badge("No direct recovery");
       }
 
+      function playlistIntelligenceCell(row) {
+        const collections = row.playlist_intelligence_collections || [];
+        if (!collections.length) return badge("No", "");
+        return `
+          ${badge(`${collections.length} collection${collections.length === 1 ? "" : "s"}`, "good")}
+          <div class="admin-muted">
+            ${collections.slice(0, 3).map((collection) => `${esc(collection.collection_name)} (${num(collection.source_count)} playlists)`).join("<br>")}
+            ${collections.length > 3 ? `<br>+${num(collections.length - 3)} more` : ""}
+          </div>
+        `;
+      }
+
       function recoveryValueBadge(collection) {
         const recovery = Number(collection.recovery_value || 0);
         const unmatched = Number(collection.unmatched_matches || 0);
@@ -401,7 +413,11 @@
         details.forEach((detail) => {
           const label = evidenceLabel(detail);
           groups[label] = groups[label] || [];
-          groups[label].push(detail.signal || detail.source || detail.collection_name || detail.matched_signal || JSON.stringify(detail));
+          if (label === "Playlist Intelligence" && detail.collection_name) {
+            groups[label].push(`${detail.collection_name}: ${num(detail.source_count)} playlist signal(s), ${num(detail.supporting_track_count)} supporting track(s), ${api().formatDateTime(detail.updated_at)}`);
+          } else {
+            groups[label].push(detail.signal || detail.source || detail.collection_name || detail.matched_signal || JSON.stringify(detail));
+          }
         });
         if (!Object.keys(groups).length) groups.Manual = ["No detailed source payload."];
         return groups;
@@ -463,10 +479,10 @@
             <td><input class="review-select" type="checkbox" data-key="${esc(row.key)}" ${state.selectedReviewKeys.has(row.key) ? "checked" : ""} aria-label="Select ${esc(row.artist)}"></td>
             <td><strong>${esc(row.artist)}</strong><div class="admin-muted">${esc(row.source_type.replace(/_/g, " "))}</div></td>
             <td>${esc(row.suggested_genre)}</td>
-            <td>${confidenceBadge(row.confidence_score)}</td>
+            <td>${confidenceBadge(row.confidence_score)}${row.confidence_reason ? `<div class="admin-muted">${esc(row.confidence_reason)}</div>` : ""}</td>
             <td>${recoveryBadge(row.estimated_recovery)}</td>
             <td><button class="admin-badge view-evidence" type="button" data-key="${esc(row.key)}">${(row.evidence || []).length ? esc((row.evidence || []).join(" + ")) : "Manual"}</button></td>
-            <td>${row.playlist_intelligence ? badge("Included", "good") : badge("No", "")}</td>
+            <td>${playlistIntelligenceCell(row)}</td>
             <td>${num(row.affected_users)}</td>
             <td>${badge(row.status || "candidate", "warn")}</td>
             <td>
@@ -901,6 +917,7 @@
           $("applyImport").disabled = true;
           state.highlightedCollectionCode = payload.collection_code;
           invalidateTabCache("playlist");
+          invalidateTabCache("review");
           await loadPlaylistIntelligence(true);
           setMessage("playlistMessage", `Import complete. ${payload.collection_name} updated.`);
           setTimeout(() => {
