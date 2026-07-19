@@ -291,12 +291,19 @@
         reviewRows: [],
         selectedReviewKeys: new Set(),
         rejectedReviewKeys: new Set(),
-        playlistLoaded: false,
         playlistPayload: null,
         selectedCollectionCode: null,
         selectedCollectionDetail: null,
         importFiles: null,
-        trackLoaded: false,
+        tabCache: {
+          review: { loaded: false, payload: null },
+          playlist: { loaded: false, payload: null },
+          track: { loaded: false, payload: null },
+          coverage: { loaded: false, payload: null },
+          diagnostics: { loaded: true, payload: null },
+        },
+        collectionDetailCache: new Map(),
+        gapDetailCache: new Map(),
         genreOptions: [],
         editingReviewKey: null,
         pendingImportAfterCreate: null,
@@ -407,6 +414,30 @@
         node.classList.toggle("error", Boolean(isError));
       }
 
+      function invalidateTabCache(name) {
+        if (!state.tabCache[name]) return;
+        state.tabCache[name].loaded = false;
+        state.tabCache[name].payload = null;
+        if (name === "playlist") state.collectionDetailCache.clear();
+        if (name === "track") state.gapDetailCache.clear();
+      }
+
+      function activeMainTab() {
+        return document.querySelector("[data-tab-target].is-active")?.dataset.tabTarget || "review";
+      }
+
+      async function ensureTabLoaded(name, force) {
+        if (name === "review") return loadReviewQueue(force);
+        if (name === "playlist") return loadPlaylistIntelligence(force);
+        if (name === "track") return loadTrackGaps(force);
+        if (name === "coverage") return loadCoverage(force);
+        return Promise.resolve();
+      }
+
+      async function refreshActiveTab() {
+        return ensureTabLoaded(activeMainTab(), true);
+      }
+
       function reviewPayload(row) {
         return {
           source_type: row.source_type,
@@ -449,10 +480,20 @@
         `).join("") : '<tr><td colspan="10" class="admin-muted">No review items need approval.</td></tr>';
       }
 
-      async function loadReviewQueue() {
+      async function loadReviewQueue(force) {
+        if (state.tabCache.review.loaded && !force) {
+          const payload = state.tabCache.review.payload || {};
+          state.reviewRows = payload.rows || [];
+          state.genreOptions = payload.genre_options || state.genreOptions || [];
+          renderGenreOptions();
+          renderReviewRows();
+          setMessage("reviewMessage", `Loaded ${num(payload.total_count)} review item(s). Already-approved recommendations are excluded.`);
+          return;
+        }
         setMessage("reviewMessage", "Loading review queue...");
         try {
-          const payload = await api().requestJson("/crate/admin/intelligence/review-queue?limit=75");
+          const payload = await api().requestJson("/crate/admin/intelligence/review-queue?limit=25");
+          state.tabCache.review = { loaded: true, payload };
           state.reviewRows = payload.rows || [];
           state.genreOptions = payload.genre_options || state.genreOptions || [];
           renderGenreOptions();
@@ -528,9 +569,8 @@
             }),
           });
           $("editDialog").close();
-          state.reviewRows = state.reviewRows.filter((item) => item.key !== row.key);
-          state.selectedReviewKeys.delete(row.key);
-          renderReviewRows();
+          invalidateTabCache("review");
+          await loadReviewQueue(true);
           setMessage("reviewMessage", `Approved ${row.artist} -> ${approvedGenre}. Hidden: ${row.suggested_genre}.`);
         } catch (error) {
           setMessage("reviewMessage", error.message, true);
@@ -546,9 +586,8 @@
             method: "POST",
             body: JSON.stringify({ item: reviewPayload(row) }),
           });
-          state.reviewRows = state.reviewRows.filter((item) => item.key !== key);
-          state.selectedReviewKeys.delete(key);
-          renderReviewRows();
+          invalidateTabCache("review");
+          await loadReviewQueue(true);
           setMessage("reviewMessage", `Approved ${row.artist} -> ${row.suggested_genre}.`);
         } catch (error) {
           setMessage("reviewMessage", error.message, true);
@@ -563,9 +602,8 @@
             method: "POST",
             body: JSON.stringify({ item: reviewPayload(row) }),
           });
-          state.rejectedReviewKeys.add(key);
-          state.selectedReviewKeys.delete(key);
-          renderReviewRows();
+          invalidateTabCache("review");
+          await loadReviewQueue(true);
           setMessage("reviewMessage", `${row.artist} -> ${row.suggested_genre} rejected and hidden.`);
         } catch (error) {
           setMessage("reviewMessage", error.message, true);
@@ -581,10 +619,9 @@
             method: "POST",
             body: JSON.stringify({ items: rows.map(reviewPayload) }),
           });
-          const approved = new Set(rows.map((row) => row.key));
-          state.reviewRows = state.reviewRows.filter((row) => !approved.has(row.key));
+          invalidateTabCache("review");
           state.selectedReviewKeys.clear();
-          renderReviewRows();
+          await loadReviewQueue(true);
           setMessage("reviewMessage", `Approved ${num(rows.length)} selected item(s).`);
         } catch (error) {
           setMessage("reviewMessage", error.message, true);
@@ -611,11 +648,16 @@
       }
 
       async function loadPlaylistIntelligence(force) {
-        if (state.playlistLoaded && !force) return;
+        if (state.tabCache.playlist.loaded && !force) {
+          state.playlistPayload = state.tabCache.playlist.payload;
+          renderCollections();
+          setMessage("playlistMessage", `Loaded ${num(state.playlistPayload.summary?.collection_count)} collection(s).`);
+          return;
+        }
         setMessage("playlistMessage", "Loading Playlist Intelligence...");
         try {
           state.playlistPayload = await api().requestJson("/crate/admin/intelligence/playlist-intelligence");
-          state.playlistLoaded = true;
+          state.tabCache.playlist = { loaded: true, payload: state.playlistPayload };
           renderCollections();
           setMessage("playlistMessage", `Loaded ${num(state.playlistPayload.summary?.collection_count)} collection(s).`);
         } catch (error) {
@@ -672,9 +714,16 @@
 
       async function loadCollectionDetail(code) {
         state.selectedCollectionCode = code;
+        if (state.collectionDetailCache.has(code)) {
+          state.selectedCollectionDetail = state.collectionDetailCache.get(code);
+          renderCollectionDetail();
+          setMessage("playlistMessage", `Loaded ${state.selectedCollectionDetail.collection.collection_name}.`);
+          return;
+        }
         setMessage("playlistMessage", `Loading ${code}...`);
         try {
-          state.selectedCollectionDetail = await api().requestJson(`/crate/admin/intelligence/playlist-intelligence/${encodeURIComponent(code)}`);
+          state.selectedCollectionDetail = await api().requestJson(`/crate/admin/intelligence/playlist-intelligence/${encodeURIComponent(code)}?artist_limit=25&track_limit=25&source_limit=25`);
+          state.collectionDetailCache.set(code, state.selectedCollectionDetail);
           renderCollectionDetail();
           setMessage("playlistMessage", `Loaded ${state.selectedCollectionDetail.collection.collection_name}.`);
         } catch (error) {
@@ -710,7 +759,7 @@
           });
           $("newCollectionDialog").close();
           $("importCollection").value = payload.collection?.collection_code || payload.collection_code || collectionCode;
-          state.playlistLoaded = false;
+          invalidateTabCache("playlist");
           await loadPlaylistIntelligence(true);
           if (state.pendingImportAfterCreate?.collectionCode === collectionCode) {
             const files = state.pendingImportAfterCreate.files;
@@ -746,6 +795,21 @@
           throw error;
         }
         return payload;
+      }
+
+      function wait(ms) {
+        return new Promise((resolve) => setTimeout(resolve, ms));
+      }
+
+      async function pollImportJob(jobId) {
+        for (let attempt = 0; attempt < 120; attempt += 1) {
+          const job = await api().requestJson(`/crate/admin/intelligence/playlist-intelligence/imports/${encodeURIComponent(jobId)}`);
+          setMessage("playlistMessage", job.stage || "Processing import...");
+          if (job.status === "complete") return job.result;
+          if (job.status === "failed") throw new Error(job.error?.message || "Playlist Intelligence import failed.");
+          await wait(1000);
+        }
+        throw new Error("Playlist Intelligence import is still processing. Refresh and check import history.");
       }
 
       function renderImportSummary(payload, title) {
@@ -827,13 +891,16 @@
           });
           await visibleStage(3);
           await visibleStage(4);
-          const payload = await importPromise;
+          const importResponse = await importPromise;
+          const payload = importResponse.job_id || importResponse.id
+            ? await pollImportJob(importResponse.job_id || importResponse.id)
+            : importResponse;
           renderImportProgress(6, true);
           state.lastImportResult = payload;
           renderImportSummary(payload, "Import Complete");
           $("applyImport").disabled = true;
           state.highlightedCollectionCode = payload.collection_code;
-          state.playlistLoaded = false;
+          invalidateTabCache("playlist");
           await loadPlaylistIntelligence(true);
           setMessage("playlistMessage", `Import complete. ${payload.collection_name} updated.`);
           setTimeout(() => {
@@ -886,11 +953,15 @@
       }
 
       async function loadTrackGaps(force) {
-        if (state.trackLoaded && !force) return;
+        if (state.tabCache.track.loaded && !force) {
+          renderTrackOverview(state.tabCache.track.payload || {});
+          setMessage("trackMessage", "Loaded top unmatched genres and artists.");
+          return;
+        }
         setMessage("trackMessage", "Loading track intelligence gaps...");
         try {
           const payload = await api().requestJson("/crate/admin/intelligence/track-gaps?limit=25");
-          state.trackLoaded = true;
+          state.tabCache.track = { loaded: true, payload };
           renderTrackOverview(payload);
           setMessage("trackMessage", "Loaded top unmatched genres and artists.");
         } catch (error) {
@@ -899,32 +970,49 @@
       }
 
       async function loadGapDetail(type, value) {
+        const cacheKey = `${type}:${value}`;
+        if (state.gapDetailCache.has(cacheKey)) {
+          const payload = state.gapDetailCache.get(cacheKey);
+          renderGapDetail(payload);
+          setMessage("trackMessage", `Loaded ${payload.value}.`);
+          return;
+        }
         setMessage("trackMessage", `Loading ${type} detail...`);
         try {
           const payload = await api().requestJson(`/crate/admin/intelligence/track-gaps/${encodeURIComponent(type)}/${encodeURIComponent(value)}?limit=100`);
-          $("gapDetail").hidden = false;
-          $("gapDetail").innerHTML = `
-            <div class="admin-panel-header">
-              <div>
-                <h3>${esc(payload.value)}</h3>
-                <p>${num(payload.affected_users)} affected user(s), ${num(payload.occurrences)} occurrence(s).</p>
-              </div>
-            </div>
-            <div class="admin-grid two">
-              <div><h3>Artists</h3><p>${(payload.artists || []).slice(0, 20).map((row) => `${esc(row.artist_name)} - ${(row.existing_mappings || []).map(esc).join(", ") || "no mapping"}`).join("<br>") || "No artists."}</p></div>
-              <div><h3>Tracks</h3><p>${(payload.tracks || []).slice(0, 20).map((row) => `${esc(row.track_name || "Unknown")} - ${esc(row.artist_name)}`).join("<br>") || "No tracks."}</p></div>
-            </div>
-          `;
+          state.gapDetailCache.set(cacheKey, payload);
+          renderGapDetail(payload);
           setMessage("trackMessage", `Loaded ${payload.value}.`);
         } catch (error) {
           setMessage("trackMessage", error.message, true);
         }
       }
 
-      async function loadCoverage() {
+      function renderGapDetail(payload) {
+        $("gapDetail").hidden = false;
+        $("gapDetail").innerHTML = `
+          <div class="admin-panel-header">
+            <div>
+              <h3>${esc(payload.value)}</h3>
+              <p>${num(payload.affected_users)} affected user(s), ${num(payload.occurrences)} occurrence(s).</p>
+            </div>
+          </div>
+          <div class="admin-grid two">
+            <div><h3>Artists</h3><p>${(payload.artists || []).slice(0, 20).map((row) => `${esc(row.artist_name)} - ${(row.existing_mappings || []).map(esc).join(", ") || "no mapping"}`).join("<br>") || "No artists."}</p></div>
+            <div><h3>Tracks</h3><p>${(payload.tracks || []).slice(0, 20).map((row) => `${esc(row.track_name || "Unknown")} - ${esc(row.artist_name)}`).join("<br>") || "No tracks."}</p></div>
+          </div>
+        `;
+      }
+
+      async function loadCoverage(force) {
+        if (state.tabCache.coverage.loaded && !force) {
+          $("coverageBody").innerHTML = `<pre>${esc(JSON.stringify(state.tabCache.coverage.payload?.summary || state.tabCache.coverage.payload, null, 2))}</pre>`;
+          return;
+        }
         $("coverageBody").textContent = "Loading coverage...";
         try {
           const payload = await api().requestJson("/crate/admin/intelligence-coverage");
+          state.tabCache.coverage = { loaded: true, payload };
           $("coverageBody").innerHTML = `<pre>${esc(JSON.stringify(payload.summary || payload, null, 2))}</pre>`;
         } catch (error) {
           $("coverageBody").textContent = error.message;
@@ -933,8 +1021,7 @@
 
       document.addEventListener("click", (event) => {
         const tab = event.target.closest("[data-tab-target]");
-        if (tab?.dataset.tabTarget === "playlist") loadPlaylistIntelligence(false);
-        if (tab?.dataset.tabTarget === "track") loadTrackGaps(false);
+        if (tab?.dataset.tabTarget) ensureTabLoaded(tab.dataset.tabTarget, false);
 
         const piTab = event.target.closest("[data-pi-tab]");
         if (piTab) {
@@ -972,11 +1059,17 @@
         });
         renderReviewRows();
       });
-      $("reviewRefresh").addEventListener("click", loadReviewQueue);
+      $("reviewRefresh").addEventListener("click", () => {
+        invalidateTabCache("review");
+        loadReviewQueue(true);
+      });
       $("bulkApprove").addEventListener("click", approveBulk);
       $("saveEdit").addEventListener("click", saveEdit);
       $("closeEditDialog").addEventListener("click", () => $("editDialog").close());
-      $("playlistRefresh").addEventListener("click", () => loadPlaylistIntelligence(true));
+      $("playlistRefresh").addEventListener("click", () => {
+        invalidateTabCache("playlist");
+        loadPlaylistIntelligence(true);
+      });
       $("newCollectionButton").addEventListener("click", () => openNewCollectionDialog());
       $("saveNewCollection").addEventListener("click", saveNewCollection);
       $("closeNewCollectionDialog").addEventListener("click", () => $("newCollectionDialog").close());
@@ -988,10 +1081,16 @@
       $("reviewImportedIntelligence").addEventListener("click", () => viewImportedCollection(true));
       $("viewImportedCollection").addEventListener("click", () => viewImportedCollection(false));
       $("importAnother").addEventListener("click", resetImportForm);
-      $("trackRefresh").addEventListener("click", () => loadTrackGaps(true));
-      $("coverageRefresh").addEventListener("click", loadCoverage);
+      $("trackRefresh").addEventListener("click", () => {
+        invalidateTabCache("track");
+        loadTrackGaps(true);
+      });
+      $("coverageRefresh").addEventListener("click", () => {
+        invalidateTabCache("coverage");
+        loadCoverage(true);
+      });
 
-      loadReviewQueue();
+      ensureTabLoaded(activeMainTab(), false);
     })();
   </script>
 </body>

@@ -507,7 +507,11 @@ function getApprovedGenreOptions() {
 
 function playlistIntelligenceMatches(collectionCode) {
   const db = openDatabase();
-  const collection = getPlaylistIntelligenceCollection(collectionCode);
+  const collection = db.prepare(`
+    SELECT id, collection_code
+    FROM playlist_collection_definitions
+    WHERE collection_code = ?
+  `).get(collectionCode);
   const unmatched = unmatchedArtistStats();
   const unmatchedNames = new Set(unmatched.keys());
   let userLibraryMatches = 0;
@@ -525,7 +529,10 @@ function playlistIntelligenceMatches(collectionCode) {
       const rawTrack = parseRawTrack(row.raw_json);
       for (const artistName of getArtistNames(row, rawTrack)) libraryArtists.add(normalizeArtistName(artistName));
     }
-    for (const artist of collection.consensus_artists || []) {
+    const artists = collection
+      ? db.prepare("SELECT artist_name FROM playlist_collection_artists WHERE collection_id = ?").all(collection.id)
+      : [];
+    for (const artist of artists) {
       const key = normalizeArtistName(artist.artist_name);
       if (libraryArtists.has(key)) userLibraryMatches += 1;
       if (unmatchedNames.has(key)) {
@@ -536,6 +543,102 @@ function playlistIntelligenceMatches(collectionCode) {
   }
 
   return { user_library_matches: userLibraryMatches, unmatched_matches: unmatchedMatches, recovery_value: recoveryValue };
+}
+
+function libraryArtistNames(db) {
+  const libraryArtists = new Set();
+  if (!tableExists(db, "user_tracks") || !tableExists(db, "tracks")) return libraryArtists;
+  const rows = db.prepare(`
+    SELECT tracks.artist_names, tracks.raw_json
+    FROM user_tracks
+    INNER JOIN tracks ON tracks.id = user_tracks.track_id
+  `).all();
+  for (const row of rows) {
+    const rawTrack = parseRawTrack(row.raw_json);
+    for (const artistName of getArtistNames(row, rawTrack)) libraryArtists.add(normalizeArtistName(artistName));
+  }
+  return libraryArtists;
+}
+
+function playlistIntelligenceMatchesByCollection(collections = []) {
+  const db = openDatabase();
+  const result = new Map();
+  for (const collection of collections) {
+    result.set(collection.id, { user_library_matches: 0, unmatched_matches: 0, recovery_value: 0 });
+  }
+  if (!collections.length || !tableExists(db, "playlist_collection_artists")) return result;
+
+  const libraryArtists = libraryArtistNames(db);
+  const unmatched = unmatchedArtistStats();
+  const unmatchedNames = new Set(unmatched.keys());
+  const placeholders = collections.map(() => "?").join(",");
+  const rows = db.prepare(`
+    SELECT collection_id, artist_name
+    FROM playlist_collection_artists
+    WHERE collection_id IN (${placeholders})
+  `).all(...collections.map((collection) => collection.id));
+
+  const seenLibrary = new Set();
+  const seenUnmatched = new Set();
+  for (const row of rows) {
+    const key = normalizeArtistName(row.artist_name);
+    if (!key) continue;
+    const values = result.get(row.collection_id);
+    if (!values) continue;
+    const libraryKey = `${row.collection_id}::${key}`;
+    if (libraryArtists.has(key) && !seenLibrary.has(libraryKey)) {
+      values.user_library_matches += 1;
+      seenLibrary.add(libraryKey);
+    }
+    if (unmatchedNames.has(key) && !seenUnmatched.has(libraryKey)) {
+      values.unmatched_matches += 1;
+      values.recovery_value += unmatched.get(key)?.estimated_recovery || 0;
+      seenUnmatched.add(libraryKey);
+    }
+  }
+  return result;
+}
+
+function importHistoryByCollection(collections = [], limitPerCollection = 1) {
+  const db = openDatabase();
+  const history = new Map();
+  if (!collections.length || !tableExists(db, "playlist_intelligence_import_logs")) return history;
+  const placeholders = collections.map(() => "?").join(",");
+  const rows = db.prepare(`
+    SELECT *
+    FROM playlist_intelligence_import_logs
+    WHERE collection_id IN (${placeholders})
+    ORDER BY collection_id ASC, created_at DESC, id DESC
+  `).all(...collections.map((collection) => collection.id));
+  for (const row of rows) {
+    const list = history.get(row.collection_id) || [];
+    if (list.length < limitPerCollection) {
+      list.push({
+        id: row.id,
+        collection_id: row.collection_id,
+        collection_code: row.collection_code,
+        collection_name: row.collection_name,
+        imported_by_user_id: row.imported_by_user_id,
+        imported_by_spotify_user_id: row.imported_by_spotify_user_id,
+        file_count: Number(row.file_count || 0),
+        row_count: Number(row.row_count || 0),
+        artists_processed: Number(row.artists_processed || 0),
+        artists_inserted: Number(row.artists_inserted || 0),
+        artists_updated: Number(row.artists_updated || 0),
+        tracks_processed: Number(row.tracks_processed || 0),
+        tracks_inserted: Number(row.tracks_inserted || 0),
+        tracks_updated: Number(row.tracks_updated || 0),
+        duplicates_skipped: Number(row.duplicates_skipped || 0),
+        skipped_rows: Number(row.skipped_rows || 0),
+        error_count: Number(row.error_count || 0),
+        estimated_recoverable_songs: Number(row.estimated_recoverable_songs || 0),
+        unmatched_artist_overlap: Number(row.unmatched_artist_overlap || 0),
+        created_at: row.created_at,
+      });
+      history.set(row.collection_id, list);
+    }
+  }
+  return history;
 }
 
 function readImportHistory(collectionId, limit = 5) {
@@ -573,12 +676,14 @@ function readImportHistory(collectionId, limit = 5) {
 
 function getPlaylistIntelligenceWorkflowSummary() {
   const payload = listPlaylistIntelligenceCollections();
+  const matches = playlistIntelligenceMatchesByCollection(payload.collections || []);
+  const history = importHistoryByCollection(payload.collections || [], 1);
   return {
     ...payload,
     collections: (payload.collections || []).map((collection) => ({
       ...collection,
-      ...playlistIntelligenceMatches(collection.collection_code),
-      last_import: readImportHistory(collection.id, 1)[0] || null,
+      ...(matches.get(collection.id) || { user_library_matches: 0, unmatched_matches: 0, recovery_value: 0 }),
+      last_import: history.get(collection.id)?.[0] || null,
     })),
   };
 }
@@ -593,8 +698,8 @@ function createPlaylistIntelligenceWorkflowCollection(body = {}) {
   });
 }
 
-function getPlaylistIntelligenceWorkflowDetail(collectionCode) {
-  const detail = getPlaylistIntelligenceCollection(collectionCode);
+function getPlaylistIntelligenceWorkflowDetail(collectionCode, options = {}) {
+  const detail = getPlaylistIntelligenceCollection(collectionCode, options);
   return {
     ...detail,
     overlap: playlistIntelligenceMatches(detail.collection.collection_code),

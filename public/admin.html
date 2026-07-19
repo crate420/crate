@@ -181,7 +181,7 @@
             CrateAdmin.requestJson('/crate/admin/status'),
             CrateAdmin.requestJson('/crate/admin/users/summary'),
             CrateAdmin.requestJson('/crate/admin/artist-intelligence/recommendations?confidence_min=85&limit=20'),
-            CrateAdmin.requestJson('/crate/admin/playlist-intelligence'),
+            CrateAdmin.requestJson('/crate/admin/intelligence/playlist-intelligence'),
           ]);
 
           const users = usersSummary.users || [];

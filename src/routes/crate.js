@@ -1,5 +1,6 @@
 const express = require("express");
 const path = require("node:path");
+const crypto = require("node:crypto");
 const config = require("../config");
 const { openDatabase } = require("../db");
 const {
@@ -133,6 +134,24 @@ const { getCurrentUser, requireCurrentUser } = require("../utils/authSession");
 const router = express.Router();
 
 const lastSortFlowSyncTimingByUserId = new Map();
+const playlistIntelligenceImportJobs = new Map();
+
+router.use((req, res, next) => {
+  const startedAt = process.hrtime.bigint();
+  res.on("finish", () => {
+    if (!req.path.startsWith("/admin")) return;
+    const elapsedMs = Number(process.hrtime.bigint() - startedAt) / 1_000_000;
+    if (elapsedMs > 250) {
+      console.warn("[Crate Admin] slow endpoint", {
+        method: req.method,
+        path: req.originalUrl || req.path,
+        status: res.statusCode,
+        elapsed_ms: Math.round(elapsedMs),
+      });
+    }
+  });
+  next();
+});
 
 function seconds(valueMs) {
   return Number.isFinite(Number(valueMs)) ? (Number(valueMs) / 1000).toFixed(1) + "s" : "n/a";
@@ -158,6 +177,54 @@ function logCrateFlowError(step, currentUser, err) {
     spotify_status: err.spotifyStatus || null,
     message: err.message,
   });
+}
+
+function invalidatePlaylistIntelligenceAdminCaches() {
+  adminSummaryCache.invalidate("admin-intelligence");
+  adminSummaryCache.invalidate("admin-intelligence-review-queue");
+  adminSummaryCache.invalidate("admin-playlist-intelligence");
+  adminSummaryCache.invalidate("admin-intelligence-playlist-intelligence");
+}
+
+function rememberPlaylistImportJob(job) {
+  playlistIntelligenceImportJobs.set(job.id, job);
+  setTimeout(() => {
+    playlistIntelligenceImportJobs.delete(job.id);
+  }, 30 * 60 * 1000).unref?.();
+  return job;
+}
+
+function startPlaylistImportJob(collectionCode, body) {
+  const job = rememberPlaylistImportJob({
+    id: crypto.randomUUID(),
+    status: "queued",
+    collection_code: collectionCode,
+    stage: "Upload received",
+    result: null,
+    error: null,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  });
+
+  setImmediate(() => {
+    try {
+      job.status = "processing";
+      job.stage = "Processing import";
+      job.updated_at = new Date().toISOString();
+      job.result = applyPlaylistIntelligenceCsvImport(collectionCode, body);
+      job.status = "complete";
+      job.stage = "Complete";
+      job.updated_at = new Date().toISOString();
+      invalidatePlaylistIntelligenceAdminCaches();
+    } catch (err) {
+      job.status = "failed";
+      job.stage = "Failed";
+      job.error = { error: err.code || "playlist_intelligence_import_error", message: err.message };
+      job.updated_at = new Date().toISOString();
+    }
+  });
+
+  return job;
 }
 
 function sendKnownCrateFlowError(res, step, err) {
@@ -412,6 +479,7 @@ router.post("/admin/genre-recommendations/apply", requireCurrentUser, requireAdm
     adminSummaryCache.invalidate("admin-users-summary");
     adminSummaryCache.invalidate("admin-user-recovery");
     adminSummaryCache.invalidate("admin-intelligence");
+    adminSummaryCache.invalidate("admin-intelligence-review-queue");
     return res.json(result);
   } catch (err) {
     if (err.statusCode) {
@@ -430,6 +498,7 @@ router.post("/admin/genre-recommendations/apply-selected", requireCurrentUser, r
     adminSummaryCache.invalidate("admin-users-summary");
     adminSummaryCache.invalidate("admin-user-recovery");
     adminSummaryCache.invalidate("admin-intelligence");
+    adminSummaryCache.invalidate("admin-intelligence-review-queue");
     return res.json(result);
   } catch (err) {
     if (err.statusCode) {
@@ -627,7 +696,13 @@ router.get("/admin/user-diagnostics", requireCurrentUser, requireAdminUser, asyn
 
 router.get("/admin/status", requireCurrentUser, requireAdminUser, (req, res, next) => {
   try {
-    return res.json(getGlobalCrateStatus());
+    return res.json(adminSummaryCache.getOrSet(
+      "admin-status",
+      { admin_user_id: req.currentUser.id },
+      30,
+      () => getGlobalCrateStatus(),
+      req.query,
+    ));
   } catch (err) {
     return next(err);
   }
@@ -1002,7 +1077,13 @@ router.get("/admin/specialty-discovery/cohort", requireCurrentUser, requireAdmin
 
 router.get("/admin/playlist-intelligence", requireCurrentUser, requireAdminUser, (req, res, next) => {
   try {
-    return res.json(listPlaylistIntelligenceCollections());
+    return res.json(adminSummaryCache.getOrSet(
+      "admin-playlist-intelligence",
+      { admin_user_id: req.currentUser.id },
+      60,
+      () => listPlaylistIntelligenceCollections(),
+      req.query,
+    ));
   } catch (err) {
     return next(err);
   }
@@ -1010,11 +1091,22 @@ router.get("/admin/playlist-intelligence", requireCurrentUser, requireAdminUser,
 
 router.get("/admin/intelligence/review-queue", requireCurrentUser, requireAdminUser, async (req, res, next) => {
   try {
-    return res.json(await getIntelligenceReviewQueue({
-      limit: req.query.limit,
-      offset: req.query.offset,
-      confidence_min: req.query.confidence_min,
-    }));
+    return res.json(await adminSummaryCache.getOrSetAsync(
+      "admin-intelligence-review-queue",
+      {
+        admin_user_id: req.currentUser.id,
+        limit: req.query.limit,
+        offset: req.query.offset,
+        confidence_min: req.query.confidence_min,
+      },
+      30,
+      () => getIntelligenceReviewQueue({
+        limit: req.query.limit,
+        offset: req.query.offset,
+        confidence_min: req.query.confidence_min,
+      }),
+      req.query,
+    ));
   } catch (err) {
     return next(err);
   }
@@ -1026,6 +1118,7 @@ router.post("/admin/intelligence/review-queue/approve", requireCurrentUser, requ
     adminSummaryCache.invalidate("admin-users-summary");
     adminSummaryCache.invalidate("admin-user-recovery");
     adminSummaryCache.invalidate("admin-intelligence");
+    adminSummaryCache.invalidate("admin-intelligence-review-queue");
     return res.json(result);
   } catch (err) {
     if (err.statusCode) return res.status(err.statusCode).json({ error: err.code || "intelligence_review_queue_error", message: err.message });
@@ -1067,6 +1160,7 @@ router.post("/admin/intelligence/review-queue/reject", requireCurrentUser, requi
   try {
     const result = rejectReviewQueueItem(req.body?.item || {}, req.currentUser);
     adminSummaryCache.invalidate("admin-intelligence");
+    adminSummaryCache.invalidate("admin-intelligence-review-queue");
     return res.json(result);
   } catch (err) {
     if (err.statusCode) return res.status(err.statusCode).json({ error: err.code || "intelligence_review_queue_error", message: err.message });
@@ -1084,7 +1178,13 @@ router.get("/admin/intelligence/genre-options", requireCurrentUser, requireAdmin
 
 router.get("/admin/intelligence/playlist-intelligence", requireCurrentUser, requireAdminUser, (req, res, next) => {
   try {
-    return res.json(getPlaylistIntelligenceWorkflowSummary());
+    return res.json(adminSummaryCache.getOrSet(
+      "admin-intelligence-playlist-intelligence",
+      { admin_user_id: req.currentUser.id },
+      60,
+      () => getPlaylistIntelligenceWorkflowSummary(),
+      req.query,
+    ));
   } catch (err) {
     return next(err);
   }
@@ -1093,7 +1193,7 @@ router.get("/admin/intelligence/playlist-intelligence", requireCurrentUser, requ
 router.post("/admin/intelligence/playlist-intelligence", requireCurrentUser, requireAdminUser, (req, res, next) => {
   try {
     const result = createPlaylistIntelligenceWorkflowCollection(req.body || {});
-    adminSummaryCache.invalidate("admin-intelligence");
+    invalidatePlaylistIntelligenceAdminCaches();
     return res.status(201).json(result);
   } catch (err) {
     if (err.statusCode) return res.status(err.statusCode).json({ error: err.code || "playlist_intelligence_error", message: err.message });
@@ -1101,9 +1201,17 @@ router.post("/admin/intelligence/playlist-intelligence", requireCurrentUser, req
   }
 });
 
+router.get("/admin/intelligence/playlist-intelligence/imports/:jobId", requireCurrentUser, requireAdminUser, (req, res) => {
+  const job = playlistIntelligenceImportJobs.get(req.params.jobId);
+  if (!job) {
+    return res.status(404).json({ error: "playlist_intelligence_import_job_not_found", message: "Import job was not found or has expired." });
+  }
+  return res.json(job);
+});
+
 router.get("/admin/intelligence/playlist-intelligence/:collectionCode", requireCurrentUser, requireAdminUser, (req, res, next) => {
   try {
-    return res.json(getPlaylistIntelligenceWorkflowDetail(req.params.collectionCode));
+    return res.json(getPlaylistIntelligenceWorkflowDetail(req.params.collectionCode, req.query));
   } catch (err) {
     if (err.statusCode) return res.status(err.statusCode).json({ error: err.code || "playlist_intelligence_error", message: err.message });
     return next(err);
@@ -1121,13 +1229,12 @@ router.post("/admin/intelligence/playlist-intelligence/:collectionCode/import-pr
 
 router.post("/admin/intelligence/playlist-intelligence/:collectionCode/import", requireCurrentUser, requireAdminUser, (req, res, next) => {
   try {
-    const result = applyPlaylistIntelligenceCsvImport(req.params.collectionCode, {
+    const job = startPlaylistImportJob(req.params.collectionCode, {
       ...(req.body || {}),
       imported_by_user_id: req.currentUser?.id || null,
       imported_by_spotify_user_id: req.currentUser?.spotify_user_id || null,
     });
-    adminSummaryCache.invalidate("admin-intelligence");
-    return res.json(result);
+    return res.status(202).json(job);
   } catch (err) {
     if (err.statusCode) return res.status(err.statusCode).json({ error: err.code || "playlist_intelligence_import_error", message: err.message });
     return next(err);
@@ -1153,7 +1260,9 @@ router.get("/admin/intelligence/track-gaps/:type/:value", requireCurrentUser, re
 
 router.post("/admin/playlist-intelligence", requireCurrentUser, requireAdminUser, (req, res, next) => {
   try {
-    return res.status(201).json(createPlaylistIntelligenceCollection(req.body || {}));
+    const result = createPlaylistIntelligenceCollection(req.body || {});
+    invalidatePlaylistIntelligenceAdminCaches();
+    return res.status(201).json(result);
   } catch (err) {
     if (err.statusCode) return res.status(err.statusCode).json({ error: err.code || "playlist_intelligence_error", message: err.message });
     return next(err);
@@ -1162,7 +1271,9 @@ router.post("/admin/playlist-intelligence", requireCurrentUser, requireAdminUser
 
 router.put("/admin/playlist-intelligence/sources/:id", requireCurrentUser, requireAdminUser, (req, res, next) => {
   try {
-    return res.json({ status: "ok", source: updatePlaylistIntelligenceSource(req.params.id, req.body || {}) });
+    const source = updatePlaylistIntelligenceSource(req.params.id, req.body || {});
+    invalidatePlaylistIntelligenceAdminCaches();
+    return res.json({ status: "ok", source });
   } catch (err) {
     if (err.statusCode) return res.status(err.statusCode).json({ error: err.code || "playlist_intelligence_source_error", message: err.message });
     return next(err);
@@ -1171,7 +1282,9 @@ router.put("/admin/playlist-intelligence/sources/:id", requireCurrentUser, requi
 
 router.delete("/admin/playlist-intelligence/sources/:id", requireCurrentUser, requireAdminUser, (req, res, next) => {
   try {
-    return res.json(deletePlaylistIntelligenceRow("playlist_collection_sources", req.params.id));
+    const result = deletePlaylistIntelligenceRow("playlist_collection_sources", req.params.id);
+    invalidatePlaylistIntelligenceAdminCaches();
+    return res.json(result);
   } catch (err) {
     if (err.statusCode) return res.status(err.statusCode).json({ error: err.code || "playlist_intelligence_source_error", message: err.message });
     return next(err);
@@ -1180,7 +1293,9 @@ router.delete("/admin/playlist-intelligence/sources/:id", requireCurrentUser, re
 
 router.put("/admin/playlist-intelligence/artists/:id", requireCurrentUser, requireAdminUser, (req, res, next) => {
   try {
-    return res.json({ status: "ok", artist: updatePlaylistIntelligenceArtist(req.params.id, { ...(req.body || {}), adminUser: req.currentUser }) });
+    const artist = updatePlaylistIntelligenceArtist(req.params.id, { ...(req.body || {}), adminUser: req.currentUser });
+    invalidatePlaylistIntelligenceAdminCaches();
+    return res.json({ status: "ok", artist });
   } catch (err) {
     if (err.statusCode) return res.status(err.statusCode).json({ error: err.code || "playlist_intelligence_artist_error", message: err.message });
     return next(err);
@@ -1189,7 +1304,9 @@ router.put("/admin/playlist-intelligence/artists/:id", requireCurrentUser, requi
 
 router.delete("/admin/playlist-intelligence/artists/:id", requireCurrentUser, requireAdminUser, (req, res, next) => {
   try {
-    return res.json(deletePlaylistIntelligenceRow("playlist_collection_artists", req.params.id));
+    const result = deletePlaylistIntelligenceRow("playlist_collection_artists", req.params.id);
+    invalidatePlaylistIntelligenceAdminCaches();
+    return res.json(result);
   } catch (err) {
     if (err.statusCode) return res.status(err.statusCode).json({ error: err.code || "playlist_intelligence_artist_error", message: err.message });
     return next(err);
@@ -1198,7 +1315,9 @@ router.delete("/admin/playlist-intelligence/artists/:id", requireCurrentUser, re
 
 router.put("/admin/playlist-intelligence/tracks/:id", requireCurrentUser, requireAdminUser, (req, res, next) => {
   try {
-    return res.json({ status: "ok", track: updatePlaylistIntelligenceTrack(req.params.id, { ...(req.body || {}), adminUser: req.currentUser }) });
+    const track = updatePlaylistIntelligenceTrack(req.params.id, { ...(req.body || {}), adminUser: req.currentUser });
+    invalidatePlaylistIntelligenceAdminCaches();
+    return res.json({ status: "ok", track });
   } catch (err) {
     if (err.statusCode) return res.status(err.statusCode).json({ error: err.code || "playlist_intelligence_track_error", message: err.message });
     return next(err);
@@ -1207,7 +1326,9 @@ router.put("/admin/playlist-intelligence/tracks/:id", requireCurrentUser, requir
 
 router.delete("/admin/playlist-intelligence/tracks/:id", requireCurrentUser, requireAdminUser, (req, res, next) => {
   try {
-    return res.json(deletePlaylistIntelligenceRow("playlist_collection_tracks", req.params.id));
+    const result = deletePlaylistIntelligenceRow("playlist_collection_tracks", req.params.id);
+    invalidatePlaylistIntelligenceAdminCaches();
+    return res.json(result);
   } catch (err) {
     if (err.statusCode) return res.status(err.statusCode).json({ error: err.code || "playlist_intelligence_track_error", message: err.message });
     return next(err);
@@ -1216,7 +1337,7 @@ router.delete("/admin/playlist-intelligence/tracks/:id", requireCurrentUser, req
 
 router.get("/admin/playlist-intelligence/:collectionCode", requireCurrentUser, requireAdminUser, (req, res, next) => {
   try {
-    return res.json(getPlaylistIntelligenceCollection(req.params.collectionCode));
+    return res.json(getPlaylistIntelligenceCollection(req.params.collectionCode, req.query));
   } catch (err) {
     if (err.statusCode) return res.status(err.statusCode).json({ error: err.code || "playlist_intelligence_error", message: err.message });
     return next(err);
@@ -1225,7 +1346,9 @@ router.get("/admin/playlist-intelligence/:collectionCode", requireCurrentUser, r
 
 router.put("/admin/playlist-intelligence/:collectionCode", requireCurrentUser, requireAdminUser, (req, res, next) => {
   try {
-    return res.json(updatePlaylistIntelligenceCollection(req.params.collectionCode, req.body || {}));
+    const result = updatePlaylistIntelligenceCollection(req.params.collectionCode, req.body || {});
+    invalidatePlaylistIntelligenceAdminCaches();
+    return res.json(result);
   } catch (err) {
     if (err.statusCode) return res.status(err.statusCode).json({ error: err.code || "playlist_intelligence_error", message: err.message });
     return next(err);
@@ -1234,7 +1357,9 @@ router.put("/admin/playlist-intelligence/:collectionCode", requireCurrentUser, r
 
 router.post("/admin/playlist-intelligence/:collectionCode/sources", requireCurrentUser, requireAdminUser, (req, res, next) => {
   try {
-    return res.status(201).json({ status: "ok", source: addSourceToCollection(req.params.collectionCode, req.body || {}) });
+    const source = addSourceToCollection(req.params.collectionCode, req.body || {});
+    invalidatePlaylistIntelligenceAdminCaches();
+    return res.status(201).json({ status: "ok", source });
   } catch (err) {
     if (err.statusCode) return res.status(err.statusCode).json({ error: err.code || "playlist_intelligence_source_error", message: err.message });
     return next(err);
@@ -1243,7 +1368,9 @@ router.post("/admin/playlist-intelligence/:collectionCode/sources", requireCurre
 
 router.post("/admin/playlist-intelligence/:collectionCode/artists", requireCurrentUser, requireAdminUser, (req, res, next) => {
   try {
-    return res.status(201).json({ status: "ok", artist: addArtistToCollection(req.params.collectionCode, req.body || {}) });
+    const artist = addArtistToCollection(req.params.collectionCode, req.body || {});
+    invalidatePlaylistIntelligenceAdminCaches();
+    return res.status(201).json({ status: "ok", artist });
   } catch (err) {
     if (err.statusCode) return res.status(err.statusCode).json({ error: err.code || "playlist_intelligence_artist_error", message: err.message });
     return next(err);
@@ -1252,7 +1379,9 @@ router.post("/admin/playlist-intelligence/:collectionCode/artists", requireCurre
 
 router.post("/admin/playlist-intelligence/:collectionCode/tracks", requireCurrentUser, requireAdminUser, (req, res, next) => {
   try {
-    return res.status(201).json({ status: "ok", track: addTrackToCollection(req.params.collectionCode, req.body || {}) });
+    const track = addTrackToCollection(req.params.collectionCode, req.body || {});
+    invalidatePlaylistIntelligenceAdminCaches();
+    return res.status(201).json({ status: "ok", track });
   } catch (err) {
     if (err.statusCode) return res.status(err.statusCode).json({ error: err.code || "playlist_intelligence_track_error", message: err.message });
     return next(err);

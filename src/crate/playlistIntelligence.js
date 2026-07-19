@@ -7,6 +7,8 @@ const STATUS_VALUES = new Set(["research", "active", "retired"]);
 const SOURCE_TYPES = new Set(["spotify_editorial", "spotify_user", "manual"]);
 const REVIEW_STATUSES = new Set(["candidate", "approved", "rejected", "ignored"]);
 const TRUST_LEVELS = new Set(["low", "medium", "high"]);
+const DEFAULT_PAGE_SIZE = 25;
+const MAX_PAGE_SIZE = 100;
 
 function cleanText(value) {
   return String(value || "").trim();
@@ -36,6 +38,30 @@ function numberInRange(value, { min = 0, max = 100, fallback = 0 } = {}) {
 
 function integerInRange(value, options) {
   return Math.round(numberInRange(value, options));
+}
+
+function paginationOptions(options = {}) {
+  const limit = integerInRange(options.limit ?? options.page_size ?? options.pageSize ?? DEFAULT_PAGE_SIZE, {
+    min: 1,
+    max: MAX_PAGE_SIZE,
+    fallback: DEFAULT_PAGE_SIZE,
+  });
+  const offset = integerInRange(options.offset ?? 0, {
+    min: 0,
+    max: Number.MAX_SAFE_INTEGER,
+    fallback: 0,
+  });
+  return { limit, offset };
+}
+
+function timedQuery(label, run) {
+  const startedAt = process.hrtime.bigint();
+  const result = run();
+  const elapsedMs = Number(process.hrtime.bigint() - startedAt) / 1_000_000;
+  if (elapsedMs > 250) {
+    console.warn("[Crate Admin SQL] slow query", { label, elapsed_ms: Math.round(elapsedMs) });
+  }
+  return result;
 }
 
 function parseCsvRows(csvText) {
@@ -217,23 +243,44 @@ function listPlaylistIntelligenceCollections() {
        0 AS import_count,
        0 AS total_imported_artists,
        0 AS total_imported_tracks`;
-  const rows = db.prepare(`
+  const rows = timedQuery("playlist_intelligence.collections.summary", () => db.prepare(`
     SELECT
       definitions.*,
-      COUNT(DISTINCT sources.id) AS source_playlist_count,
-      COUNT(DISTINCT CASE WHEN sources.include_in_consensus = 1 AND sources.active = 1 THEN sources.id END) AS consensus_source_playlist_count,
-      COUNT(DISTINCT CASE WHEN sources.include_in_consensus = 0 OR sources.active = 0 OR sources.review_status IN ('rejected', 'ignored') THEN sources.id END) AS excluded_source_playlist_count,
-      COUNT(DISTINCT CASE WHEN artists.review_status = 'approved' THEN artists.id END) AS approved_artist_count,
-      COUNT(DISTINCT artists.id) AS artist_evidence_count,
-      COUNT(DISTINCT CASE WHEN tracks.review_status = 'approved' THEN tracks.id END) AS approved_track_count,
-      COUNT(DISTINCT tracks.id) AS track_evidence_count,
+      COALESCE(source_counts.source_playlist_count, 0) AS source_playlist_count,
+      COALESCE(source_counts.consensus_source_playlist_count, 0) AS consensus_source_playlist_count,
+      COALESCE(source_counts.excluded_source_playlist_count, 0) AS excluded_source_playlist_count,
+      COALESCE(artist_counts.approved_artist_count, 0) AS approved_artist_count,
+      COALESCE(artist_counts.artist_evidence_count, 0) AS artist_evidence_count,
+      COALESCE(track_counts.approved_track_count, 0) AS approved_track_count,
+      COALESCE(track_counts.track_evidence_count, 0) AS track_evidence_count,
       ${importSelect}
     FROM playlist_collection_definitions definitions
-    LEFT JOIN playlist_collection_sources sources ON sources.collection_id = definitions.id
-    LEFT JOIN playlist_collection_artists artists ON artists.collection_id = definitions.id
-    LEFT JOIN playlist_collection_tracks tracks ON tracks.collection_id = definitions.id
+    LEFT JOIN (
+      SELECT
+        collection_id,
+        COUNT(*) AS source_playlist_count,
+        SUM(CASE WHEN include_in_consensus = 1 AND active = 1 THEN 1 ELSE 0 END) AS consensus_source_playlist_count,
+        SUM(CASE WHEN include_in_consensus = 0 OR active = 0 OR review_status IN ('rejected', 'ignored') THEN 1 ELSE 0 END) AS excluded_source_playlist_count
+      FROM playlist_collection_sources
+      GROUP BY collection_id
+    ) source_counts ON source_counts.collection_id = definitions.id
+    LEFT JOIN (
+      SELECT
+        collection_id,
+        SUM(CASE WHEN review_status = 'approved' THEN 1 ELSE 0 END) AS approved_artist_count,
+        COUNT(*) AS artist_evidence_count
+      FROM playlist_collection_artists
+      GROUP BY collection_id
+    ) artist_counts ON artist_counts.collection_id = definitions.id
+    LEFT JOIN (
+      SELECT
+        collection_id,
+        SUM(CASE WHEN review_status = 'approved' THEN 1 ELSE 0 END) AS approved_track_count,
+        COUNT(*) AS track_evidence_count
+      FROM playlist_collection_tracks
+      GROUP BY collection_id
+    ) track_counts ON track_counts.collection_id = definitions.id
     ${importJoin}
-    GROUP BY definitions.id
     ORDER BY
       CASE definitions.research_status
         WHEN 'active' THEN 1
@@ -241,7 +288,7 @@ function listPlaylistIntelligenceCollections() {
         ELSE 3
       END,
       definitions.collection_name COLLATE NOCASE
-  `).all();
+  `).all());
 
   const collections = rows.map((row) => ({
     ...serializeCollection(row),
@@ -273,33 +320,66 @@ function listPlaylistIntelligenceCollections() {
   };
 }
 
-function getPlaylistIntelligenceCollection(codeOrId) {
+function getPlaylistIntelligenceCollection(codeOrId, options = {}) {
   const db = openDatabase();
   const collection = requireCollection(db, codeOrId);
-  const params = { collectionId: collection.id };
+  const artistPage = paginationOptions({
+    limit: options.artist_limit ?? options.artistLimit ?? options.limit,
+    offset: options.artist_offset ?? options.artistOffset ?? options.offset,
+  });
+  const trackPage = paginationOptions({
+    limit: options.track_limit ?? options.trackLimit ?? options.limit,
+    offset: options.track_offset ?? options.trackOffset ?? options.offset,
+  });
+  const sourcePage = paginationOptions({
+    limit: options.source_limit ?? options.sourceLimit ?? MAX_PAGE_SIZE,
+    offset: options.source_offset ?? options.sourceOffset ?? 0,
+  });
+  const params = {
+    collectionId: collection.id,
+    artistLimit: artistPage.limit,
+    artistOffset: artistPage.offset,
+    trackLimit: trackPage.limit,
+    trackOffset: trackPage.offset,
+    sourceLimit: sourcePage.limit,
+    sourceOffset: sourcePage.offset,
+  };
+  const totals = timedQuery("playlist_intelligence.collection.totals", () => ({
+    sources: db.prepare("SELECT COUNT(*) AS count FROM playlist_collection_sources WHERE collection_id = ?").get(collection.id).count,
+    artists: db.prepare("SELECT COUNT(*) AS count FROM playlist_collection_artists WHERE collection_id = ?").get(collection.id).count,
+    tracks: db.prepare("SELECT COUNT(*) AS count FROM playlist_collection_tracks WHERE collection_id = ?").get(collection.id).count,
+  }));
 
   return {
     status: "ok",
     collection: serializeCollection(collection),
-    source_playlists: db.prepare(`
+    pagination: {
+      source_playlists: { limit: sourcePage.limit, offset: sourcePage.offset, total_count: Number(totals.sources || 0) },
+      consensus_artists: { limit: artistPage.limit, offset: artistPage.offset, total_count: Number(totals.artists || 0) },
+      consensus_tracks: { limit: trackPage.limit, offset: trackPage.offset, total_count: Number(totals.tracks || 0) },
+    },
+    source_playlists: timedQuery("playlist_intelligence.collection.sources", () => db.prepare(`
       SELECT * FROM playlist_collection_sources
       WHERE collection_id = @collectionId
       ORDER BY active DESC, include_in_consensus DESC, weight DESC, playlist_name COLLATE NOCASE
-    `).all(params).map(serializeSource),
-    consensus_artists: db.prepare(`
+      LIMIT @sourceLimit OFFSET @sourceOffset
+    `).all(params).map(serializeSource)),
+    consensus_artists: timedQuery("playlist_intelligence.collection.artists", () => db.prepare(`
       SELECT * FROM playlist_collection_artists
       WHERE collection_id = @collectionId
       ORDER BY
         CASE review_status WHEN 'approved' THEN 1 WHEN 'candidate' THEN 2 WHEN 'ignored' THEN 3 ELSE 4 END,
         confidence_score DESC, source_count DESC, evidence_count DESC, artist_name COLLATE NOCASE
-    `).all(params).map(serializeArtist),
-    consensus_tracks: db.prepare(`
+      LIMIT @artistLimit OFFSET @artistOffset
+    `).all(params).map(serializeArtist)),
+    consensus_tracks: timedQuery("playlist_intelligence.collection.tracks", () => db.prepare(`
       SELECT * FROM playlist_collection_tracks
       WHERE collection_id = @collectionId
       ORDER BY
         CASE review_status WHEN 'approved' THEN 1 WHEN 'candidate' THEN 2 WHEN 'ignored' THEN 3 ELSE 4 END,
         confidence_score DESC, source_count DESC, evidence_count DESC, artist_name COLLATE NOCASE, track_name COLLATE NOCASE
-    `).all(params).map(serializeTrack),
+      LIMIT @trackLimit OFFSET @trackOffset
+    `).all(params).map(serializeTrack)),
   };
 }
 
@@ -1539,9 +1619,9 @@ function applyPlaylistIntelligenceCsvImport(codeOrId, body = {}) {
   summary.imported = summary.artists_inserted + summary.artists_updated + summary.tracks_inserted + summary.tracks_updated;
   summary.skipped = summary.skipped_rows + evidence.errors.length;
   summary.collection_counts = {
-    sources: updatedDetail.source_playlists.length,
-    artists: updatedDetail.consensus_artists.length,
-    tracks: updatedDetail.consensus_tracks.length,
+    sources: updatedDetail.pagination?.source_playlists?.total_count || updatedDetail.source_playlists.length,
+    artists: updatedDetail.pagination?.consensus_artists?.total_count || updatedDetail.consensus_artists.length,
+    tracks: updatedDetail.pagination?.consensus_tracks?.total_count || updatedDetail.consensus_tracks.length,
   };
   const updatedCollection = db.prepare("SELECT updated_at FROM playlist_collection_definitions WHERE id = ?").get(collection.id);
   summary.last_updated = updatedCollection?.updated_at || null;
