@@ -1180,7 +1180,7 @@ router.delete("/admin/playlist-intelligence/sources/:id", requireCurrentUser, re
 
 router.put("/admin/playlist-intelligence/artists/:id", requireCurrentUser, requireAdminUser, (req, res, next) => {
   try {
-    return res.json({ status: "ok", artist: updatePlaylistIntelligenceArtist(req.params.id, req.body || {}) });
+    return res.json({ status: "ok", artist: updatePlaylistIntelligenceArtist(req.params.id, { ...(req.body || {}), adminUser: req.currentUser }) });
   } catch (err) {
     if (err.statusCode) return res.status(err.statusCode).json({ error: err.code || "playlist_intelligence_artist_error", message: err.message });
     return next(err);
@@ -1198,7 +1198,7 @@ router.delete("/admin/playlist-intelligence/artists/:id", requireCurrentUser, re
 
 router.put("/admin/playlist-intelligence/tracks/:id", requireCurrentUser, requireAdminUser, (req, res, next) => {
   try {
-    return res.json({ status: "ok", track: updatePlaylistIntelligenceTrack(req.params.id, req.body || {}) });
+    return res.json({ status: "ok", track: updatePlaylistIntelligenceTrack(req.params.id, { ...(req.body || {}), adminUser: req.currentUser }) });
   } catch (err) {
     if (err.statusCode) return res.status(err.statusCode).json({ error: err.code || "playlist_intelligence_track_error", message: err.message });
     return next(err);

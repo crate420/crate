@@ -1,4 +1,7 @@
 const { openDatabase } = require("../db");
+const crypto = require("node:crypto");
+const artistIntelligenceRepo = require("../repositories/artistIntelligence");
+const trackIntelligenceRepo = require("../repositories/trackIntelligence");
 
 const STATUS_VALUES = new Set(["research", "active", "retired"]);
 const SOURCE_TYPES = new Set(["spotify_editorial", "spotify_user", "manual"]);
@@ -139,6 +142,7 @@ function serializeSource(row) {
     source_author: row.source_author || "",
     source_url: row.source_url || "",
     spotify_playlist_id: row.spotify_playlist_id || "",
+    source_fingerprint: row.source_fingerprint || "",
     weight: Number(row.weight || 0),
     include_in_consensus: Boolean(row.include_in_consensus),
     active: row.active == null ? true : Boolean(row.active),
@@ -160,6 +164,9 @@ function serializeArtist(row) {
     confidence_score: Number(row.confidence_score || 0),
     approved: Boolean(row.approved),
     notes: row.notes || "",
+    spotify_artist_id: row.spotify_artist_id || "",
+    production_artist_intelligence_id: row.production_artist_intelligence_id || null,
+    production_intelligence_updated_at: row.production_intelligence_updated_at || null,
     created_at: row.created_at,
     updated_at: row.updated_at,
   };
@@ -178,6 +185,10 @@ function serializeTrack(row) {
     confidence_score: Number(row.confidence_score || 0),
     approved: Boolean(row.approved),
     notes: row.notes || "",
+    spotify_track_id: row.spotify_track_id || "",
+    isrc: row.isrc || "",
+    production_track_intelligence_id: row.production_track_intelligence_id || null,
+    production_intelligence_updated_at: row.production_intelligence_updated_at || null,
     created_at: row.created_at,
     updated_at: row.updated_at,
   };
@@ -387,6 +398,7 @@ function sourcePayload(body = {}) {
     source_author: cleanText(body.source_author ?? body.sourceAuthor),
     source_url: cleanText(body.source_url ?? body.sourceUrl),
     spotify_playlist_id: cleanText(body.spotify_playlist_id ?? body.spotifyPlaylistId),
+    source_fingerprint: cleanText(body.source_fingerprint ?? body.sourceFingerprint),
     weight: numberInRange(body.weight ?? 1, { min: 0, max: 10, fallback: 1 }),
     include_in_consensus: boolToInt(body.include_in_consensus ?? body.includeInConsensus ?? true),
     active: boolToInt(body.active ?? true),
@@ -400,9 +412,9 @@ function addSourceToCollection(codeOrId, body = {}) {
   const payload = sourcePayload(body);
   const result = db.prepare(`
     INSERT INTO playlist_collection_sources
-      (collection_id, playlist_name, source_type, review_status, trust_level, source_name, source_author, source_url, spotify_playlist_id, weight, include_in_consensus, active, notes)
+      (collection_id, playlist_name, source_type, review_status, trust_level, source_name, source_author, source_url, spotify_playlist_id, source_fingerprint, weight, include_in_consensus, active, notes)
     VALUES
-      (@collection_id, @playlist_name, @source_type, @review_status, @trust_level, @source_name, @source_author, @source_url, @spotify_playlist_id, @weight, @include_in_consensus, @active, @notes)
+      (@collection_id, @playlist_name, @source_type, @review_status, @trust_level, @source_name, @source_author, @source_url, @spotify_playlist_id, @source_fingerprint, @weight, @include_in_consensus, @active, @notes)
   `).run({ ...payload, collection_id: collection.id });
   return serializeSource(db.prepare("SELECT * FROM playlist_collection_sources WHERE id = ?").get(result.lastInsertRowid));
 }
@@ -425,6 +437,7 @@ function updateSource(id, body = {}) {
     source_author: body.source_author ?? existing.source_author,
     source_url: body.source_url ?? existing.source_url,
     spotify_playlist_id: body.spotify_playlist_id ?? existing.spotify_playlist_id,
+    source_fingerprint: body.source_fingerprint ?? existing.source_fingerprint,
     weight: body.weight ?? existing.weight,
     include_in_consensus: body.include_in_consensus ?? existing.include_in_consensus,
     active: body.active ?? existing.active,
@@ -440,6 +453,7 @@ function updateSource(id, body = {}) {
         source_author = @source_author,
         source_url = @source_url,
         spotify_playlist_id = @spotify_playlist_id,
+        source_fingerprint = @source_fingerprint,
         weight = @weight,
         include_in_consensus = @include_in_consensus,
         active = @active,
@@ -476,6 +490,9 @@ function evidencePayload(body = {}, type) {
     review_status: reviewStatus,
     confidence_score: integerInRange(body.confidence_score ?? body.confidenceScore ?? 0, { min: 0, max: 100, fallback: 0 }),
     approved: reviewStatus === "approved" ? 1 : 0,
+    spotify_artist_id: cleanText(body.spotify_artist_id ?? body.spotifyArtistId),
+    spotify_track_id: cleanText(body.spotify_track_id ?? body.spotifyTrackId),
+    isrc: cleanText(body.isrc),
     notes: cleanText(body.notes),
   };
 }
@@ -486,15 +503,16 @@ function addArtistToCollection(codeOrId, body = {}) {
   const payload = evidencePayload(body, "artist");
   const result = db.prepare(`
     INSERT INTO playlist_collection_artists
-      (collection_id, artist_name, appearance_count, evidence_count, source_count, review_status, confidence_score, approved, notes)
+      (collection_id, artist_name, appearance_count, evidence_count, source_count, review_status, confidence_score, approved, spotify_artist_id, notes)
     VALUES
-      (@collection_id, @artist_name, @appearance_count, @evidence_count, @source_count, @review_status, @confidence_score, @approved, @notes)
+      (@collection_id, @artist_name, @appearance_count, @evidence_count, @source_count, @review_status, @confidence_score, @approved, @spotify_artist_id, @notes)
   `).run({ ...payload, collection_id: collection.id });
   return serializeArtist(db.prepare("SELECT * FROM playlist_collection_artists WHERE id = ?").get(result.lastInsertRowid));
 }
 
 function artistEvidenceFromCsvRow(row, defaults = {}) {
   const artistName = firstCsvValue(row, ["artist_name", "artist_names", "artist_name_s", "artist", "artists", "main_artist", "name"]);
+  const spotifyArtistId = firstCsvValue(row, ["spotify_artist_id", "spotify_artist_ids", "artist_id", "artist_ids", "artist_spotify_id"]);
   const appearanceCount = firstCsvValue(row, ["appearance_count", "appearances", "appearance", "count", "playlist_count"]);
   const evidenceCount = firstCsvValue(row, ["evidence_count", "evidence", "evidence_total"]);
   const sourceCount = firstCsvValue(row, ["source_count", "sources", "source_playlists", "playlist_sources"]);
@@ -508,6 +526,7 @@ function artistEvidenceFromCsvRow(row, defaults = {}) {
     source_count: sourceCount || defaults.source_count || defaults.sourceCount || 1,
     confidence_score: confidenceScore || defaults.confidence_score || defaults.confidenceScore || 0,
     review_status: reviewStatus,
+    spotify_artist_id: spotifyArtistId,
     notes: firstCsvValue(row, ["notes", "note"]) || cleanText(defaults.notes),
   }, "artist");
 }
@@ -584,6 +603,7 @@ function importArtistEvidenceCsvToCollection(codeOrId, body = {}) {
         const result = db.prepare(`
           UPDATE playlist_collection_artists
           SET artist_name = @artist_name,
+              spotify_artist_id = COALESCE(NULLIF(@spotify_artist_id, ''), spotify_artist_id),
               appearance_count = @appearance_count,
               evidence_count = @evidence_count,
               source_count = @source_count,
@@ -598,9 +618,9 @@ function importArtistEvidenceCsvToCollection(codeOrId, body = {}) {
       } else {
         db.prepare(`
           INSERT INTO playlist_collection_artists
-            (collection_id, artist_name, appearance_count, evidence_count, source_count, review_status, confidence_score, approved, notes)
+            (collection_id, artist_name, spotify_artist_id, appearance_count, evidence_count, source_count, review_status, confidence_score, approved, notes)
           VALUES
-            (@collection_id, @artist_name, @appearance_count, @evidence_count, @source_count, @review_status, @confidence_score, @approved, @notes)
+            (@collection_id, @artist_name, @spotify_artist_id, @appearance_count, @evidence_count, @source_count, @review_status, @confidence_score, @approved, @notes)
         `).run({ ...payload, collection_id: collection.id });
         summary.inserted += 1;
       }
@@ -614,16 +634,44 @@ function importArtistEvidenceCsvToCollection(codeOrId, body = {}) {
 
 const PROTECTED_REVIEW_STATUSES = new Set(["approved", "rejected", "ignored"]);
 
-function splitArtistNames(value) {
-  return cleanText(value)
-    .split(/\s*(?:,|;|\+)\s*/g)
-    .map(cleanText)
-    .filter(Boolean);
+function parseStructuredList(value) {
+  const text = cleanText(value);
+  if (!text) return [];
+  if ((text.startsWith("[") && text.endsWith("]")) || (text.startsWith("{") && text.endsWith("}"))) {
+    try {
+      const parsed = JSON.parse(text);
+      const values = Array.isArray(parsed) ? parsed : Object.values(parsed);
+      return values.map((item) => cleanText(typeof item === "string" ? item : item?.name || item?.artist_name || item?.id)).filter(Boolean);
+    } catch (err) {
+      return [];
+    }
+  }
+  return [];
+}
+
+function splitDelimitedValue(value) {
+  const text = cleanText(value);
+  if (!text) return [];
+  const structured = parseStructuredList(text);
+  if (structured.length) return structured;
+  if (text.includes(";")) return text.split(/\s*;\s*/g).map(cleanText).filter(Boolean);
+  if (text.includes("|")) return text.split(/\s*\|\s*/g).map(cleanText).filter(Boolean);
+  return [text];
+}
+
+function artistIdsForRow(row) {
+  return splitDelimitedValue(firstCsvValue(row, [
+    "spotify_artist_id",
+    "spotify_artist_ids",
+    "artist_id",
+    "artist_ids",
+    "Artist ID(s)",
+  ]));
 }
 
 function trackEvidenceFromCsvRow(row, defaults = {}) {
   const trackName = firstCsvValue(row, ["track_name", "title", "song", "track", "name"]);
-  const artistNames = splitArtistNames(firstCsvValue(row, [
+  const artistNames = splitDelimitedValue(firstCsvValue(row, [
     "artist_name",
     "artist_names",
     "artist_name_s",
@@ -633,9 +681,13 @@ function trackEvidenceFromCsvRow(row, defaults = {}) {
     "primary_artist",
     "artist_names_s",
   ]));
+  const spotifyArtistIds = artistIdsForRow(row);
   return {
     track_name: cleanText(trackName),
     artist_names: artistNames,
+    spotify_artist_ids: spotifyArtistIds,
+    spotify_track_id: cleanText(firstCsvValue(row, ["spotify_track_id", "track_id", "Spotify Track ID"])),
+    isrc: cleanText(firstCsvValue(row, ["isrc", "ISRC"])),
     review_status: defaults.review_status || defaults.reviewStatus || "candidate",
   };
 }
@@ -683,14 +735,19 @@ function collectPlaylistCsvEvidence(files, defaults = {}) {
       }
 
       for (const artistName of trackPayload.artist_names) {
-        const artistKey = artistName.toLowerCase();
+        const artistIndex = trackPayload.artist_names.indexOf(artistName);
+        const spotifyArtistId = trackPayload.spotify_artist_ids[artistIndex] || (trackPayload.artist_names.length === 1 ? trackPayload.spotify_artist_ids[0] : "");
+        const artistKey = spotifyArtistId ? `spotify:${spotifyArtistId}` : artistName.toLowerCase();
         const artist = artists.get(artistKey) || {
           artist_name: artistName,
+          spotify_artist_id: spotifyArtistId,
           appearance_count: 0,
           evidence_count: 0,
           source_names: new Set(),
+          spotify_artist_ids: new Set(),
           notes: new Set(),
         };
+        if (spotifyArtistId) artist.spotify_artist_ids.add(spotifyArtistId);
         if (artist.source_names.has(file.name)) summary.duplicate_artist_rows += 1;
         artist.appearance_count += 1;
         artist.evidence_count += 1;
@@ -699,10 +756,16 @@ function collectPlaylistCsvEvidence(files, defaults = {}) {
         artists.set(artistKey, artist);
 
         if (trackPayload.track_name) {
-          const trackKey = `${trackPayload.track_name.toLowerCase()}::${artistKey}`;
+          const trackKey = trackPayload.spotify_track_id
+            ? `spotify:${trackPayload.spotify_track_id}`
+            : trackPayload.isrc
+              ? `isrc:${trackPayload.isrc}`
+              : `${trackPayload.track_name.toLowerCase()}::${artistName.toLowerCase()}`;
           const track = tracks.get(trackKey) || {
             track_name: trackPayload.track_name,
             artist_name: artistName,
+            spotify_track_id: trackPayload.spotify_track_id,
+            isrc: trackPayload.isrc,
             appearance_count: 0,
             evidence_count: 0,
             source_names: new Set(),
@@ -729,16 +792,116 @@ function confidenceForEvidence(row, fallback = 70) {
 
 function existingEvidenceCounts(db, collectionId, artists, tracks) {
   const artistExisting = new Set();
+  const artistSpotifyIds = new Set();
   const trackExisting = new Set();
-  const artistRows = db.prepare("SELECT lower(artist_name) AS key FROM playlist_collection_artists WHERE collection_id = ?").all(collectionId);
-  const trackRows = db.prepare("SELECT lower(track_name) || '::' || lower(artist_name) AS key FROM playlist_collection_tracks WHERE collection_id = ?").all(collectionId);
-  for (const row of artistRows) artistExisting.add(row.key);
-  for (const row of trackRows) trackExisting.add(row.key);
+  const trackSpotifyIds = new Set();
+  const trackIsrcs = new Set();
+  const artistRows = db.prepare("SELECT lower(artist_name) AS key, spotify_artist_id FROM playlist_collection_artists WHERE collection_id = ?").all(collectionId);
+  const trackRows = db.prepare("SELECT lower(track_name) || '::' || lower(artist_name) AS key, spotify_track_id, isrc FROM playlist_collection_tracks WHERE collection_id = ?").all(collectionId);
+  for (const row of artistRows) {
+    artistExisting.add(row.key);
+    if (row.spotify_artist_id) artistSpotifyIds.add(row.spotify_artist_id);
+  }
+  for (const row of trackRows) {
+    trackExisting.add(row.key);
+    if (row.spotify_track_id) trackSpotifyIds.add(row.spotify_track_id);
+    if (row.isrc) trackIsrcs.add(row.isrc);
+  }
+  const artistExists = (artist) => {
+    const ids = artist.spotify_artist_ids?.size ? [...artist.spotify_artist_ids] : [artist.spotify_artist_id].filter(Boolean);
+    return ids.some((id) => artistSpotifyIds.has(id)) || artistExisting.has(artist.artist_name.toLowerCase());
+  };
+  const trackExists = (track) => {
+    const nameKey = `${track.track_name.toLowerCase()}::${track.artist_name.toLowerCase()}`;
+    return (track.spotify_track_id && trackSpotifyIds.has(track.spotify_track_id))
+      || (track.isrc && trackIsrcs.has(track.isrc))
+      || trackExisting.has(nameKey);
+  };
+  const artistValues = [...artists.values()];
+  const trackValues = [...tracks.values()];
   return {
-    existing_artists: [...artists.keys()].filter((key) => artistExisting.has(key)).length,
-    existing_tracks: [...tracks.keys()].filter((key) => trackExisting.has(key)).length,
-    new_artists: [...artists.keys()].filter((key) => !artistExisting.has(key)).length,
-    new_tracks: [...tracks.keys()].filter((key) => !trackExisting.has(key)).length,
+    existing_artists: artistValues.filter(artistExists).length,
+    existing_tracks: trackValues.filter(trackExists).length,
+    new_artists: artistValues.filter((artist) => !artistExists(artist)).length,
+    new_tracks: trackValues.filter((track) => !trackExists(track)).length,
+  };
+}
+
+function existingCrateArtistIdentities(db) {
+  const names = new Set();
+  const normalizedNames = new Set();
+  const spotifyIds = new Set();
+  const rememberName = (value) => {
+    const lowered = cleanText(value).toLowerCase();
+    const normalized = trackIntelligenceRepo.normalizeText(value);
+    if (lowered) names.add(lowered);
+    if (normalized) normalizedNames.add(normalized);
+  };
+  if (tableExists(db, "artist_intelligence")) {
+    for (const row of db.prepare("SELECT normalized_artist_name, spotify_artist_id FROM artist_intelligence").all()) {
+      rememberName(row.normalized_artist_name);
+      if (row.spotify_artist_id) spotifyIds.add(row.spotify_artist_id);
+    }
+  }
+  if (tableExists(db, "artist_genres")) {
+    for (const row of db.prepare("SELECT lower(trim(artist_name)) AS artist_name FROM artist_genres").all()) {
+      rememberName(row.artist_name);
+    }
+  }
+  if (tableExists(db, "tracks")) {
+    for (const row of db.prepare("SELECT artist_names, raw_json FROM tracks").all()) {
+      for (const artistName of artistNamesFromTrackRow(row)) rememberName(artistName);
+    }
+  }
+  return { names, normalizedNames, spotifyIds };
+}
+
+function existingCrateTrackIdentities(db) {
+  const spotifyIds = new Set();
+  const artistTracks = new Set();
+  if (tableExists(db, "track_intelligence")) {
+    for (const row of db.prepare("SELECT spotify_track_id, normalized_artist_name, normalized_track_name FROM track_intelligence").all()) {
+      if (row.spotify_track_id) spotifyIds.add(row.spotify_track_id);
+      if (row.normalized_artist_name && row.normalized_track_name) artistTracks.add(`${row.normalized_track_name}::${row.normalized_artist_name}`);
+    }
+  }
+  if (tableExists(db, "tracks")) {
+    for (const row of db.prepare("SELECT spotify_track_id, name, artist_names, raw_json FROM tracks").all()) {
+      if (row.spotify_track_id) spotifyIds.add(row.spotify_track_id);
+      for (const artistName of artistNamesFromTrackRow(row)) {
+        const normalizedTrackName = trackIntelligenceRepo.normalizeText(row.name);
+        const normalizedArtistName = trackIntelligenceRepo.normalizeText(artistName);
+        if (normalizedTrackName && normalizedArtistName) artistTracks.add(`${normalizedTrackName}::${normalizedArtistName}`);
+      }
+    }
+  }
+  return { spotifyIds, artistTracks };
+}
+
+function existingCrateIdentityCounts(db, artists, tracks) {
+  const crateArtists = existingCrateArtistIdentities(db);
+  const crateTracks = existingCrateTrackIdentities(db);
+  let existingArtists = 0;
+  let existingTracks = 0;
+  for (const artist of artists.values()) {
+    const ids = artist.spotify_artist_ids?.size ? [...artist.spotify_artist_ids] : [artist.spotify_artist_id].filter(Boolean);
+    const matchedById = ids.some((id) => crateArtists.spotifyIds.has(id));
+    const lowered = artist.artist_name.toLowerCase();
+    const normalized = trackIntelligenceRepo.normalizeText(artist.artist_name);
+    if (matchedById || crateArtists.names.has(lowered) || crateArtists.normalizedNames.has(normalized)) existingArtists += 1;
+  }
+  for (const track of tracks.values()) {
+    const matchedById = track.spotify_track_id && crateTracks.spotifyIds.has(track.spotify_track_id);
+    const normalizedTrackName = trackIntelligenceRepo.normalizeText(track.track_name);
+    const normalizedArtistName = trackIntelligenceRepo.normalizeText(track.artist_name);
+    const key = normalizedTrackName && normalizedArtistName ? `${normalizedTrackName}::${normalizedArtistName}` : "";
+    if (matchedById || crateTracks.artistTracks.has(key)) existingTracks += 1;
+  }
+  return {
+    existing_crate_artists: existingArtists,
+    new_crate_artists: Math.max(artists.size - existingArtists, 0),
+    existing_crate_tracks: existingTracks,
+    new_crate_tracks: Math.max(tracks.size - existingTracks, 0),
   };
 }
 
@@ -746,19 +909,34 @@ function playlistNameFromFileName(fileName) {
   return cleanText(fileName).replace(/\.csv$/i, "");
 }
 
+function fileFingerprint(file) {
+  const rows = csvObjectRows(file.content);
+  const normalizedRows = rows.map((row) => Object.keys(row)
+    .sort()
+    .map((key) => `${key}:${cleanText(row[key]).toLowerCase()}`)
+    .join("|"))
+    .sort()
+    .join("\n");
+  const content = normalizedRows || cleanText(file.content).toLowerCase();
+  return crypto.createHash("sha256").update(content).digest("hex");
+}
+
 function existingSourceFileNames(db, collectionId, files, sourceType = "manual") {
   const existing = new Set();
   if (!files.length) return existing;
   const source = cleanText(sourceType || "manual");
   const rows = db.prepare(`
-    SELECT lower(playlist_name) AS playlist_name
+    SELECT lower(playlist_name) AS playlist_name, source_fingerprint
     FROM playlist_collection_sources
     WHERE collection_id = ? AND source_type = ?
   `).all(collectionId, source);
   const existingNames = new Set(rows.map((row) => row.playlist_name));
+  const existingFingerprints = new Set(rows.map((row) => row.source_fingerprint).filter(Boolean));
   for (const file of files) {
     const playlistName = playlistNameFromFileName(file.name).toLowerCase();
-    if (existingNames.has(playlistName)) existing.add(file.name);
+    const fingerprint = fileFingerprint(file);
+    file.source_fingerprint = fingerprint;
+    if (existingNames.has(playlistName) || existingFingerprints.has(fingerprint)) existing.add(file.name);
   }
   return existing;
 }
@@ -787,7 +965,7 @@ function artistNamesFromTrackRow(row) {
 }
 
 function estimateRecoveryImpact(db, artists) {
-  const artistNames = new Set([...artists.keys()]);
+  const artistNames = new Set([...artists.values()].map((artist) => artist.artist_name.toLowerCase()));
   const impact = {
     unmatched_artist_overlap: 0,
     estimated_recoverable_songs: 0,
@@ -813,6 +991,158 @@ function estimateRecoveryImpact(db, artists) {
   impact.unmatched_artist_overlap = matchedArtists.size;
   impact.estimated_recoverable_songs = matchedTracks.size;
   return impact;
+}
+
+function collectionSignals(collection) {
+  return [...new Set([
+    collection.collection_name,
+    collection.collection_code.replace(/_/g, " "),
+  ].map((value) => cleanText(value).toLowerCase()).filter(Boolean))];
+}
+
+function getArtistEvidenceWithCollection(db, id) {
+  return db.prepare(`
+    SELECT
+      artists.*,
+      definitions.collection_code,
+      definitions.collection_name,
+      definitions.identity_description
+    FROM playlist_collection_artists artists
+    INNER JOIN playlist_collection_definitions definitions ON definitions.id = artists.collection_id
+    WHERE artists.id = ?
+  `).get(id);
+}
+
+function getTrackEvidenceWithCollection(db, id) {
+  return db.prepare(`
+    SELECT
+      tracks.*,
+      definitions.collection_code,
+      definitions.collection_name,
+      definitions.identity_description
+    FROM playlist_collection_tracks tracks
+    INNER JOIN playlist_collection_definitions definitions ON definitions.id = tracks.collection_id
+    WHERE tracks.id = ?
+  `).get(id);
+}
+
+function findArtistIntelligenceBySpotifyId(db, spotifyArtistId) {
+  const id = cleanText(spotifyArtistId);
+  if (!id || !tableExists(db, "artist_intelligence")) return null;
+  return db.prepare("SELECT * FROM artist_intelligence WHERE spotify_artist_id = ?").get(id) || null;
+}
+
+function learnApprovedPlaylistArtist(artistRow, options = {}) {
+  if (!artistRow || artistRow.review_status !== "approved") return { learned: false, reason: "artist_not_approved" };
+  const db = openDatabase();
+  const existingBySpotifyId = findArtistIntelligenceBySpotifyId(db, artistRow.spotify_artist_id);
+  const before = existingBySpotifyId || artistIntelligenceRepo.getArtistIntelligenceByName(artistRow.artist_name);
+  const artist = before || artistIntelligenceRepo.getOrCreateArtistIntelligence({
+    artistName: artistRow.artist_name,
+    spotifyArtistId: artistRow.spotify_artist_id || null,
+  });
+  const created = !before;
+  const now = new Date().toISOString();
+  const source = `playlist_intelligence:${artistRow.collection_code}`;
+  artistIntelligenceRepo.upsertArtistIntelligenceSource({
+    artistIntelligenceId: artist.id,
+    source,
+    sourceArtistId: artistRow.spotify_artist_id || null,
+    sourceArtistName: artistRow.artist_name,
+    rawPayload: {
+      collection_code: artistRow.collection_code,
+      collection_name: artistRow.collection_name,
+      playlist_collection_artist_id: artistRow.id,
+      appearance_count: artistRow.appearance_count,
+      evidence_count: artistRow.evidence_count,
+      source_count: artistRow.source_count,
+      confidence_score: artistRow.confidence_score,
+      review_status: artistRow.review_status,
+      approved_at: now,
+      approved_by_user_id: options.adminUser?.id || null,
+      manually_approved: true,
+      notes: artistRow.notes || "",
+    },
+    normalizedSignals: collectionSignals(artistRow),
+    fetchedAt: now,
+  });
+  db.prepare(`
+    UPDATE playlist_collection_artists
+    SET production_artist_intelligence_id = ?,
+        production_intelligence_updated_at = ?
+    WHERE id = ?
+  `).run(artist.id, now, artistRow.id);
+  return {
+    learned: true,
+    type: "artist",
+    created,
+    updated_existing: !created,
+    artist_intelligence_id: artist.id,
+    source,
+  };
+}
+
+function learnApprovedPlaylistTrack(trackRow, options = {}) {
+  if (!trackRow || trackRow.review_status !== "approved") return { learned: false, reason: "track_not_approved" };
+  const db = openDatabase();
+  const beforeIdentityKey = trackIntelligenceRepo.buildTrackIdentityKey({
+    spotifyTrackId: trackRow.spotify_track_id || null,
+    isrc: trackRow.isrc || null,
+    artistName: trackRow.artist_name,
+    trackName: trackRow.track_name,
+  });
+  const before = trackIntelligenceRepo.getTrackIntelligenceByIdentityKey(beforeIdentityKey);
+  const track = before || trackIntelligenceRepo.getOrCreateTrackIntelligence({
+    trackName: trackRow.track_name,
+    artistName: trackRow.artist_name,
+    spotifyTrackId: trackRow.spotify_track_id || null,
+    isrc: trackRow.isrc || null,
+  });
+  const created = !before;
+  const now = new Date().toISOString();
+  const source = `playlist_intelligence:${trackRow.collection_code}`;
+  trackIntelligenceRepo.upsertTrackIntelligenceSource({
+    trackIntelligenceId: track.id,
+    source,
+    sourceTrackId: trackRow.spotify_track_id || null,
+    sourceTrackName: trackRow.track_name,
+    sourceArtistName: trackRow.artist_name,
+    rawPayload: {
+      collection_code: trackRow.collection_code,
+      collection_name: trackRow.collection_name,
+      playlist_collection_track_id: trackRow.id,
+      appearance_count: trackRow.appearance_count,
+      evidence_count: trackRow.evidence_count,
+      source_count: trackRow.source_count,
+      confidence_score: trackRow.confidence_score,
+      review_status: trackRow.review_status,
+      approved_at: now,
+      approved_by_user_id: options.adminUser?.id || null,
+      manually_approved: true,
+      notes: trackRow.notes || "",
+    },
+    normalizedSignals: collectionSignals(trackRow),
+    metadata: {
+      collection_code: trackRow.collection_code,
+      collection_name: trackRow.collection_name,
+      isrc: trackRow.isrc || null,
+    },
+    fetchedAt: now,
+  });
+  db.prepare(`
+    UPDATE playlist_collection_tracks
+    SET production_track_intelligence_id = ?,
+        production_intelligence_updated_at = ?
+    WHERE id = ?
+  `).run(track.id, now, trackRow.id);
+  return {
+    learned: true,
+    type: "track",
+    created,
+    updated_existing: !created,
+    track_intelligence_id: track.id,
+    source,
+  };
 }
 
 function latestImportLog(db, collectionId) {
@@ -853,6 +1183,7 @@ function previewPlaylistIntelligenceCsvImport(codeOrId, body = {}) {
     throw error;
   }
   const existing = existingEvidenceCounts(db, collection.id, evidence.artists, evidence.tracks);
+  const crateExisting = existingCrateIdentityCounts(db, evidence.artists, evidence.tracks);
   const impact = estimateRecoveryImpact(db, evidence.artists);
   return {
     status: "ok",
@@ -865,13 +1196,19 @@ function previewPlaylistIntelligenceCsvImport(codeOrId, body = {}) {
     duplicates: evidence.summary.duplicate_artist_rows + evidence.summary.duplicate_track_rows + existing.existing_artists + existing.existing_tracks,
     duplicate_upload: duplicateFiles.size === files.length,
     duplicate_files: [...duplicateFiles],
-    new_artists: existing.new_artists,
-    new_tracks: existing.new_tracks,
+    new_artists: crateExisting.new_crate_artists,
+    new_tracks: crateExisting.new_crate_tracks,
+    new_collection_artists: existing.new_artists,
+    new_collection_tracks: existing.new_tracks,
     skipped_rows: evidence.summary.skipped_rows,
     rows_read: evidence.summary.rows_read,
     files_processed: evidence.summary.files_processed,
-    existing_artists: existing.existing_artists,
-    existing_tracks: existing.existing_tracks,
+    existing_artists: crateExisting.existing_crate_artists,
+    existing_tracks: crateExisting.existing_crate_tracks,
+    existing_collection_artists: existing.existing_artists,
+    existing_collection_tracks: existing.existing_tracks,
+    duplicate_artist_rows: evidence.summary.duplicate_artist_rows,
+    duplicate_track_rows: evidence.summary.duplicate_track_rows,
     unmatched_artist_overlap: impact.unmatched_artist_overlap,
     estimated_recoverable_songs: impact.estimated_recoverable_songs,
     estimate_type: impact.estimate_type,
@@ -924,6 +1261,7 @@ function applyPlaylistIntelligenceCsvImport(codeOrId, body = {}) {
     throw error;
   }
   const before = existingEvidenceCounts(db, collection.id, evidence.artists, evidence.tracks);
+  const crateBefore = existingCrateIdentityCounts(db, evidence.artists, evidence.tracks);
   const impact = estimateRecoveryImpact(db, evidence.artists);
   const importCompletedAt = new Date().toISOString();
   const summary = {
@@ -946,6 +1284,18 @@ function applyPlaylistIntelligenceCsvImport(codeOrId, body = {}) {
     collections_updated: 1,
     errors: evidence.errors,
     duplicate_files: [...duplicateFiles],
+    artists_processed: evidence.artists.size,
+    tracks_processed: evidence.tracks.size,
+    new_artists: crateBefore.new_crate_artists,
+    existing_artists: crateBefore.existing_crate_artists,
+    new_tracks: crateBefore.new_crate_tracks,
+    existing_tracks: crateBefore.existing_crate_tracks,
+    new_collection_artists: before.new_artists,
+    existing_collection_artists: before.existing_artists,
+    new_collection_tracks: before.new_tracks,
+    existing_collection_tracks: before.existing_tracks,
+    duplicate_artist_rows: evidence.summary.duplicate_artist_rows,
+    duplicate_track_rows: evidence.summary.duplicate_track_rows,
     unmatched_artist_overlap: impact.unmatched_artist_overlap,
     estimated_recoverable_songs: impact.estimated_recoverable_songs,
     estimate_type: impact.estimate_type,
@@ -961,6 +1311,7 @@ function applyPlaylistIntelligenceCsvImport(codeOrId, body = {}) {
         review_status: body.review_status || body.reviewStatus || "candidate",
         trust_level: body.trust_level || body.trustLevel || "medium",
         source_name: file.name,
+        source_fingerprint: file.source_fingerprint || fileFingerprint(file),
         include_in_consensus: body.include_in_consensus ?? body.includeInConsensus ?? true,
         active: true,
         notes: body.notes || "",
@@ -973,6 +1324,7 @@ function applyPlaylistIntelligenceCsvImport(codeOrId, body = {}) {
         db.prepare(`
           UPDATE playlist_collection_sources
           SET source_name = @source_name,
+              source_fingerprint = COALESCE(NULLIF(@source_fingerprint, ''), source_fingerprint),
               trust_level = @trust_level,
               weight = @weight,
               include_in_consensus = @include_in_consensus,
@@ -985,21 +1337,18 @@ function applyPlaylistIntelligenceCsvImport(codeOrId, body = {}) {
       } else {
         db.prepare(`
           INSERT INTO playlist_collection_sources
-            (collection_id, playlist_name, source_type, review_status, trust_level, source_name, source_author, source_url, spotify_playlist_id, weight, include_in_consensus, active, notes)
+            (collection_id, playlist_name, source_type, review_status, trust_level, source_name, source_author, source_url, spotify_playlist_id, source_fingerprint, weight, include_in_consensus, active, notes)
           VALUES
-            (@collection_id, @playlist_name, @source_type, @review_status, @trust_level, @source_name, @source_author, @source_url, @spotify_playlist_id, @weight, @include_in_consensus, @active, @notes)
+            (@collection_id, @playlist_name, @source_type, @review_status, @trust_level, @source_name, @source_author, @source_url, @spotify_playlist_id, @source_fingerprint, @weight, @include_in_consensus, @active, @notes)
         `).run({ ...payload, collection_id: collection.id });
         summary.source_playlists_inserted += 1;
       }
     }
 
     for (const artist of evidence.artists.values()) {
-      const existing = db.prepare(`
-        SELECT * FROM playlist_collection_artists
-        WHERE collection_id = ? AND lower(artist_name) = lower(?)
-      `).get(collection.id, artist.artist_name);
       const payload = {
         artist_name: artist.artist_name,
+        spotify_artist_id: [...(artist.spotify_artist_ids || new Set())][0] || artist.spotify_artist_id || "",
         appearance_count: artist.appearance_count,
         evidence_count: artist.evidence_count,
         source_count: artist.source_names.size,
@@ -1008,12 +1357,22 @@ function applyPlaylistIntelligenceCsvImport(codeOrId, body = {}) {
         approved: 0,
         notes: [...artist.notes].join("\n"),
       };
+      const existing = payload.spotify_artist_id
+        ? db.prepare(`
+            SELECT * FROM playlist_collection_artists
+            WHERE collection_id = ? AND spotify_artist_id = ?
+          `).get(collection.id, payload.spotify_artist_id)
+        : db.prepare(`
+            SELECT * FROM playlist_collection_artists
+            WHERE collection_id = ? AND lower(artist_name) = lower(?)
+          `).get(collection.id, artist.artist_name);
       if (existing) {
         const reviewStatus = PROTECTED_REVIEW_STATUSES.has(existing.review_status) ? existing.review_status : payload.review_status;
         if (PROTECTED_REVIEW_STATUSES.has(existing.review_status)) summary.artists_preserved_status += 1;
         db.prepare(`
           UPDATE playlist_collection_artists
           SET artist_name = @artist_name,
+              spotify_artist_id = COALESCE(NULLIF(@spotify_artist_id, ''), spotify_artist_id),
               appearance_count = appearance_count + @appearance_count,
               evidence_count = evidence_count + @evidence_count,
               source_count = MAX(source_count, @source_count),
@@ -1028,22 +1387,20 @@ function applyPlaylistIntelligenceCsvImport(codeOrId, body = {}) {
       } else {
         db.prepare(`
           INSERT INTO playlist_collection_artists
-            (collection_id, artist_name, appearance_count, evidence_count, source_count, review_status, confidence_score, approved, notes)
+            (collection_id, artist_name, spotify_artist_id, appearance_count, evidence_count, source_count, review_status, confidence_score, approved, notes)
           VALUES
-            (@collection_id, @artist_name, @appearance_count, @evidence_count, @source_count, @review_status, @confidence_score, @approved, @notes)
+            (@collection_id, @artist_name, @spotify_artist_id, @appearance_count, @evidence_count, @source_count, @review_status, @confidence_score, @approved, @notes)
         `).run({ ...payload, collection_id: collection.id });
         summary.artists_inserted += 1;
       }
     }
 
     for (const track of evidence.tracks.values()) {
-      const existing = db.prepare(`
-        SELECT * FROM playlist_collection_tracks
-        WHERE collection_id = ? AND lower(track_name) = lower(?) AND lower(artist_name) = lower(?)
-      `).get(collection.id, track.track_name, track.artist_name);
       const payload = {
         track_name: track.track_name,
         artist_name: track.artist_name,
+        spotify_track_id: track.spotify_track_id || "",
+        isrc: track.isrc || "",
         appearance_count: track.appearance_count,
         evidence_count: track.evidence_count,
         source_count: track.source_names.size,
@@ -1052,6 +1409,20 @@ function applyPlaylistIntelligenceCsvImport(codeOrId, body = {}) {
         approved: 0,
         notes: [...track.notes].join("\n"),
       };
+      const existing = payload.spotify_track_id
+        ? db.prepare(`
+            SELECT * FROM playlist_collection_tracks
+            WHERE collection_id = ? AND spotify_track_id = ?
+          `).get(collection.id, payload.spotify_track_id)
+        : payload.isrc
+          ? db.prepare(`
+              SELECT * FROM playlist_collection_tracks
+              WHERE collection_id = ? AND isrc = ?
+            `).get(collection.id, payload.isrc)
+          : db.prepare(`
+              SELECT * FROM playlist_collection_tracks
+              WHERE collection_id = ? AND lower(track_name) = lower(?) AND lower(artist_name) = lower(?)
+            `).get(collection.id, track.track_name, track.artist_name);
       if (existing) {
         const reviewStatus = PROTECTED_REVIEW_STATUSES.has(existing.review_status) ? existing.review_status : payload.review_status;
         if (PROTECTED_REVIEW_STATUSES.has(existing.review_status)) summary.tracks_preserved_status += 1;
@@ -1059,6 +1430,8 @@ function applyPlaylistIntelligenceCsvImport(codeOrId, body = {}) {
           UPDATE playlist_collection_tracks
           SET track_name = @track_name,
               artist_name = @artist_name,
+              spotify_track_id = COALESCE(NULLIF(@spotify_track_id, ''), spotify_track_id),
+              isrc = COALESCE(NULLIF(@isrc, ''), isrc),
               appearance_count = appearance_count + @appearance_count,
               evidence_count = evidence_count + @evidence_count,
               source_count = MAX(source_count, @source_count),
@@ -1073,9 +1446,9 @@ function applyPlaylistIntelligenceCsvImport(codeOrId, body = {}) {
       } else {
         db.prepare(`
           INSERT INTO playlist_collection_tracks
-            (collection_id, track_name, artist_name, appearance_count, evidence_count, source_count, review_status, confidence_score, approved, notes)
+            (collection_id, track_name, artist_name, spotify_track_id, isrc, appearance_count, evidence_count, source_count, review_status, confidence_score, approved, notes)
           VALUES
-            (@collection_id, @track_name, @artist_name, @appearance_count, @evidence_count, @source_count, @review_status, @confidence_score, @approved, @notes)
+            (@collection_id, @track_name, @artist_name, @spotify_track_id, @isrc, @appearance_count, @evidence_count, @source_count, @review_status, @confidence_score, @approved, @notes)
         `).run({ ...payload, collection_id: collection.id });
         summary.tracks_inserted += 1;
       }
@@ -1193,11 +1566,13 @@ function updateArtist(id, body = {}) {
     review_status: body.review_status ?? existing.review_status,
     confidence_score: body.confidence_score ?? existing.confidence_score,
     approved: body.approved ?? existing.approved,
+    spotify_artist_id: body.spotify_artist_id ?? existing.spotify_artist_id,
     notes: body.notes ?? existing.notes,
   }, "artist");
   db.prepare(`
     UPDATE playlist_collection_artists
     SET artist_name = @artist_name,
+        spotify_artist_id = COALESCE(NULLIF(@spotify_artist_id, ''), spotify_artist_id),
         appearance_count = @appearance_count,
         evidence_count = @evidence_count,
         source_count = @source_count,
@@ -1208,7 +1583,14 @@ function updateArtist(id, body = {}) {
         updated_at = CURRENT_TIMESTAMP
     WHERE id = @id
   `).run({ ...payload, id });
-  return serializeArtist(db.prepare("SELECT * FROM playlist_collection_artists WHERE id = ?").get(id));
+  const updated = getArtistEvidenceWithCollection(db, id);
+  const productionIntelligence = updated.review_status === "approved"
+    ? learnApprovedPlaylistArtist(updated, { adminUser: body.adminUser })
+    : { learned: false, reason: "artist_not_approved" };
+  return {
+    ...serializeArtist(db.prepare("SELECT * FROM playlist_collection_artists WHERE id = ?").get(id)),
+    production_intelligence: productionIntelligence,
+  };
 }
 
 function addTrackToCollection(codeOrId, body = {}) {
@@ -1217,9 +1599,9 @@ function addTrackToCollection(codeOrId, body = {}) {
   const payload = evidencePayload(body, "track");
   const result = db.prepare(`
     INSERT INTO playlist_collection_tracks
-      (collection_id, track_name, artist_name, appearance_count, evidence_count, source_count, review_status, confidence_score, approved, notes)
+      (collection_id, track_name, artist_name, spotify_track_id, isrc, appearance_count, evidence_count, source_count, review_status, confidence_score, approved, notes)
     VALUES
-      (@collection_id, @track_name, @artist_name, @appearance_count, @evidence_count, @source_count, @review_status, @confidence_score, @approved, @notes)
+      (@collection_id, @track_name, @artist_name, @spotify_track_id, @isrc, @appearance_count, @evidence_count, @source_count, @review_status, @confidence_score, @approved, @notes)
   `).run({ ...payload, collection_id: collection.id });
   return serializeTrack(db.prepare("SELECT * FROM playlist_collection_tracks WHERE id = ?").get(result.lastInsertRowid));
 }
@@ -1242,12 +1624,16 @@ function updateTrack(id, body = {}) {
     review_status: body.review_status ?? existing.review_status,
     confidence_score: body.confidence_score ?? existing.confidence_score,
     approved: body.approved ?? existing.approved,
+    spotify_track_id: body.spotify_track_id ?? existing.spotify_track_id,
+    isrc: body.isrc ?? existing.isrc,
     notes: body.notes ?? existing.notes,
   }, "track");
   db.prepare(`
     UPDATE playlist_collection_tracks
     SET track_name = @track_name,
         artist_name = @artist_name,
+        spotify_track_id = COALESCE(NULLIF(@spotify_track_id, ''), spotify_track_id),
+        isrc = COALESCE(NULLIF(@isrc, ''), isrc),
         appearance_count = @appearance_count,
         evidence_count = @evidence_count,
         source_count = @source_count,
@@ -1258,7 +1644,14 @@ function updateTrack(id, body = {}) {
         updated_at = CURRENT_TIMESTAMP
     WHERE id = @id
   `).run({ ...payload, id });
-  return serializeTrack(db.prepare("SELECT * FROM playlist_collection_tracks WHERE id = ?").get(id));
+  const updated = getTrackEvidenceWithCollection(db, id);
+  const productionIntelligence = updated.review_status === "approved"
+    ? learnApprovedPlaylistTrack(updated, { adminUser: body.adminUser })
+    : { learned: false, reason: "track_not_approved" };
+  return {
+    ...serializeTrack(db.prepare("SELECT * FROM playlist_collection_tracks WHERE id = ?").get(id)),
+    production_intelligence: productionIntelligence,
+  };
 }
 
 function deleteRow(tableName, id) {

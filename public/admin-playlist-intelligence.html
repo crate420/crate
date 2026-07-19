@@ -298,12 +298,16 @@
       async function saveRow(row, kind, id) {
         const payload = rowPayload(row);
         const plural = kind + 's';
-        await requestJson('/crate/admin/playlist-intelligence/' + plural + '/' + encodeURIComponent(id), {
+        const response = await requestJson('/crate/admin/playlist-intelligence/' + plural + '/' + encodeURIComponent(id), {
           method: 'PUT',
           body: JSON.stringify(payload),
         });
         await loadCollections(state.detail.collection.collection_code);
-        setMessage('Saved ' + kind + ' row.');
+        const saved = response[kind] || {};
+        const learned = saved.production_intelligence?.learned;
+        setMessage(learned
+          ? 'Saved ' + kind + ' row and updated production intelligence.'
+          : 'Saved ' + kind + ' row.');
       }
 
       async function deleteRow(kind, id) {
