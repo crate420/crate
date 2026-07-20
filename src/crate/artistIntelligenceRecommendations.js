@@ -11,10 +11,27 @@ const DEFAULT_BULK_CONFIDENCE = 95;
 const DEFAULT_BULK_SUPPORT = 3;
 const PLAYLIST_INTELLIGENCE_SOURCE = "Playlist Intelligence";
 const REVIEWABLE_PLAYLIST_INTELLIGENCE_STATUSES = ["candidate", "approved"];
-const PLAYLIST_INTELLIGENCE_COLLECTION_SIGNALS = {
+const PLAYLIST_INTELLIGENCE_GENRE_COLLECTION_SIGNALS = {
   alt_rb: "alternative r&b",
-  college_radio: "college rock",
+  "alt_r&b": "alternative r&b",
+  bedroom_pop: "bedroom pop",
+  britpop: "britpop",
+  dance_pop: "dance pop",
+  dream_pop: "dream pop",
+  indie_folk: "indie folk",
+  indie_pop: "indie pop",
+  neo_soul: "neo soul",
+  shoegaze: "shoegaze",
+  synth_pop: "synth pop",
 };
+const PLAYLIST_INTELLIGENCE_CONTEXT_COLLECTIONS = new Set([
+  "coffeehouse",
+  "college_radio",
+  "road_trip",
+  "summer_cruisin",
+  "summer_cruising",
+  "yacht_rock",
+]);
 
 function normalizeGenre(value) {
   return String(value || "").trim().toLowerCase();
@@ -84,8 +101,16 @@ function sourceWeight(source) {
   return Math.min(1.35, trustWeight * reviewWeight + sourceCountBonus + trackBonus);
 }
 
+function playlistIntelligenceCollectionAuthority(row) {
+  const collectionCode = normalizeGenre(row?.collection_code).replace(/\s+/g, "_");
+  if (Object.prototype.hasOwnProperty.call(PLAYLIST_INTELLIGENCE_GENRE_COLLECTION_SIGNALS, collectionCode)) return "genre";
+  if (PLAYLIST_INTELLIGENCE_CONTEXT_COLLECTIONS.has(collectionCode)) return "context";
+  return "context";
+}
+
 function playlistIntelligenceSignal(row) {
-  return normalizeGenre(PLAYLIST_INTELLIGENCE_COLLECTION_SIGNALS[row.collection_code] || row.collection_name);
+  const collectionCode = normalizeGenre(row?.collection_code).replace(/\s+/g, "_");
+  return normalizeGenre(PLAYLIST_INTELLIGENCE_GENRE_COLLECTION_SIGNALS[collectionCode]);
 }
 
 function playlistIntelligenceConfidence(row) {
@@ -99,6 +124,9 @@ function playlistIntelligenceConfidence(row) {
 }
 
 function playlistIntelligenceArtistNameSubquery() {
+  const genreCollectionCodes = Object.keys(PLAYLIST_INTELLIGENCE_GENRE_COLLECTION_SIGNALS)
+    .map((code) => `'${code.replace(/'/g, "''")}'`)
+    .join(", ");
   return `
     SELECT DISTINCT lower(playlist_collection_artists.artist_name)
     FROM playlist_collection_artists
@@ -106,6 +134,7 @@ function playlistIntelligenceArtistNameSubquery() {
       ON playlist_collection_definitions.id = playlist_collection_artists.collection_id
     WHERE playlist_collection_artists.review_status IN ('candidate', 'approved')
       AND playlist_collection_definitions.research_status IN ('active', 'research')
+      AND playlist_collection_definitions.collection_code IN (${genreCollectionCodes})
   `;
 }
 
@@ -191,6 +220,7 @@ function getPlaylistIntelligenceArtistEvidence(artist) {
         source: `${PLAYLIST_INTELLIGENCE_SOURCE}: ${row.collection_name}`,
         source_type: "playlist_intelligence",
         signal: playlistIntelligenceSignal(row),
+        collection_authority: playlistIntelligenceCollectionAuthority(row),
         review_status: row.review_status,
         trust_level: row.trust_level || "medium",
         confidence_score: playlistIntelligenceConfidence({ ...row, source_count: sourceCount }),
@@ -248,6 +278,11 @@ function buildRecommendations(artist, sources = []) {
       const supportWeight = sources.reduce((sum, source) => sum + Number(source.weight || 0), 0);
       const evidenceConfidence = Math.min(95, Math.max(Number(artist.confidence_score || 0), ...sources.map((source) => Number(source.confidence_score || 0))));
       const playlistSources = sources.filter((source) => source.source_type === "playlist_intelligence");
+      const nonPlaylistSources = sources.filter((source) => source.source_type !== "playlist_intelligence");
+      const genrePlaylistCollectionCount = new Set(playlistSources
+        .filter((source) => source.collection_authority === "genre")
+        .map((source) => source.collection_code)
+        .filter(Boolean)).size;
       return {
         genre,
         classification: classifySignal(genre),
@@ -265,6 +300,7 @@ function buildRecommendations(artist, sources = []) {
           confidence_score: Number(source.confidence_score || 0),
           review_status: source.review_status || null,
           trust_level: source.trust_level || null,
+          collection_authority: source.collection_authority || null,
           updated_at: source.updated_at || null,
         })),
         playlist_intelligence_consensus_count: playlistSources.reduce((sum, source) => sum + Number(source.source_count || 0), 0),
@@ -279,6 +315,7 @@ function buildRecommendations(artist, sources = []) {
             collection_name: source.collection_name || null,
             review_status: source.review_status || null,
             trust_level: source.trust_level || null,
+            collection_authority: source.collection_authority || null,
             source_count: source.source_count || null,
             evidence_count: source.evidence_count || null,
             supporting_track_count: source.supporting_track_count || null,
@@ -288,11 +325,16 @@ function buildRecommendations(artist, sources = []) {
             confidence_score: source.confidence_score || null,
           }))
           .sort((left, right) => left.source.localeCompare(right.source)),
+        has_non_playlist_support: nonPlaylistSources.length > 0,
+        playlist_intelligence_genre_collection_count: genrePlaylistCollectionCount,
       };
     })
     .filter((recommendation) => {
       if (recommendation.classification !== "GENRE") return false;
       if (recommendation.support_count >= 2 && recommendation.support_weight >= 1.5) return true;
+      const hasGenrePlaylistIntelligence = recommendation.playlist_intelligence_genre_collection_count > 0;
+      if (!hasGenrePlaylistIntelligence) return false;
+      if (approvedGenres.size > 0 && !recommendation.has_non_playlist_support && recommendation.playlist_intelligence_genre_collection_count < 2) return false;
       return recommendation.playlist_intelligence_collections.length > 0
         && recommendation.support_weight >= 0.85
         && recommendation.confidence_score >= MIN_RECOMMENDATION_CONFIDENCE;

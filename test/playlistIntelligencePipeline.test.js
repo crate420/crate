@@ -174,3 +174,69 @@ test("candidate Playlist Intelligence evidence appears in recommendations before
   assert.equal(bedroomPop.playlist_intelligence_supporting_tracks, 1);
   assert.ok(bedroomPop.confidence_score >= 85);
 });
+
+test("scene Playlist Intelligence collections do not create primary genre recommendations", () => {
+  const db = openDatabase();
+  const artists = [
+    { name: "Busta Rhymes", normalized: "busta rhymes", approvedGenre: "hip hop" },
+    { name: "Bobby Brown", normalized: "bobby brown", approvedGenre: "r&b" },
+    { name: "3rd Bass", normalized: "3rd bass", approvedGenre: "hip hop" },
+  ];
+
+  for (const artist of artists) {
+    db.prepare(`
+      INSERT INTO artist_intelligence (normalized_artist_name, display_artist_name, confidence_score)
+      VALUES (?, ?, 60)
+    `).run(artist.normalized, artist.name);
+    db.prepare(`
+      INSERT OR IGNORE INTO artist_genres (artist_name, genre, source)
+      VALUES (?, ?, 'test')
+    `).run(artist.name, artist.approvedGenre);
+    addArtistToCollection("college_radio", {
+      artist_name: artist.name,
+      review_status: "candidate",
+      confidence_score: 95,
+      source_count: 8,
+      evidence_count: 24,
+    });
+  }
+
+  const recommendations = listArtistIntelligenceRecommendations({ confidenceMin: 85, limit: 50 });
+  for (const artist of artists) {
+    const row = recommendations.find((candidate) => candidate.artist.artist_name === artist.name);
+    assert.ok(!row?.recommendations.some((recommendation) => recommendation.genre === "college rock"));
+  }
+});
+
+test("a single genre Playlist Intelligence collection does not override approved artist genres", () => {
+  const db = openDatabase();
+  const artists = [
+    { name: "Busta Rhymes", normalized: "busta rhymes single pi", approvedGenre: "hip hop" },
+    { name: "Bobby Brown", normalized: "bobby brown single pi", approvedGenre: "r&b" },
+    { name: "3rd Bass", normalized: "3rd bass single pi", approvedGenre: "hip hop" },
+  ];
+
+  for (const artist of artists) {
+    db.prepare(`
+      INSERT INTO artist_intelligence (normalized_artist_name, display_artist_name, confidence_score)
+      VALUES (?, ?, 60)
+    `).run(artist.normalized, artist.name);
+    db.prepare(`
+      INSERT OR IGNORE INTO artist_genres (artist_name, genre, source)
+      VALUES (?, ?, 'test')
+    `).run(artist.name, artist.approvedGenre);
+    addArtistToCollection("indie_pop", {
+      artist_name: artist.name,
+      review_status: "candidate",
+      confidence_score: 95,
+      source_count: 8,
+      evidence_count: 24,
+    });
+  }
+
+  const recommendations = listArtistIntelligenceRecommendations({ confidenceMin: 85, limit: 50 });
+  for (const artist of artists) {
+    const row = recommendations.find((candidate) => candidate.artist.artist_name === artist.name);
+    assert.ok(!row?.recommendations.some((recommendation) => recommendation.genre === "indie pop"));
+  }
+});
