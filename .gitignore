@@ -1,9 +1,14 @@
 node_modules/
 .env
+.env.*
+!.env.example
 data/*
 !data/
 !data/artist-genres-seed.json
 !data/training-export.json
+recovery/
+*.sqlite
+*.sqlite-*
 npm-debug.log*
 .DS_Store
 logs/

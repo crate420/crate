@@ -57,6 +57,7 @@ const { getAdminDnaEvidenceQuality } = require("../crate/dnaEvidenceQuality");
 const { getAdminIntelligenceCoverage, refreshArtistCoverage, refreshTrackCoverage } = require("../crate/intelligenceCoverage");
 const { getAdminArtistEnrichmentQueue, refreshLastfmArtistTagsForQueue, refreshSpotifyArtistGenresForQueue } = require("../crate/artistEnrichmentQueue");
 const { getDatabaseDiagnostics } = require("../crate/dbDiagnostics");
+const { getMasterSongRecoveryCsv, getMasterSongRecoverySummary } = require("../crate/masterSongRecovery");
 const { getAdminEraDiagnostics } = require("../crate/eraDiagnostics");
 const playlistSeedRegistry = require("../crate/playlistSeedRegistry");
 const { getSeedIntelligenceReport } = require("../crate/seedIntelligence");
@@ -703,6 +704,26 @@ router.get("/admin/status", requireCurrentUser, requireAdminUser, (req, res, nex
       () => getGlobalCrateStatus(),
       req.query,
     ));
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.get("/admin/master-song-recovery/summary", requireCurrentUser, requireAdminUser, (req, res, next) => {
+  try {
+    return res.json(getMasterSongRecoverySummary());
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.get("/admin/master-song-recovery.csv", requireCurrentUser, requireAdminUser, (req, res, next) => {
+  try {
+    const date = new Date().toISOString().slice(0, 10);
+    res.setHeader("Content-Type", "text/csv; charset=utf-8");
+    res.setHeader("Content-Disposition", `attachment; filename=crate-master-song-recovery-${date}.csv`);
+    res.setHeader("Cache-Control", "no-store");
+    return res.send(getMasterSongRecoveryCsv());
   } catch (err) {
     return next(err);
   }

@@ -52,6 +52,10 @@ function createApp() {
     res.sendFile(path.join(config.rootDir, "public/admin-system.html"));
   });
 
+  app.get("/admin-master-song-recovery.html", requireAdminPage, (req, res) => {
+    res.sendFile(path.join(config.rootDir, "public/admin-master-song-recovery.html"));
+  });
+
   app.get("/admin-review.html", requireAdminPage, (req, res) => {
     res.sendFile(path.join(config.rootDir, "public/admin-review.html"));
   });

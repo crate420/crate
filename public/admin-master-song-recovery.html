@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Crate Master Song Recovery</title>
+    <link rel="stylesheet" href="/admin.css">
+  </head>
+  <body data-admin-section="system">
+    <main>
+      <header class="admin-page-header">
+        <div><h1>Master Song Recovery</h1><p>Read-only recovery of every unique song stored across Crate's live database tables.</p></div>
+      </header>
+      <section class="admin-panel admin-grid" aria-live="polite">
+        <div class="admin-panel-header"><div><h2>Live database summary</h2><p id="recovery-status">Inspecting the database…</p></div></div>
+        <div id="recovery-summary" class="admin-stats" hidden></div>
+        <div>
+          <label>Database file/path currently in use</label>
+          <p id="database-path">—</p>
+        </div>
+        <div>
+          <label>Relevant tables found</label>
+          <p id="relevant-tables">—</p>
+        </div>
+        <div class="admin-actions">
+          <a id="download-recovery" class="admin-button primary" href="/crate/admin/master-song-recovery.csv" hidden>Download Master Song Recovery CSV</a>
+        </div>
+      </section>
+    </main>
+    <script src="/adminShell.js"></script>
+    <script>
+      document.addEventListener("DOMContentLoaded", async () => {
+        const status = document.querySelector("#recovery-status");
+        try {
+          const summary = await window.CrateAdmin.requestJson("/crate/admin/master-song-recovery/summary");
+          const metrics = [
+            ["Total raw track-related records", summary.total_raw_track_related_records],
+            ["Unique Spotify track IDs", summary.unique_spotify_track_ids],
+            ["Unique tracks without Spotify IDs", summary.unique_tracks_without_spotify_ids],
+            ["Total unique recovered songs", summary.total_unique_recovered_songs],
+            ["Songs with approved genre/category intelligence", summary.songs_with_approved_genre_category_intelligence],
+            ["Songs without approved genre/category intelligence", summary.songs_without_approved_genre_category_intelligence],
+          ];
+          document.querySelector("#recovery-summary").innerHTML = metrics.map(([label, value]) =>
+            `<div class="admin-stat"><strong>${window.CrateAdmin.formatNumber(value)}</strong><span>${window.CrateAdmin.escapeHtml(label)}</span></div>`
+          ).join("");
+          document.querySelector("#recovery-summary").hidden = false;
+          document.querySelector("#database-path").textContent = summary.database_path || "—";
+          document.querySelector("#relevant-tables").textContent = (summary.relevant_tables_found || []).join(", ") || "None";
+          document.querySelector("#download-recovery").hidden = false;
+          status.textContent = "Summary generated from the database currently attached to this running service.";
+        } catch (error) {
+          status.textContent = `Could not inspect the database: ${error.message}`;
+        }
+      });
+    </script>
+  </body>
+</html>
