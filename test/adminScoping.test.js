@@ -195,3 +195,34 @@ test("normal status endpoint returns only the authenticated user's library", asy
   assert.equal(body.matched_tracks_count, 2);
   assert.equal(body.unmatched_tracks_count, 1);
 });
+
+test('music snapshot is own-account only and cannot select another account',async()=>{
+ const app=createApp();
+ const own=await requestJson(app,'/crate/sorting-snapshot?limit=1',seededBetaUserId);
+ assert.equal(own.response.status,200);assert.equal(own.body.total,1);assert.equal(own.body.tracks[0].artist_names[0],`Artist ${seededBetaUserId}`);
+ assert.doesNotMatch(JSON.stringify(own.body),/email|display_name|refresh_token|access_token|raw_json|liked_at/);
+ const other=await requestJson(app,`/crate/sorting-snapshot?user_id=${seededAdminUserId}`,seededBetaUserId);assert.equal(other.response.status,400);
+ const integrity=await requestJson(app,'/crate/admin/music-integrity',seededBetaUserId);assert.equal(integrity.response.status,403);
+ const allowed=await requestJson(app,'/crate/admin/music-integrity',seededAdminUserId);assert.equal(allowed.response.status,200);assert.equal(allowed.body.counts.associations_missing_track,0);
+ const unauth=await requestJson(app,'/crate/sorting-snapshot',99999999);assert.equal(unauth.response.status,401);
+});
+test('snapshot pagination is consistent and rejects changed versions without writes',async()=>{
+ const app=createApp();const before=openDatabase().prepare('SELECT total_changes() n').get().n;
+ const first=await requestJson(app,'/crate/sorting-snapshot?limit=1&offset=0',seededAdminUserId);
+ const second=await requestJson(app,'/crate/sorting-snapshot?limit=1&offset=1&snapshot='+first.body.snapshot,seededAdminUserId);
+ assert.equal(first.response.status,200);assert.equal(second.response.status,200);assert.equal(second.body.snapshot,first.body.snapshot);assert.equal(second.body.count,0);
+ const stale=await requestJson(app,'/crate/sorting-snapshot?snapshot=stale',seededAdminUserId);assert.equal(stale.response.status,409);
+ const invalid=await requestJson(app,'/crate/sorting-snapshot?limit=1001',seededAdminUserId);assert.equal(invalid.response.status,400);
+ assert.equal(openDatabase().prepare('SELECT total_changes() n').get().n,before);
+});
+
+test('snapshot makes no provider calls, retains manual locks, rejects unauthenticated access',async()=>{
+ const db=openDatabase();const row=db.prepare('SELECT track_id FROM user_tracks WHERE user_id=? AND playlist_code IS NULL LIMIT 1').get(seededAdminUserId);
+ db.prepare('INSERT INTO track_overrides (track_id,override_playlist_code) VALUES (?,?)').run(row.track_id,'jazz');
+ const old=global.fetch;let calls=0;global.fetch=()=>{calls++;throw new Error('Unexpected network call');};
+ try {const app=createApp();const before=db.prepare('SELECT total_changes() n').get().n;
+ const result=await requestJson(app,'/crate/sorting-snapshot?limit=1000',seededAdminUserId);assert.equal(result.body.tracks[0].manual_override,'jazz');assert.equal(result.body.tracks[0].manual_override_scope,'legacy_global_lock');
+ const denied=await requestJson(app,'/crate/sorting-snapshot');assert.equal(denied.response.status,401);
+ assert.equal(calls,0);assert.equal(db.prepare('SELECT total_changes() n').get().n,before);
+ }finally{global.fetch=old;}
+});

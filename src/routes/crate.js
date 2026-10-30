@@ -385,6 +385,15 @@ if (process.env.NODE_ENV !== "production") {
   router.get("/sync-liked", requireCurrentUser, syncLikedHandler);
 }
 
+// Current-account music export and existing-admin-only aggregate integrity.
+router.get('/sorting-snapshot', requireCurrentUser, (req,res,next)=>{
+ try { const data=require('../crate/musicSnapshot').snapshot(req.currentUser.id,req.query);res.set('Cache-Control','no-store');if(req.query.download==='1')res.attachment('crate-unsorted-music.json');return res.json(data); }
+ catch(err){return res.status(err.statusCode||500).json({error:err.code||'snapshot_unavailable',message:err.statusCode?err.message:'Music snapshot unavailable.'});}
+});
+router.get('/admin/music-integrity', requireCurrentUser, requireAdminUser, (req,res,next)=>{
+ try {res.set('Cache-Control','no-store');return res.json({status:'ok',generated_at:new Date().toISOString(),counts:require('../crate/musicSnapshot').integrity()});}catch(err){return next(err);}
+});
+
 router.get("/status", (req, res, next) => {
   try {
     const currentUser = getCurrentUser(req, res);
