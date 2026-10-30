@@ -3,6 +3,7 @@ const { findGenresByArtistNames, normalizeArtistName } = require("../repositorie
 const { effectiveReleaseYearForRow, eraForYear, releaseYearFromDate } = require("./eraYears");
 const { ACTIVE_PLAYLIST_DEFINITIONS } = require("./playlistDefinitions");
 const { getSpecialtySuggestionsForUser } = require("./specialtySuggestions");
+const { resolveSpecialtyTracksForUser } = require("./specialtyTrackResolver");
 const { getArtistNames, parseRawTrack } = require("./trackContext");
 
 const ERA_LABELS = {
@@ -52,7 +53,7 @@ function releaseDateFromRawTrack(rawTrack) {
 
 function isUsableReleaseYear(year) {
   const parsed = Number.parseInt(year, 10);
-  const maxYear = new Date().getFullYear() + 1;
+  const maxYear = new Date().getFullYear();
   return Number.isInteger(parsed) && parsed >= 1900 && parsed <= maxYear;
 }
 
@@ -326,7 +327,7 @@ function buildLibrary(records) {
       ? {
           artist_name: topArtist.artist_name,
           count: topArtist.count,
-          display: `${topArtist.artist_name} shows up more than any other artist.`,
+          display: `${topArtist.artist_name} appears on ${formatCount(topArtist.count, "saved song")}.`,
         }
       : null,
     top_genre: topGenre
@@ -403,19 +404,30 @@ function buildPlaylists(library, records, userId) {
       return left.display_name.localeCompare(right.display_name);
     });
 
-  const specialtyPlaylists = getSpecialtySuggestionsForUser(userId).map((suggestion) => ({
-    seed_code: suggestion.seed_code,
-    playlist_code: suggestion.playlist_code,
-    display_name: suggestion.display_name,
-    overlap_count: suggestion.overlap_count,
-    confidence: suggestion.confidence,
-    status: suggestion.status,
-    display: `${suggestion.display_name} is supported by ${formatCount(suggestion.overlap_count, "liked song")}.`,
-  }));
+  const recordsById = new Map(records.map((r) => [r.track_id, r]));
+  const specialtyPlaylists = getSpecialtySuggestionsForUser(userId).map((suggestion) => {
+    const years = new Map();
+    const preview = resolveSpecialtyTracksForUser(userId, suggestion.seed_code, { limit:10000 });
+    for (const track of preview.tracks || []) {
+      const year = recordsById.get(track.track_id)?.releaseYear;
+      if (year) increment(years, year);
+    }
+    return {
+      seed_code:suggestion.seed_code,
+      playlist_code:suggestion.playlist_code,
+      display_name:suggestion.display_name,
+      overlap_count:suggestion.overlap_count,
+      confidence:suggestion.confidence,
+      status:suggestion.status,
+      year_counts:serializeYearCounts(years),
+      display:`${suggestion.display_name} is supported by ${formatCount(suggestion.overlap_count, "liked song")}.`,
+    };
+  });
 
   return {
     largest_generated_playlist: playlistRows[0] || null,
     top_generated_playlists: playlistRows.slice(0, 10),
+    generated_playlists: playlistRows,
     specialty_playlists_earned: specialtyPlaylists,
   };
 }

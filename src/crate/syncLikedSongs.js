@@ -6,7 +6,15 @@ function elapsedMs(startedAt) {
   return Number(process.hrtime.bigint() - startedAt) / 1_000_000;
 }
 
-async function syncLikedSongs(userId) {
+const inFlight = new Map();
+function syncLikedSongs(userId) {
+  const key=Number(userId);
+  if(inFlight.has(key)) return inFlight.get(key);
+  const task=performSyncLikedSongs(userId).finally(()=>inFlight.delete(key));
+  inFlight.set(key,task);
+  return task;
+}
+async function performSyncLikedSongs(userId) {
   console.log("[Crate Sync] liked songs sync started", { user_id: userId });
   progress.startProgress(userId, {
     stage: "scan_fetch",
@@ -58,6 +66,7 @@ async function syncLikedSongs(userId) {
     tracks_to_process: savedTracks.length,
   });
   const stats = trackRepo.upsertSavedTracksForUser(userId, savedTracks, {
+    reconcile: true,
     onProgress: (scanProgress) => {
       progress.updateProgress(userId, {
         stage: "scan_write",
@@ -86,6 +95,7 @@ async function syncLikedSongs(userId) {
   return {
     ...stats,
     totalStoredForUser,
+    lastSuccessfulRefresh: new Date().toISOString(),
     timing: {
       likedSongsFetchMs,
       trackScanMs,

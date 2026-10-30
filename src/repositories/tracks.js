@@ -149,6 +149,14 @@ function upsertSavedTracksForUser(userId, savedTracks, options = {}) {
         options.onProgress({ processed, total: savedTracks.length, ...stats });
       }
     }
+    if (options.reconcile) {
+      if (stats.skipped) throw new Error('Incomplete library; cached membership retained.');
+      const currentIds=new Set(savedTracks.map(item=>item.track.id));
+      const existing=db.prepare('SELECT user_tracks.track_id, tracks.spotify_track_id FROM user_tracks JOIN tracks ON tracks.id=user_tracks.track_id WHERE user_id=?').all(userId);
+      const remove=db.prepare('DELETE FROM user_tracks WHERE user_id=? AND track_id=?');
+      stats.userTracksRemoved=0;
+      for(const track of existing) if(!currentIds.has(track.spotify_track_id)) stats.userTracksRemoved+=remove.run(userId,track.track_id).changes;
+    }
   });
 
   writeTracks();
